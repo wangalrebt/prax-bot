@@ -144,6 +144,37 @@ One attempt of the tabulate task with Nemotron 3 Ultra, before the repository ma
 
 These are synthetic bugs chosen by us. The numbers are a check on the harness, not a score comparable to SWE-bench.
 
+## SWE-bench Verified subset
+
+`scripts/swe_bench.py` runs the agent on SWE-bench Verified tasks. SWE-bench publishes one environment image per task with the repository at the issue's base commit and its dependencies installed; the sandbox imports those images directly, so no per-repository setup is needed. The agent sees only the issue text, works in a fork of the task image, and its diff is graded in a fresh fork with the dataset's own evaluation script and the official `swebench` harness, hidden tests included.
+
+```bash
+uv run python scripts/swe_bench.py list --difficulty "<15 min fix" --per-repo 2 --n 12
+uv run python scripts/swe_bench.py run --ids <comma-separated instance ids> --max-steps 50 --parallel 2
+```
+
+Twelve tasks rated "under 15 minutes", at most two per repository, chosen with a fixed seed, Nemotron 3 Super, 50-step budget:
+
+| instance | repo | resolved | steps | tokens |
+|---|---|---|---|---|
+| django__django-11880 | django/django | yes | 21 | 261k |
+| django__django-16899 | django/django | yes | 20 | 211k |
+| matplotlib__matplotlib-25122 | matplotlib/matplotlib | yes | 50 | 753k |
+| psf__requests-1142 | psf/requests | yes | 40 | 554k |
+| psf__requests-5414 | psf/requests | yes | 36 | 651k |
+| pydata__xarray-4075 | pydata/xarray | yes | 20 | 312k |
+| pytest-dev__pytest-5809 | pytest-dev/pytest | yes | 13 | 190k |
+| scikit-learn__scikit-learn-12585 | scikit-learn/scikit-learn | yes | 22 | 313k |
+| matplotlib__matplotlib-23476 | matplotlib/matplotlib | no | 48 | 1274k |
+| sphinx-doc__sphinx-8621 | sphinx-doc/sphinx | no (no diff) | 12 | 166k |
+| sympy__sympy-15017 | sympy/sympy | no | 37 | 799k |
+| sympy__sympy-20916 | sympy/sympy | no | 28 | 633k |
+| **8 of 12 resolved** | | | | 6.1M total |
+
+Before the subset, one pipeline trial on requests-2317 ran on an earlier harness and failed: the model made the correct edit three times but kept restoring to the baseline after seeing unrelated, network-dependent test failures. That trial led to the restore cap and the pre-existing-failure notes.
+
+Twelve tasks is a small sample and these are the easier tier of Verified, so this is not comparable to leaderboard numbers on the full 500. It is a genuine measurement on real GitHub issues with hidden tests.
+
 ## Development
 
 ```bash

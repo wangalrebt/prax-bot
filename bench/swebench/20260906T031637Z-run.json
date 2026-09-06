@@ -1,0 +1,261 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "matplotlib__matplotlib-25122,matplotlib__matplotlib-23476,sympy__sympy-15017,pytest-dev__pytest-5809,scikit-learn__scikit-learn-12585,psf__requests-5414,sphinx-doc__sphinx-8621,psf__requests-1142,pydata__xarray-4075",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "2",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "matplotlib__matplotlib-25122",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 753528,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 725610,
+          "completion_tokens": 27918
+        }
+      },
+      "sandbox_commands": 39,
+      "sandbox_cost": 0.35454326999999997,
+      "diff_lines": 17,
+      "summary": "(no summary given)",
+      "agent_elapsed": 259.1410703328438,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "12/12",
+      "p2p": "2476/2476",
+      "eval": "resolved",
+      "eval_cost": 0.19044735,
+      "wall": 286.07810749998316
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23476",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 48,
+      "tokens": 1274358,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 52,
+          "prompt_tokens": 1110981,
+          "completion_tokens": 163377
+        }
+      },
+      "sandbox_commands": 19,
+      "sandbox_cost": 0.06304733000000001,
+      "diff_lines": 241,
+      "summary": "Fixed the DPI doubling issue after unpickling by correcting the renderer cache key and size calculation in the Agg backend's get_renderer method. The key now uses width and height in physical pixels (size_inches * dpi) rather than inches, ensuring the renderer is created with the correct dimensions.",
+      "agent_elapsed": 605.5064199999906,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "59/104",
+      "eval": "not resolved",
+      "eval_cost": 0.18360422,
+      "wall": 658.5180438340176
+    },
+    {
+      "instance_id": "sympy__sympy-15017",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 37,
+      "tokens": 799029,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 37,
+          "prompt_tokens": 779668,
+          "completion_tokens": 19361
+        }
+      },
+      "sandbox_commands": 22,
+      "sandbox_cost": 0.08622751,
+      "diff_lines": 70,
+      "summary": "Fixed the issue where len() of rank-0 arrays returned 0 instead of 1. Modified the calculation of _loop_size in dense_ndim_array.py and sparse_ndim_array.py to use functools.reduce with a default value of 1 for empty shape. Updated _parse_index in ndim_array.py to raise ValueError for integer indice",
+      "agent_elapsed": 181.78296837490052,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "14/14",
+      "eval": "not resolved",
+      "eval_cost": 0.02253891,
+      "wall": 186.97497887490317
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5809",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 13,
+      "tokens": 190488,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 13,
+          "prompt_tokens": 177984,
+          "completion_tokens": 12504
+        }
+      },
+      "sandbox_commands": 11,
+      "sandbox_cost": 0.06083834,
+      "diff_lines": 27,
+      "summary": "Changed the lexer used in the --pastebin feature from 'python3' (or 'python') to 'text' in src/_pytest/pastebin.py to avoid HTTP 400 errors when submitting console output to bpaste.net. Updated the corresponding test in testing/test_pastebin.py to expect 'lexer=text'. Verified that all pastebin-rela",
+      "agent_elapsed": 88.63668241607957,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "3/3",
+      "eval": "resolved",
+      "eval_cost": 0.029034370000000004,
+      "wall": 96.32646674988791
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-12585",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 22,
+      "tokens": 313387,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 22,
+          "prompt_tokens": 302966,
+          "completion_tokens": 10421
+        }
+      },
+      "sandbox_commands": 17,
+      "sandbox_cost": 0.11189650999999999,
+      "diff_lines": 13,
+      "summary": "Fixed the clone function in sklearn/base.py to handle estimator types (classes) as parameters. The fix adds a check for `isinstance(estimator, type)` to the condition that determines whether an object is an estimator. This prevents the clone function from attempting to call `get_params` on a class a",
+      "agent_elapsed": 114.02236362500116,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "22/22",
+      "eval": "resolved",
+      "eval_cost": 0.03047346,
+      "wall": 120.17678483296186
+    },
+    {
+      "instance_id": "psf__requests-5414",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 36,
+      "tokens": 651388,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 36,
+          "prompt_tokens": 601817,
+          "completion_tokens": 49571
+        }
+      },
+      "sandbox_commands": 28,
+      "sandbox_cost": 0.057207079999999993,
+      "diff_lines": 22,
+      "summary": "Fixed the issue where `http://.example.com` raised a UnicodeError instead of InvalidURL. Modified `requests/models.py` in the `prepare_url` method to add validation for ASCII hostnames: check for empty labels (leading/trailing dot or double dot) and label length (>63). The fix ensures that such URLs",
+      "agent_elapsed": 237.5013427908998,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "130/130",
+      "eval": "resolved",
+      "eval_cost": 0.01651491,
+      "wall": 242.99170358292758
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 12,
+      "tokens": 166242,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 14,
+          "prompt_tokens": 132901,
+          "completion_tokens": 33341
+        }
+      },
+      "sandbox_commands": 14,
+      "sandbox_cost": 0.015384260000000002,
+      "diff_lines": 0,
+      "summary": "(no summary given)",
+      "agent_elapsed": 140.0589800409507,
+      "resolved": false,
+      "patch_applied": false,
+      "eval": "no diff produced",
+      "wall": 140.0590488750022
+    },
+    {
+      "instance_id": "psf__requests-1142",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 40,
+      "tokens": 554474,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 40,
+          "prompt_tokens": 513535,
+          "completion_tokens": 40939
+        }
+      },
+      "sandbox_commands": 27,
+      "sandbox_cost": 0.03462201999999999,
+      "diff_lines": 144,
+      "summary": "Fixed the issue where requests.get was always sending a Content-Length header. Modified the prepare_content_length method in requests/models.py to:\n1. Not set Content-Length when body is None (no data)\n2. Respect a user-set Content-Length header (do not override)\nVerified with custom tests that GET ",
+      "agent_elapsed": 222.29387870803475,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "5/5",
+      "eval": "resolved",
+      "eval_cost": 0.0161606,
+      "wall": 226.61014108313248
+    },
+    {
+      "instance_id": "pydata__xarray-4075",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 20,
+      "tokens": 312978,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 20,
+          "prompt_tokens": 298136,
+          "completion_tokens": 14842
+        }
+      },
+      "sandbox_commands": 10,
+      "sandbox_cost": 0.12271501,
+      "diff_lines": 114,
+      "summary": "Fixed the issue with boolean weights in weighted mean by converting boolean arrays to float in the _reduce method of the Weighted class. This ensures that the dot product returns a numeric sum instead of a boolean scalar. Verified with the provided MCVE and additional test cases, and the existing we",
+      "agent_elapsed": 141.42871958296746,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "958/958",
+      "eval": "resolved",
+      "eval_cost": 0.08091029,
+      "wall": 155.06388320797123
+    }
+  ]
+}
