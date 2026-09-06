@@ -56,3 +56,30 @@ def test_ambiguous_fuzzy_match_is_refused() -> None:
 def test_no_match_reports_the_closest_region() -> None:
     _, err = apply_edit(FILE, "return zip(*(collections.deque(itertools.islice(it, i + 2), 0) or it", "x")
     assert err is not None and "closest region is:" in err and "3| " in err and "islice(it, i + 1)" in err
+
+
+def test_inserted_lines_follow_the_neighbouring_line_not_the_first_line() -> None:
+    # the humanize benchmark failure: the model's copy of the block had 0, 9 and 5 spaces where
+    # the file has 4, 8 and 4; the inserted line must land at the file's 8, not at 13
+    src = (
+        "def naturalsize(value):\n"
+        "    if gnu:\n"
+        '        suffix = suffixes["gnu"]\n'
+        "    elif binary:\n"
+        '        suffix = suffixes["binary"]\n'
+        "    base = 1024\n"
+    )
+    old = 'if gnu:\n         suffix = suffixes["gnu"]\n     elif binary:\n         suffix = suffixes["binary"]\n     base = 1024'
+    new = 'if gnu:\n         suffix = suffixes["gnu"]\n         base = 1024\n     elif binary:\n         suffix = suffixes["binary"]\n         base = 1024'
+    out, err = apply_edit(src, old, new)
+    assert err is None
+    assert out == (
+        "def naturalsize(value):\n"
+        "    if gnu:\n"
+        '        suffix = suffixes["gnu"]\n'
+        "        base = 1024\n"
+        "    elif binary:\n"
+        '        suffix = suffixes["binary"]\n'
+        "        base = 1024\n"
+    )
+    compile(out, "<edited>", "exec")  # it must still be valid Python

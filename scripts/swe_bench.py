@@ -6,9 +6,9 @@ per-repository setup is needed. Each task runs the agent in a fork of that image
 diff, and grades it in a fresh fork with the dataset's own evaluation script and the
 official log parsers.
 
-    uv run python scripts/swebench.py list [--difficulty "<15 min fix"] [--per-repo 2] [--n 20] [--seed 0]
-    uv run python scripts/swebench.py run --ids psf__requests-2317,pallets__flask-4045 [--max-steps 50] [--parallel 2]
-    uv run python scripts/swebench.py reeval --ids ...      # grade saved patches again
+    uv run python scripts/swe_bench.py list [--difficulty "<15 min fix"] [--per-repo 2] [--n 20] [--seed 0]
+    uv run python scripts/swe_bench.py run --ids psf__requests-2317,pallets__flask-4045 [--max-steps 50] [--parallel 2]
+    uv run python scripts/swe_bench.py reeval --ids ...      # grade saved patches again
 
 Results go to bench/swebench/<stamp>.{json,md}; per-task logs and patches under bench/swebench/scratch/.
 """

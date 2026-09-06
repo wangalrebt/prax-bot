@@ -129,20 +129,43 @@ def _strip_line_numbers(old: str) -> str:
 
 def _reindent(block: list[str], old_lines: list[str], new_lines: list[str]) -> list[str]:
     """Rewrite `new_lines` so unchanged lines keep the file's exact text and changed lines
-    are shifted by the indentation difference between the file and what the model sent."""
-    delta = _indent(block[0]) - _indent(old_lines[0]) if block and old_lines else 0
+    are shifted by the indentation difference between the file and what the model sent.
+
+    The model's text is assumed to be consistent with itself but possibly offset from the
+    file, and the offset may differ from line to line when it copied sloppily. So each
+    changed region borrows the offset of the nearest old line the model did send, which
+    is the most reliable local estimate of how far off it was.
+    """
     stripped_old = [l.strip() for l in old_lines]
     stripped_new = [l.strip() for l in new_lines]
+
+    def offset_at(k: int) -> int:
+        """File indent minus model indent for old line k, or the nearest non-blank line before it."""
+        for idx in range(min(k, len(old_lines) - 1), -1, -1):
+            if old_lines[idx].strip():
+                return _indent(block[idx]) - _indent(old_lines[idx])
+        for idx in range(len(old_lines)):
+            if old_lines[idx].strip():
+                return _indent(block[idx]) - _indent(old_lines[idx])
+        return 0
+
+    def shifted(line: str, delta: int) -> str:
+        return "" if not line.strip() else " " * max(0, _indent(line) + delta) + line.lstrip()
+
     out: list[str] = []
     for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, stripped_old, stripped_new, autojunk=False).get_opcodes():
         if tag == "equal":
-            out.extend(block[i1:i2])
-        elif tag in ("replace", "insert"):
-            for line in new_lines[j1:j2]:
-                if not line.strip():
-                    out.append("")
+            for k, j in zip(range(i1, i2), range(j1, j2)):
+                # same text; if the model also changed its indentation, it moved the line into or
+                # out of a block, and the file's copy must follow
+                if _indent(old_lines[k]) == _indent(new_lines[j]):
+                    out.append(block[k])
                 else:
-                    out.append(" " * max(0, _indent(line) + delta) + line.lstrip())
+                    out.append(shifted(new_lines[j], offset_at(k)))
+        elif tag in ("replace", "insert"):
+            anchor = i1 if tag == "replace" else max(0, i1 - 1)
+            delta = offset_at(anchor)
+            out.extend(shifted(line, delta) for line in new_lines[j1:j2])
     return out
 
 

@@ -1,0 +1,57 @@
+{
+  "args": {
+    "cmd": "reeval",
+    "ids": "sympy__sympy-20916,django__django-11880,django__django-16899",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "1",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "sympy__sympy-20916",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "steps": 28,
+      "tokens": 633866,
+      "diff_lines": 240,
+      "agent_elapsed": 153.76761054177769,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "1/1",
+      "eval": "not resolved",
+      "eval_cost": 0.02532471
+    },
+    {
+      "instance_id": "django__django-11880",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "steps": 21,
+      "tokens": 261370,
+      "diff_lines": 51,
+      "agent_elapsed": 100.71948700002395,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "114/114",
+      "eval": "resolved",
+      "eval_cost": 0.03990311
+    },
+    {
+      "instance_id": "django__django-16899",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "steps": 20,
+      "tokens": 211153,
+      "diff_lines": 43,
+      "agent_elapsed": 105.43580208299682,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "54/54",
+      "eval": "resolved",
+      "eval_cost": 0.041850889999999995
+    }
+  ]
+}

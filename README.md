@@ -121,7 +121,26 @@ Four runs with Nemotron 3 Super, 40-step budget, the harness improving between r
 
 What the runs taught the harness, in order: exact-match editing rejected a one-space indentation difference and cost a whole run, so edits now tolerate whitespace and show the closest region on a miss (run 2); replies without a tool call no longer consume the step budget, invalid regexes fall back to literal search, and old tool output is compacted sooner (run 3); there is an `outline` tool for large files and repeated identical calls are caught even when interleaved (run 4); and every run now starts with a repository map of definitions and line numbers, ranked toward the files the task mentions, while compaction keeps a short summary of old tool output instead of dropping it (run 5). The fifth task, a padding bug in a 3,000-line module, failed three times in a row on navigation and passed in run 5 at half the cost of its only earlier pass.
 
-One attempt of that task with Nemotron 3 Ultra, before the repository map existed, passed in 35 steps and 836k tokens. `--investigate-model` routes the first investigation turns to one model and the rest to another; the effect is not yet measured.
+The benchmark then grew to ten tasks, adding click, jinja, packaging, pyparsing, and tomli, which are larger codebases of 1,100 to 35,000 lines:
+
+| task | run 6 | run 7 |
+|---|---|---|
+| toolz-sliding-window | pass, 16 steps | pass, 10 steps |
+| more-itertools-tail | pass, 8 steps | pass, 10 steps |
+| tabulate-padding | fail, 33 steps | pass, 35 steps |
+| humanize-naturalsize | pass, 5 steps | fail, 40 steps |
+| jmespath-prefix-suffix | pass, 5 steps | pass, 6 steps |
+| click-intrange-clamp | pass, 13 steps | pass, 12 steps |
+| jinja-batch-filter | pass, 10 steps | pass, 22 steps |
+| packaging-canonicalize | pass, 8 steps | pass, 7 steps |
+| pyparsing-lineno | fail, - steps | pass, 8 steps |
+| tomli-unicode-escape | fail, 7 steps | pass, 7 steps |
+| passed | 7/10 | 9/10 |
+| tokens for the run | 1.18M | 2.22M |
+
+Run 6's misses: tabulate again, a 14 MB upload that hit the SDK's ten-second request timeout (fixed: 180 s), and a correct tomli fix whose diff extraction hit a transient API error (fixed: retries; the recovered diff passes). Run 7's single miss was a bug in the whitespace-tolerant editor that re-indented an inserted line by the wrong offset and broke the module (fixed, with a regression test).
+
+One attempt of the tabulate task with Nemotron 3 Ultra, before the repository map existed, passed in 35 steps and 836k tokens. `--investigate-model` routes the first investigation turns to one model and the rest to another; the effect is not yet measured.
 
 These are synthetic bugs chosen by us. The numbers are a check on the harness, not a score comparable to SWE-bench.
 
