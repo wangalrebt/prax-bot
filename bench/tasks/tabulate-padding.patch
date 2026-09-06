@@ -1,0 +1,13 @@
+diff --git a/tabulate/__init__.py b/tabulate/__init__.py
+index 12a2950..17b48da 100644
+--- a/tabulate/__init__.py
++++ b/tabulate/__init__.py
+@@ -1055,7 +1055,7 @@ def _padright(width, s):
+     True
+ 
+     """
+-    fmt = f"{{0:<{width}s}}"
++    fmt = f"{{0:<{width - 1}s}}"
+     return fmt.format(s)
+ 
+ 

@@ -1,0 +1,166 @@
+"""Past runs: listing, inspecting the checkpoint chain, diffs per checkpoint, and an HTML report."""
+
+from __future__ import annotations
+
+import html
+import json
+import subprocess
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+from .sandbox import DIFF_OUTPUT_LIMIT
+from .settings import Settings
+
+
+@dataclass
+class Run:
+    run_id: str
+    directory: Path
+    info: dict[str, Any]
+    events: list[dict[str, Any]] = field(default_factory=list)
+
+    @property
+    def diff(self) -> str:
+        p = self.directory / "diff.patch"
+        return p.read_text(encoding="utf-8") if p.exists() else ""
+
+    @property
+    def checkpoints(self) -> list[dict[str, Any]]:
+        return list(self.info.get("checkpoints") or [])
+
+    @property
+    def tool_calls(self) -> list[dict[str, Any]]:
+        """Tool calls paired with the first line of their result, in order."""
+        calls: list[dict[str, Any]] = []
+        for e in self.events:
+            if e.get("kind") == "tool.call":
+                calls.append({"step": e.get("step"), "name": e.get("name"), "args": e.get("args", ""), "result": ""})
+            elif e.get("kind") == "tool.result" and calls:
+                out = str(e.get("output") or "")
+                calls[-1]["result"] = out.splitlines()[0] if out else ""
+                calls[-1]["error"] = out.startswith("error:")
+        return calls
+
+
+def runs_dir(settings: Settings | None = None) -> Path:
+    return (settings or Settings.from_env()).home / "runs"
+
+
+def list_runs(settings: Settings | None = None, limit: int = 10) -> list[Run]:
+    base = runs_dir(settings)
+    if not base.exists():
+        return []
+    dirs = sorted((d for d in base.iterdir() if d.is_dir()), key=lambda d: d.name, reverse=True)
+    return [load_run(d.name, settings) for d in dirs[:limit]]
+
+
+def load_run(run_id: str, settings: Settings | None = None) -> Run:
+    directory = runs_dir(settings) / run_id
+    if not directory.is_dir():
+        raise FileNotFoundError(f"no run {run_id} under {runs_dir(settings)}")
+    info_path = directory / "run.json"
+    info = json.loads(info_path.read_text(encoding="utf-8")) if info_path.exists() else {"run_id": run_id}
+    events = []
+    ev = directory / "events.jsonl"
+    if ev.exists():
+        for line in ev.read_text(encoding="utf-8").splitlines():
+            try:
+                events.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+    return Run(run_id=run_id, directory=directory, info=info, events=events)
+
+
+def latest_run_id(settings: Settings | None = None) -> str | None:
+    runs = list_runs(settings, limit=1)
+    return runs[0].run_id if runs else None
+
+
+def checkpoint_diff(run: Run, step: int, settings: Settings | None = None) -> str:
+    """The diff of a checkpoint against the run's baseline, recomputed from the stored state."""
+    checkpoints = run.checkpoints
+    if not 0 <= step < len(checkpoints):
+        raise ValueError(f"run {run.run_id} has checkpoints 0 to {len(checkpoints) - 1}")
+    image = checkpoints[step]["image"]
+    command = "git add -A && git diff --cached --binary HEAD"
+    if image.startswith("local:"):
+        settings = settings or Settings.from_env()
+        snap = settings.home / "local" / run.run_id / "snapshots" / image.split(":", 1)[1]
+        if not snap.is_dir():
+            raise FileNotFoundError(f"local snapshot {snap} no longer exists")
+        r = subprocess.run(["bash", "-c", command], cwd=snap, capture_output=True, text=True)
+        if r.returncode != 0:
+            raise RuntimeError(r.stderr.strip())
+        return r.stdout
+    from .sandbox import make_client
+    from .settings import WORKDIR
+
+    result = make_client().images.use(image).run(
+        shell=command, cwd=WORKDIR, disposable=True, timeout=120, truncate_output_at=DIFF_OUTPUT_LIMIT
+    ).wait()
+    if result.exit_code != 0:
+        raise RuntimeError(str(result.stderr or "").strip())
+    return str(result.stdout or "")
+
+
+def _short_args(name: str, raw: str) -> str:
+    from .render import describe_call
+
+    return describe_call(name, raw)
+
+
+def render_html(run: Run) -> str:
+    """A self-contained HTML report for one run."""
+    info = run.info
+    e = html.escape
+    usage = info.get("usage_by_model") or {}
+    rows = "".join(
+        f"<tr class='{'err' if c.get('error') else ''}'><td>{c['step']}</td><td>{e(str(c['name']))}</td>"
+        f"<td>{e(_short_args(str(c['name']), str(c['args'])))}</td><td>{e(str(c['result'])[:160])}</td></tr>"
+        for c in run.tool_calls
+    )
+    cps = "".join(
+        f"<tr><td>{c['step']}</td><td><code>{e(str(c['image']))}</code></td><td>{e(str(c['label']))}</td></tr>" for c in run.checkpoints
+    )
+    by_model = "".join(
+        f"<tr><td><code>{e(m)}</code></td><td>{u.get('calls', 0)}</td><td>{u.get('prompt_tokens', 0):,}</td><td>{u.get('completion_tokens', 0):,}</td></tr>"
+        for m, u in usage.items()
+    )
+    status = "finished" if info.get("finished") else f"stopped: {info.get('reason', '')}"
+    diff = run.diff
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Prax Bot run {e(run.run_id)}</title>
+<style>
+body{{font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;padding:32px;max-width:1100px;color:#1a2321;background:#f6f8f7}}
+h1{{font-size:22px;margin:0 0 4px}} h2{{font-size:17px;margin:28px 0 8px}} code,pre{{font:13px/1.45 ui-monospace,Menlo,monospace}}
+table{{border-collapse:collapse;width:100%;font-size:14px}} td,th{{text-align:left;vertical-align:top;padding:5px 10px 5px 0;border-bottom:1px solid #d9dfdc}}
+th{{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#6b7772}} tr.err td{{color:#a33d2a}}
+pre{{background:#17211e;color:#dfe6e2;padding:14px;overflow:auto;border-radius:4px}} .kv td:first-child{{color:#6b7772;width:140px}}
+.summary{{background:#fff;border-left:3px solid #0f6a86;padding:10px 14px;white-space:pre-wrap}}
+</style></head><body>
+<h1>Prax Bot run {e(run.run_id)}</h1>
+<div>{e(str(info.get('task', '')))}</div>
+<h2>Run</h2>
+<table class="kv">
+<tr><td>result</td><td>{e(status)}</td></tr>
+<tr><td>repository</td><td><code>{e(str(info.get('repo', '')))}</code></td></tr>
+<tr><td>backend</td><td>{e(str(info.get('backend', '')))}{(' · image ' + e(str(info.get('base_image')))) if info.get('base_image') else ''}</td></tr>
+<tr><td>model</td><td><code>{e(str(info.get('model', '')))}</code>{(' · investigation ' + e(str(info.get('investigate_model')))) if info.get('investigate_model') else ''}</td></tr>
+<tr><td>steps</td><td>{info.get('steps', '')}</td></tr>
+<tr><td>tokens</td><td>{(info.get('prompt_tokens') or 0) + (info.get('completion_tokens') or 0):,} in {info.get('model_calls', '')} calls</td></tr>
+<tr><td>sandbox</td><td>{info.get('sandbox_commands', '')} commands · {len(run.checkpoints)} checkpoints · cost {info.get('sandbox_cost', 0):.4f}</td></tr>
+<tr><td>images</td><td><code>{e(str(info.get('baseline_image', '')))}</code> → <code>{e(str(info.get('final_image', '')))}</code></td></tr>
+<tr><td>elapsed</td><td>{int(info.get('elapsed_s') or 0)} s</td></tr>
+</table>
+{('<h2>Usage by model</h2><table><tr><th>model</th><th>calls</th><th>prompt</th><th>completion</th></tr>' + by_model + '</table>') if by_model else ''}
+<h2>Summary</h2>
+<div class="summary">{e(str(info.get('summary', '')))}</div>
+<h2>Steps</h2>
+<table><tr><th>step</th><th>tool</th><th>arguments</th><th>result</th></tr>{rows}</table>
+<h2>Checkpoints</h2>
+<p>Every command and edit produced an immutable state. Any of them can be diffed or restored with <code>praxbot inspect {e(run.run_id)} --diff N</code>.</p>
+<table><tr><th>step</th><th>image</th><th>label</th></tr>{cps}</table>
+<h2>Diff</h2>
+<pre>{e(diff) if diff.strip() else '(no changes)'}</pre>
+</body></html>
+"""

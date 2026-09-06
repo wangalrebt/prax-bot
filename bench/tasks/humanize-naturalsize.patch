@@ -1,0 +1,13 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index fb675fd..26b4a02 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -88,7 +88,7 @@ def naturalsize(
+     else:
+         suffix = suffixes["decimal"]
+ 
+-    base = 1024 if (gnu or binary) else 1000
++    base = 1024
+     bytes_ = float(value)
+     abs_bytes = abs(bytes_)
+ 

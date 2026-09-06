@@ -1,0 +1,102 @@
+[
+  {
+    "name": "toolz-sliding-window",
+    "repo": "toolz",
+    "commit": "568c2b8393973cd172a466546c9d95779c452438",
+    "bug_patch": "bench/tasks/toolz-sliding-window.patch",
+    "setup": "pip install -e . pytest",
+    "test_cmd": "python -m pytest toolz/tests/test_itertoolz.py -q -k sliding_window",
+    "eval_cmd": "python -m pytest toolz/tests/test_itertoolz.py -q",
+    "task": "toolz.sliding_window returns the wrong windows: list(sliding_window(2, [1, 2, 3, 4])) should be [(1, 2), (2, 3), (3, 4)]. Run `python -m pytest toolz/tests/test_itertoolz.py -q -k sliding_window` to see the failures, fix the library code, and make the tests pass. Do not modify tests."
+  },
+  {
+    "name": "more-itertools-tail",
+    "repo": "more-itertools",
+    "commit": "3e87c08ac878f4bb79349d38ac69ba75c45dc5bf",
+    "bug_patch": "bench/tasks/more-itertools-tail.patch",
+    "setup": "pip install -e . pytest",
+    "test_cmd": "python -m pytest tests/test_recipes.py -q -k Tail",
+    "eval_cmd": "python -m pytest tests/test_recipes.py -q",
+    "task": "more_itertools.tail raises ValueError for some inputs. Run `python -m pytest tests/test_recipes.py -q -k Tail` to see the failures, fix the library code, and make the tests pass. Do not modify tests."
+  },
+  {
+    "name": "tabulate-padding",
+    "repo": "python-tabulate",
+    "commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+    "bug_patch": "bench/tasks/tabulate-padding.patch",
+    "setup": "pip install pytest wcwidth",
+    "test_cmd": "python -m pytest test/test_output.py -q -x",
+    "eval_cmd": "python -m pytest test/test_output.py test/test_api.py -q",
+    "task": "Left-aligned columns in tabulate output are one character too narrow, so table rows no longer line up with their separators. Run `python -m pytest test/test_output.py -q -x` to see a failure, fix the library code, and make the tests pass. Do not modify tests."
+  },
+  {
+    "name": "humanize-naturalsize",
+    "repo": "humanize",
+    "commit": "3201e702ed7eae506f793fad0aec204f387aeb4c",
+    "bug_patch": "bench/tasks/humanize-naturalsize.patch",
+    "setup": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 pip install -e . pytest",
+    "test_cmd": "python -m pytest tests/test_filesize.py -q",
+    "eval_cmd": "python -m pytest tests/test_filesize.py -q",
+    "task": "humanize.naturalsize gives wrong results in its default decimal mode, for example naturalsize(3000000) should be '3.0 MB'. Run `python -m pytest tests/test_filesize.py -q` to see the failures, fix the library code, and make the tests pass. Do not modify tests."
+  },
+  {
+    "name": "jmespath-prefix-suffix",
+    "repo": "jmespath.py",
+    "commit": "2812594e69d43098ef60f81f4efc404c071b0418",
+    "bug_patch": "bench/tasks/jmespath-prefix-suffix.patch",
+    "setup": "pip install -e . pytest",
+    "test_cmd": "python -m pytest tests/test_compliance.py -q -k functions",
+    "eval_cmd": "python -m pytest tests -q",
+    "task": "Some JMESPath built-in functions give wrong answers; the compliance suite fails. Run `python -m pytest tests/test_compliance.py -q -k functions` to see the failures, find the bug in the library, and make the tests pass. Do not modify tests or the compliance JSON files."
+  },
+  {
+    "name": "click-intrange-clamp",
+    "repo": "click",
+    "commit": "6aabf099bfdd4c1e75fe8d0e0d4241372b988ab1",
+    "bug_patch": "bench/tasks/click-intrange-clamp.patch",
+    "setup": "pip install -e . pytest",
+    "test_cmd": "python -m pytest tests/test_types/test_IntRange.py -q",
+    "eval_cmd": "python -m pytest tests/test_types -q",
+    "task": "click.IntRange with clamp=True and an open bound clamps to the wrong side: IntRange(0, min_open=True, clamp=True) converts '0' to -1 but should give 1. Run `python -m pytest tests/test_types/test_IntRange.py -q` to see the failures, fix the library code, and make the tests pass. Do not modify tests."
+  },
+  {
+    "name": "jinja-batch-filter",
+    "repo": "jinja",
+    "commit": "5ef70112a1ff19c05324ff889dd30405b1002044",
+    "bug_patch": "bench/tasks/jinja-batch-filter.patch",
+    "setup": "pip install -e . pytest trio",
+    "test_cmd": "python -m pytest tests/test_filters.py -q -k batch",
+    "eval_cmd": "python -m pytest tests/test_filters.py -q",
+    "task": "The jinja2 `batch` filter returns rows with one item too many. Run `python -m pytest tests/test_filters.py -q -k batch` to see the failure, fix the library code, and make the tests pass. Do not modify tests."
+  },
+  {
+    "name": "packaging-canonicalize",
+    "repo": "packaging",
+    "commit": "10590c194edb33c82f84a127883d6097c56b7840",
+    "bug_patch": "bench/tasks/packaging-canonicalize.patch",
+    "setup": "pip install -e . pytest",
+    "test_cmd": "python -m pytest tests/test_utils.py -q -k canonicalize_name",
+    "eval_cmd": "python -m pytest tests/test_utils.py -q",
+    "task": "packaging.utils.canonicalize_name no longer normalizes some names the way PEP 503 requires; for example canonicalize_name('oslo.concurrency') should be 'oslo-concurrency'. Run `python -m pytest tests/test_utils.py -q -k canonicalize_name` to see the failures, fix the library code, and make the tests pass. Do not modify tests."
+  },
+  {
+    "name": "pyparsing-lineno",
+    "repo": "pyparsing",
+    "commit": "efd56db4e59f36b1673ce0eb0823e3afaa9d1201",
+    "bug_patch": "bench/tasks/pyparsing-lineno.patch",
+    "setup": "pip install -e . pytest",
+    "test_cmd": "python -m pytest tests/test_unit.py -q -x",
+    "eval_cmd": "python -m pytest tests/test_unit.py -q",
+    "task": "pyparsing reports line numbers that are off by one: the first line of a string is reported as line 0. Run `python -m pytest tests/test_unit.py -q -x` to see a failure, fix the library code, and make the tests pass. Do not modify tests."
+  },
+  {
+    "name": "tomli-unicode-escape",
+    "repo": "tomli",
+    "commit": "5a77b12a7a9f052ce5a20c335d2825658f6aea52",
+    "bug_patch": "bench/tasks/tomli-unicode-escape.patch",
+    "setup": "pip install -e . pytest",
+    "test_cmd": "python -m pytest tests -q",
+    "eval_cmd": "python -m pytest tests -q",
+    "task": "tomli parses \\uXXXX escapes in basic strings incorrectly, so documents with such escapes fail to load or load with wrong text. Run `python -m pytest tests -q` to see the failures, fix the library code, and make the tests pass. Do not modify tests."
+  }
+]

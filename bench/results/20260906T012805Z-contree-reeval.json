@@ -1,0 +1,25 @@
+{
+  "args": {
+    "src": "/private/tmp/claude-501/-Users-wangalrebt-code-prax-bot/9c0eeda1-dd4f-42c0-99e3-6698696a3550/scratchpad/bench_src",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/results",
+    "tasks": "more-itertools-tail",
+    "backend": "contree",
+    "eval": "contree",
+    "max_steps": 40,
+    "timeout": 1800,
+    "validate": false,
+    "reeval": true
+  },
+  "results": [
+    {
+      "name": "more-itertools-tail",
+      "diff_lines": 13,
+      "touched_tests": [],
+      "passed": true,
+      "eval": "145 passed, 9860 subtests passed in 11.68s",
+      "eval_where": "sandbox 860bfbf2-660f-4cb2-a180-08286d265225",
+      "eval_cost": 0.14199377000000002,
+      "eval_attempts": 1
+    }
+  ]
+}

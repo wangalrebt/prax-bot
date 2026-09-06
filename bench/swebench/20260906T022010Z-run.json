@@ -1,0 +1,20 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "psf__requests-2317",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "1",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "psf__requests-2317",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "resolved": false,
+      "eval": "error: RuntimeError: baseline setup failed: fatal: $HOME not set\n",
+      "wall": 2.059198500122875
+    }
+  ]
+}

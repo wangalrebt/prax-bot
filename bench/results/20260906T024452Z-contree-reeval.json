@@ -1,0 +1,25 @@
+{
+  "args": {
+    "src": "/private/tmp/claude-501/-Users-wangalrebt-code-prax-bot/9c0eeda1-dd4f-42c0-99e3-6698696a3550/scratchpad/bench_src",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/results",
+    "tasks": "tomli-unicode-escape",
+    "backend": "contree",
+    "eval": "contree",
+    "max_steps": 40,
+    "timeout": 1800,
+    "validate": false,
+    "reeval": true
+  },
+  "results": [
+    {
+      "name": "tomli-unicode-escape",
+      "diff_lines": 13,
+      "touched_tests": [],
+      "passed": true,
+      "eval": "17 passed, 1 skipped, 744 subtests passed in 0.46s",
+      "eval_where": "sandbox a14baa21-e3e4-4f4c-aa02-b6da24ff773b",
+      "eval_cost": 0.03369668,
+      "eval_attempts": 1
+    }
+  ]
+}

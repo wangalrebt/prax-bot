@@ -1,0 +1,13 @@
+diff --git a/more_itertools/recipes.py b/more_itertools/recipes.py
+index 1b5a625..750aaa6 100644
+--- a/more_itertools/recipes.py
++++ b/more_itertools/recipes.py
+@@ -160,7 +160,7 @@ def tail(n, iterable):
+     except TypeError:
+         return iter(deque(iterable, maxlen=n))
+     else:
+-        return islice(iterable, max(0, size - n), None)
++        return islice(iterable, size - n, None)
+ 
+ 
+ def consume(iterator, n=None):

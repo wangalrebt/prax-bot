@@ -1,0 +1,13 @@
+diff --git a/src/packaging/utils.py b/src/packaging/utils.py
+index 9be9ef3..f93e0ef 100644
+--- a/src/packaging/utils.py
++++ b/src/packaging/utils.py
+@@ -117,7 +117,7 @@ def canonicalize_name(name: str, *, validate: bool = False) -> NormalizedName:
+     # Ensure all ``.`` and ``_`` are ``-``
+     # Emulates ``re.sub(r"[-_.]+", "-", name).lower()`` from PEP 503
+     # Much faster than re, and even faster than str.translate
+-    value = name.lower().replace("_", "-").replace(".", "-")
++    value = name.lower().replace("_", "-")
+     # Condense repeats (faster than regex)
+     while "--" in value:
+         value = value.replace("--", "-")

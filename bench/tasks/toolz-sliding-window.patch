@@ -1,0 +1,13 @@
+diff --git a/toolz/itertoolz.py b/toolz/itertoolz.py
+index 354ecf2..850c30a 100644
+--- a/toolz/itertoolz.py
++++ b/toolz/itertoolz.py
+@@ -667,7 +667,7 @@ def sliding_window(n, seq):
+     >>> list(map(mean, sliding_window(2, [1, 2, 3, 4])))
+     [1.5, 2.5, 3.5]
+     """
+-    return zip(*(collections.deque(itertools.islice(it, i), 0) or it
++    return zip(*(collections.deque(itertools.islice(it, i + 1), 0) or it
+                for i, it in enumerate(itertools.tee(seq, n))))
+ 
+ 

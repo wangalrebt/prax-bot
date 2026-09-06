@@ -1,0 +1,37 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "psf__requests-2317",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "1",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "psf__requests-2317",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 910919,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 876858,
+          "completion_tokens": 34061
+        }
+      },
+      "sandbox_commands": 18,
+      "sandbox_cost": 0.030288779999999994,
+      "diff_lines": 0,
+      "summary": "(no summary given)",
+      "agent_elapsed": 807.9538632088806,
+      "resolved": false,
+      "patch_applied": false,
+      "eval": "no diff produced",
+      "wall": 807.9539229590446
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+diff --git a/jmespath/functions.py b/jmespath/functions.py
+index 627b569..8882ace 100644
+--- a/jmespath/functions.py
++++ b/jmespath/functions.py
+@@ -220,11 +220,11 @@ class Functions(metaclass=FunctionRegistry):
+ 
+     @signature({'types': ['string']}, {'types': ['string']})
+     def _func_ends_with(self, search, suffix):
+-        return search.endswith(suffix)
++        return search.startswith(suffix)
+ 
+     @signature({'types': ['string']}, {'types': ['string']})
+     def _func_starts_with(self, search, suffix):
+-        return search.startswith(suffix)
++        return search.endswith(suffix)
+ 
+     @signature({'types': ['array', 'string']})
+     def _func_reverse(self, arg):

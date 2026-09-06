@@ -1,0 +1,13 @@
+diff --git a/src/jinja2/filters.py b/src/jinja2/filters.py
+index c46e20c..f4748f3 100644
+--- a/src/jinja2/filters.py
++++ b/src/jinja2/filters.py
+@@ -1128,7 +1128,7 @@ def do_batch(
+     tmp: list[V] = []
+ 
+     for item in value:
+-        if len(tmp) == linecount:
++        if len(tmp) > linecount:
+             yield tmp
+             tmp = []
+ 

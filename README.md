@@ -1,0 +1,136 @@
+# Prax Bot
+
+A coding agent that works inside a [Nebius Token Factory Sandbox](https://docs.tokenfactory.nebius.com/sandboxes/overview), powered by [NVIDIA Nemotron](https://nebius.com/services/token-factory/nemotron) on Token Factory.
+
+Give it a task in a git repository. It uploads the repository into an isolated sandbox, then reads, edits, and runs commands there until the task is done and tested. Nothing executes on your machine. At the end you see a diff and decide whether to apply it.
+
+Built for the Nebius x NVIDIA Global AI Hackathon, Track 1: agents that write, run, and test code in Token Factory Sandboxes.
+
+## Requirements
+
+- Python 3.12 and [uv](https://docs.astral.sh/uv/)
+- A Nebius account with Token Factory access
+- `NEBIUS_API_KEY`: your Token Factory API key. It also authenticates Sandboxes.
+- `NEBIUS_PROJECT_ID`: your Nebius project id. Sandboxes require it.
+
+## Install
+
+```bash
+uv sync
+uv run praxbot doctor
+```
+
+`doctor` checks the credentials, lists the `nvidia/` models your key can reach, proves a tool-call round trip with the configured model, and runs a command in a sandbox, including a fork-isolation check. Add `--skip-sandbox` to test only the model.
+
+Credentials can also live in the sandbox SDK's own file, `~/.config/contree/auth.ini`, which `contree auth -P <project id>` writes for you (`uv tool install contree-cli`). Prax Bot reads the `token` and `project` lines from the active profile.
+
+Sandboxes are in beta and access is granted per project. If `doctor` reports a 403, request access at https://tokenfactory.nebius.com/sandboxes/about and use `--backend local` in the meantime.
+
+## Use
+
+Inside any git repository:
+
+```bash
+uv run praxbot run "fix the failing test in tests/test_cache.py" --setup "pip install -e . pytest"
+```
+
+What happens:
+
+1. The working tree (tracked and untracked files, respecting `.gitignore`) is uploaded into a fresh sandbox built from `python:3.12` and committed there as the baseline.
+2. The optional `--setup` command runs once, for dependencies.
+3. Nemotron works through a small tool set: `list_files`, `search`, `read_file`, `outline`, `edit_file`, `write_file`, `run`, `restore`, `finish`. Every `run` and every edit produces a new immutable sandbox image, which is a checkpoint the model can `restore`.
+4. When the model calls `finish`, or the step budget ends, the diff against the baseline is pulled out of the sandbox and shown.
+5. You choose whether to apply it. Applying changes the working tree only; nothing is committed.
+
+Options:
+
+| Flag | Default | Meaning |
+|---|---|---|
+| `--model` | `nvidia/nemotron-3-super-120b-a12b` | Any model id on Token Factory |
+| `--base-image` | `python:3.12` | OCI image for the sandbox; it needs `git` and `tar` |
+| `--setup` | none | Shell command run once after upload |
+| `--max-steps` | 40 | Model turns before the run stops |
+| `--backend` | `contree` | `contree` runs in a Token Factory Sandbox. `local` runs on this machine in a private virtualenv, for development only |
+| `--investigate-model` | none | A second model for the first investigation turns, for example Nemotron 3 Ultra, before switching to `--model` for edits |
+| `--yes` | off | Apply without asking |
+| `--export PATH` | none | Also write the diff to a file |
+| `--verbose` | off | Full tool outputs and checkpoint ids |
+
+Environment variables `PRAXBOT_MODEL`, `PRAXBOT_BASE_IMAGE`, `PRAXBOT_SETUP`, `PRAXBOT_MAX_STEPS`, `PRAXBOT_COMMAND_TIMEOUT`, `PRAXBOT_SETUP_TIMEOUT`, `PRAXBOT_IMPORT_TIMEOUT`, and `PRAXBOT_HOME` set the same things.
+
+Every run is logged under `~/.praxbot/runs/<run id>/`: `events.jsonl` (every tool call and result), `diff.patch`, and `run.json` (model, tokens, sandbox commands, checkpoints with image ids, cost, timing).
+
+Past runs are first-class:
+
+```bash
+uv run praxbot inspect --list                 # recent runs
+uv run praxbot inspect <run-id>               # steps and the checkpoint chain
+uv run praxbot inspect <run-id> --diff 3      # the repository as it stood at checkpoint 3, as a diff
+uv run praxbot inspect <run-id> --apply 3     # put that state into your working tree
+uv run praxbot report <run-id> --open         # a self-contained HTML report
+```
+
+Every command and edit the agent made is an immutable sandbox image, so any intermediate state can be diffed or restored after the fact. If the repository has an `AGENTS.md` or `CLAUDE.md`, its contents are given to the model at the start of the run.
+
+## How the sandbox is used
+
+Token Factory Sandboxes are immutable images. Running a command on an image produces a new image. Prax Bot keeps the current image as the workspace state: mutating commands and file writes advance it, read-only commands run disposably and leave it alone. That gives free checkpoints, an exact record of every state the agent passed through, and a diff that is computed inside the sandbox with git. Build artifacts such as `*.egg-info/`, `__pycache__/`, and `.pytest_cache/` are kept out of the diff through the workspace's `.git/info/exclude`.
+
+The local backend implements the same five operations over a temporary directory: commands run with a scrubbed environment inside a private Python 3.12 virtualenv, and checkpoints are directory clones. It is convenient for development and it is not isolation: model-generated commands execute on your machine.
+
+## A first run
+
+Against a small package with two seeded bugs and four tests, Nemotron 3 Super listed the files, read the code and the tests, ran pytest, made two edits, re-ran pytest until it passed, and called finish. The diff touched one file. Numbers from runs of that task:
+
+| | Token Factory Sandbox | local backend |
+|---|---|---|
+| model turns | 11 | 14 |
+| tokens | 38k | 67k |
+| commands and checkpoints | 7 and 7 | 6 and 7 |
+| baseline ready after | 2.2 s plus a 3.4 s `pip install` | 0.1 s plus 3.5 s |
+| wall time | 93 s | 57 s |
+
+Every sandbox command is one immutable image; the run above went from baseline image `27269190…` to final image `d6afd5b8…` through seven checkpoints, and the diff was computed by git inside the sandbox.
+
+## Limits
+
+- One project type is tested: Python repositories using pytest. Other languages work if the base image has their toolchain.
+- Commands are stateless between calls. A background server started in one `run` is gone by the next.
+- The sandbox has network access, so a prompt injection inside a repository could exfiltrate repository contents. No credentials are ever placed in the sandbox.
+- The model verifies its own work by running tests. There are no independent gates yet.
+
+## Benchmark
+
+`bench/` holds five seeded regressions in real Python libraries, each verified to fail at the bugged commit and pass at HEAD. `scripts/bench.py` runs the agent on each one in a sandbox and judges the exported diff independently: it is applied to a fresh copy of the bugged repository in a new sandbox, a broader test set than the one the agent was told about is run, and any change to a test file counts as a failure.
+
+```bash
+uv run python scripts/bench.py --src /path/to/clones --validate   # HEAD passes, bug fails
+uv run python scripts/bench.py --src /path/to/clones              # run and judge
+```
+
+Four runs with Nemotron 3 Super, 40-step budget, the harness improving between runs as the failures were diagnosed:
+
+| task | run 1 | run 2 | run 3 | run 4 | run 5 |
+|---|---|---|---|---|---|
+| toolz-sliding-window | fail, 40 steps | pass, 12 | pass, 15 | pass, 17 | pass, 8 |
+| more-itertools-tail | pass, 9 | pass, 8 | pass, 8 (judged on retry) | pass, 12 | pass, 6 |
+| tabulate-padding | pass, 24 | fail, 40 | fail, 40 | fail, 35 | pass, 25 |
+| humanize-naturalsize | pass, 13 | pass, 7 | pass, 11 | pass, 10 | pass, 12 |
+| jmespath-prefix-suffix | pass, 10 | pass, 7 | pass, 7 | pass, 6 | pass, 5 |
+| tokens for the run | 1.47M | 1.26M | 1.05M | 1.12M | 0.63M |
+
+What the runs taught the harness, in order: exact-match editing rejected a one-space indentation difference and cost a whole run, so edits now tolerate whitespace and show the closest region on a miss (run 2); replies without a tool call no longer consume the step budget, invalid regexes fall back to literal search, and old tool output is compacted sooner (run 3); there is an `outline` tool for large files and repeated identical calls are caught even when interleaved (run 4); and every run now starts with a repository map of definitions and line numbers, ranked toward the files the task mentions, while compaction keeps a short summary of old tool output instead of dropping it (run 5). The fifth task, a padding bug in a 3,000-line module, failed three times in a row on navigation and passed in run 5 at half the cost of its only earlier pass.
+
+One attempt of that task with Nemotron 3 Ultra, before the repository map existed, passed in 35 steps and 836k tokens. `--investigate-model` routes the first investigation turns to one model and the rest to another; the effect is not yet measured.
+
+These are synthetic bugs chosen by us. The numbers are a check on the harness, not a score comparable to SWE-bench.
+
+## Development
+
+```bash
+uv run pytest
+```
+
+## License
+
+MIT
