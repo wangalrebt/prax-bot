@@ -37,6 +37,22 @@ NO_SANDBOX_ACCESS = (
 )
 
 
+def _settings(**kwargs: Any) -> Settings:
+    try:
+        return Settings.from_env(**kwargs)
+    except ValueError as e:
+        raise typer.BadParameter(str(e)) from None
+
+
+def _sampling(settings: Settings) -> str:
+    parts = [f"temperature {settings.temperature:g}"]
+    if settings.top_p is not None:
+        parts.append(f"top_p {settings.top_p:g}")
+    if settings.thinking != "on":
+        parts.append(f"thinking {settings.thinking}")
+    return " · ".join(parts)
+
+
 def _repo_root(path: Path) -> Path:
     try:
         out = subprocess.run(
@@ -198,6 +214,9 @@ def _solve(
                         "resumed_from": resumed_from,
                         "repo": str(root),
                         "model": settings.model,
+                        "temperature": settings.temperature,
+                        "top_p": settings.top_p,
+                        "thinking": settings.thinking,
                         "investigate_model": settings.investigate_model,
                         "usage_by_model": llm.usage.by_model,
                         "backend": backend,
@@ -356,11 +375,14 @@ def run(
     export: Optional[Path] = typer.Option(None, help="Also write the diff to this file"),
     protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
+    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 0.2; NVIDIA recommends 1.0 with --top-p 0.95 for Nemotron 3)"),
+    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling; unset by default"),
+    thinking: Optional[str] = typer.Option(None, help="Model reasoning: on (default), low, or off"),
 ) -> None:
     """Solve a task in the current repository. Runs entirely in a sandbox, shows the diff, takes follow-up instructions, then asks before applying."""
     if backend not in {"contree", "local"}:
         raise typer.BadParameter("backend must be 'contree' or 'local'")
-    settings = Settings.from_env(model=model, investigate_model=investigate_model, base_image=base_image, setup=setup, max_steps=max_steps)
+    settings = _settings(model=model, investigate_model=investigate_model, base_image=base_image, setup=setup, max_steps=max_steps, temperature=temperature, top_p=top_p, thinking=thinking)
     _require_credentials(settings, need_project=backend == "contree")
     root = _repo_root(repo)
 
@@ -405,7 +427,8 @@ def _header(settings: Settings, root: Path, backend: str, extra: str = "") -> No
         Panel.fit(
             f"[bold]Prax Bot[/] {__version__}\n"
             f"[dim]repo[/]   {root}\n[dim]model[/]  {settings.model}"
-            + (f" (investigation: {settings.investigate_model}, first {settings.investigate_steps} steps)" if settings.investigate_model else "") + "\n"
+            + (f" (investigation: {settings.investigate_model}, first {settings.investigate_steps} steps)" if settings.investigate_model else "")
+            + f" · {_sampling(settings)}\n"
             + (f"[dim]image[/]  {settings.base_image}" if backend == "contree" else "[dim]backend[/] local (this machine, no isolation)")
             + extra,
             border_style="cyan",
@@ -428,13 +451,16 @@ def goal(
     export: Optional[Path] = typer.Option(None, help="Also write the diff to this file"),
     protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
+    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 0.2; NVIDIA recommends 1.0 with --top-p 0.95 for Nemotron 3)"),
+    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling; unset by default"),
+    thinking: Optional[str] = typer.Option(None, help="Model reasoning: on (default), low, or off"),
 ) -> None:
     """Work toward a goal in rounds until a check command passes or the model reports it met, then show the diff."""
     from .goal import GoalDriver, goal_task
 
     if backend not in {"contree", "local"}:
         raise typer.BadParameter("backend must be 'contree' or 'local'")
-    settings = Settings.from_env(model=model, base_image=base_image, setup=setup, max_steps=max_steps)
+    settings = _settings(model=model, base_image=base_image, setup=setup, max_steps=max_steps, temperature=temperature, top_p=top_p, thinking=thinking)
     _require_credentials(settings, need_project=backend == "contree")
     root = _repo_root(repo)
     _header(settings, root, backend, f"\n[dim]goal[/]   up to {rounds} rounds" + (f", met when `{escape(check)}` exits 0" if check else ", the model decides when it is met"))
@@ -471,6 +497,9 @@ def resume(
     export: Optional[Path] = typer.Option(None, help="Also write the diff to this file"),
     protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit. Repeatable"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
+    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 0.2; NVIDIA recommends 1.0 with --top-p 0.95 for Nemotron 3)"),
+    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling; unset by default"),
+    thinking: Optional[str] = typer.Option(None, help="Model reasoning: on (default), low, or off"),
 ) -> None:
     """Continue a past run from one of its checkpoints, in a workspace rebuilt from that image."""
     from contree_sdk.sdk.exceptions import ForbiddenError
@@ -478,7 +507,7 @@ def resume(
     from .runs import latest_run_id, load_run, reopen_workspace, continuation_task
     from .sandbox import WorkspaceError
 
-    settings = Settings.from_env(model=model, max_steps=max_steps)
+    settings = _settings(model=model, max_steps=max_steps, temperature=temperature, top_p=top_p, thinking=thinking)
     run_id = run_id or latest_run_id(settings)
     if run_id is None:
         console.print("no runs yet")

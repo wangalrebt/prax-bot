@@ -6,6 +6,7 @@ from pathlib import Path
 
 DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b"
 DEFAULT_LLM_BASE_URL = "https://api.tokenfactory.nebius.com/v1/"
+THINKING_MODES = ("on", "low", "off")
 DEFAULT_BASE_IMAGE = "python:3.12"
 WORKDIR = "/work"
 
@@ -57,6 +58,9 @@ class Settings:
     home: Path
     investigate_model: str | None = None
     investigate_steps: int = 6
+    temperature: float = 0.2
+    top_p: float | None = None
+    thinking: str = "on"  # on: the model's default reasoning; low: shorter reasoning; off: none
 
     @classmethod
     def from_env(
@@ -67,10 +71,20 @@ class Settings:
         base_image: str | None = None,
         setup: str | None = None,
         max_steps: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        thinking: str | None = None,
     ) -> Settings:
         env = os.environ
         ini = read_auth_ini()
+        thinking = (thinking or env.get("PRAXBOT_THINKING") or "on").lower()
+        if thinking not in THINKING_MODES:
+            raise ValueError(f"thinking must be one of {', '.join(THINKING_MODES)}, not {thinking!r}")
+        top_p = top_p if top_p is not None else (float(env["PRAXBOT_TOP_P"]) if env.get("PRAXBOT_TOP_P") else None)
         return cls(
+            temperature=temperature if temperature is not None else float(env.get("PRAXBOT_TEMPERATURE", "0.2")),
+            top_p=top_p,
+            thinking=thinking,
             api_key=env.get("NEBIUS_API_KEY") or env.get("CONTREE_TOKEN") or ini.get("token") or None,
             project_id=(
                 env.get("NEBIUS_PROJECT_ID")

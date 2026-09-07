@@ -45,6 +45,20 @@ class LLM:
         )
         self.usage = Usage()
         self.last_finish_reason: str | None = None
+        self.temperature = settings.temperature
+        self.top_p = settings.top_p
+        self.thinking = settings.thinking
+
+    def request_options(self) -> dict[str, Any]:
+        """Sampling and reasoning options for one request. Thinking 'on' sends nothing extra: the model's default."""
+        options: dict[str, Any] = {}
+        if self.top_p is not None:
+            options["top_p"] = self.top_p
+        if self.thinking == "low":
+            options["extra_body"] = {"chat_template_kwargs": {"enable_thinking": True, "low_effort": True}}
+        elif self.thinking == "off":
+            options["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
+        return options
 
     def complete(
         self,
@@ -52,7 +66,7 @@ class LLM:
         tools: list[dict[str, Any]],
         *,
         tool_choice: Any = "auto",
-        temperature: float = 0.2,
+        temperature: float | None = None,
         model: str | None = None,
     ) -> Any:
         chosen = model or self.model
@@ -61,8 +75,9 @@ class LLM:
             messages=messages,
             tools=tools,
             tool_choice=tool_choice,
-            temperature=temperature,
+            temperature=self.temperature if temperature is None else temperature,
             max_tokens=MAX_COMPLETION_TOKENS,
+            **self.request_options(),
         )
         self.last_finish_reason = getattr(response.choices[0], "finish_reason", None)
         usage = getattr(response, "usage", None)
