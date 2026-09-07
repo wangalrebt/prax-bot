@@ -179,6 +179,27 @@ Before the subset, one pipeline trial on requests-2317 ran on an earlier harness
 
 The four failures were then traced. Two were the harness: leftover reproduction scripts had gone into the diff, and a test file had been edited despite the instruction not to; both are now prevented (scratch files live outside the repository and are excluded from the diff, and test paths can be protected). A third was the harness stalling a run after two blank replies; blank replies are now retried and `finish` is forced only after three stalls. Retried on the fixed harness, sympy-15017 and sphinx-8621 resolved. sympy-20916 produced the same one-line fix as the gold patch except `[0-9]` where the hidden test needs `\d`, and matplotlib-23476 was diagnosed in the wrong file both times; those two are the model's.
 
+The same twelve tasks were then run twice more from scratch, with no retries, to measure the harness rather than the best of several attempts:
+
+| instance | first pass | clean run, round-10 harness | clean run, round-11 harness |
+|---|---|---|---|
+| django__django-11880 | yes, 21 | yes, 46 | yes, 22 |
+| django__django-16899 | yes, 20 | yes, 50 | yes, 46 |
+| matplotlib__matplotlib-23476 | no, 48 | no, 50 | no, 50 |
+| matplotlib__matplotlib-25122 | yes, 50 | yes, 39 | yes, 49 |
+| psf__requests-1142 | yes, 40 | yes, 50 | no, 50 |
+| psf__requests-5414 | yes, 36 | no, 50 | no, 50 (no diff) |
+| pydata__xarray-4075 | yes, 20 | yes, 22 | yes, 18 |
+| pytest-dev__pytest-5809 | yes, 13 | yes, 45 | no, 50 |
+| scikit-learn__scikit-learn-12585 | yes, 22 | yes, 20 | yes, 24 |
+| sphinx-doc__sphinx-8621 | no (no diff), 12 | no, 50 | yes, 24 |
+| sympy__sympy-15017 | no, 37 | yes, 38 | no, 50 (no diff) |
+| sympy__sympy-20916 | no, 28 | no, 50 | no, 50 (no diff) |
+| **resolved** | **8 of 12** | **8 of 12** | **6 of 12** |
+| tokens | 6.1M | 10.0M | 10.1M |
+
+The round-11 changes (files protected only when they already exist, staleness checked by content, a 16k completion cap, a nudge on cut-off replies) did not move the score, and the two-task drop is within the swing of tasks that sit at the edge of the 50-step budget: every miss in both clean runs used all 50 steps. Reading the logs of the round-11 misses shows one harness problem, not a model one. In sympy-15017 the model had the correct two-line fix in place by step 20, was refused twice when it tried to edit a protected test file, then called `restore` back to checkpoint 1 and lost its own work; requests-5414 did the same with a `restore` to the baseline at step 48. Both ended with no diff. sympy-20916 spent its 50 steps on 17 searches and 10 scratch scripts and never edited a repository file. The next harness change is to refuse a `restore` that would discard every edit made so far, and to send the model to `finish` rather than keep investigating once it has used most of the budget without an edit.
+
 Twelve tasks is a small sample and these are the easier tier of Verified, so this is not comparable to leaderboard numbers on the full 500. It is a genuine measurement on real GitHub issues with hidden tests.
 
 ## Development
