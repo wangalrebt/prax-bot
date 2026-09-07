@@ -123,22 +123,22 @@ What the runs taught the harness, in order: exact-match editing rejected a one-s
 
 The benchmark then grew to ten tasks, adding click, jinja, packaging, pyparsing, and tomli, which are larger codebases of 1,100 to 35,000 lines:
 
-| task | run 6 | run 7 | run 8 |
-|---|---|---|---|
-| toolz-sliding-window | pass, 16 steps | pass, 10 steps | pass, 12 steps |
-| more-itertools-tail | pass, 8 steps | pass, 10 steps | pass, 9 steps |
-| tabulate-padding | fail, 33 steps | pass, 35 steps | fail, 40 steps |
-| humanize-naturalsize | pass, 5 steps | fail, 40 steps | pass, 8 steps |
-| jmespath-prefix-suffix | pass, 5 steps | pass, 6 steps | pass, 6 steps |
-| click-intrange-clamp | pass, 13 steps | pass, 12 steps | pass, 9 steps |
-| jinja-batch-filter | pass, 10 steps | pass, 22 steps | pass, 8 steps |
-| packaging-canonicalize | pass, 8 steps | pass, 7 steps | pass, 7 steps |
-| pyparsing-lineno | fail, - steps | pass, 8 steps | pass, 13 steps |
-| tomli-unicode-escape | fail, 7 steps | pass, 7 steps | pass, 5 steps |
-| passed | 7/10 | 9/10 | 9/10 |
-| tokens for the run | 1.18M | 2.22M | 1.45M |
+| task | run 6 | run 7 | run 8 | run 9 |
+|---|---|---|---|---|
+| toolz-sliding-window | pass, 16 steps | pass, 10 steps | pass, 12 steps | pass, 12 steps |
+| more-itertools-tail | pass, 8 steps | pass, 10 steps | pass, 9 steps | pass, 7 steps |
+| tabulate-padding | fail, 33 steps | pass, 35 steps | fail, 40 steps | pass, 25 steps |
+| humanize-naturalsize | pass, 5 steps | fail, 40 steps | pass, 8 steps | pass, 7 steps |
+| jmespath-prefix-suffix | pass, 5 steps | pass, 6 steps | pass, 6 steps | pass, 6 steps |
+| click-intrange-clamp | pass, 13 steps | pass, 12 steps | pass, 9 steps | pass, 9 steps |
+| jinja-batch-filter | pass, 10 steps | pass, 22 steps | pass, 8 steps | pass, 8 steps |
+| packaging-canonicalize | pass, 8 steps | pass, 7 steps | pass, 7 steps | pass, 8 steps |
+| pyparsing-lineno | fail, - steps | pass, 8 steps | pass, 13 steps | pass, 9 steps |
+| tomli-unicode-escape | fail, 7 steps | pass, 7 steps | pass, 5 steps | pass, 7 steps |
+| passed | 7/10 | 9/10 | 9/10 | 10/10 |
+| tokens for the run | 1.18M | 2.22M | 1.45M | 1.05M |
 
-Run 6's misses: tabulate again, a 14 MB upload that hit the SDK's ten-second request timeout (fixed: 180 s), and a correct tomli fix whose diff extraction hit a transient API error (fixed: retries; the recovered diff passes). Run 7's single miss was a bug in the whitespace-tolerant editor that re-indented an inserted line by the wrong offset and broke the module (fixed, with a regression test). Run 8, on the fixed editor, missed only tabulate, which stands at three passes in eight attempts with Nemotron 3 Super and is the one task where the model rather than the harness is the limit.
+Run 6's misses: tabulate again, a 14 MB upload that hit the SDK's ten-second request timeout (fixed: 180 s), and a correct tomli fix whose diff extraction hit a transient API error (fixed: retries; the recovered diff passes). Run 7's single miss was a bug in the whitespace-tolerant editor that re-indented an inserted line by the wrong offset and broke the module (fixed, with a regression test). Run 8, on the fixed editor, missed only tabulate. Run 9 added ideas taken from DeepSeek Harness, full command output saved to a file with the tail returned, a read-before-edit guard, a todo tool, and a step counter on every result, and passed all ten, though tabulate has flipped before and stands at four passes in nine attempts with Nemotron 3 Super.
 
 One attempt of the tabulate task with Nemotron 3 Ultra, before the repository map existed, passed in 35 steps and 836k tokens. `--investigate-model` routes the first investigation turns to one model and the rest to another; the effect is not yet measured.
 
