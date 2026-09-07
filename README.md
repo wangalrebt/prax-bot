@@ -28,13 +28,21 @@ Sandboxes are in beta and access is granted per project. If `doctor` reports a 4
 
 ## Use
 
-Inside any git repository:
+Inside any git repository, either open a session:
+
+```bash
+uv run praxbot
+```
+
+or give it one task:
 
 ```bash
 uv run praxbot run "fix the failing test in tests/test_cache.py" --setup "pip install -e . pytest"
 ```
 
-What happens:
+A session opens one sandbox and keeps taking instructions. Each one continues from the current state, and the diff is shown after every instruction. Inside it, `/diff` shows the pending changes, `/apply` puts them into your working tree and later diffs continue from there, `/undo` returns the sandbox to before the last instruction, `/goal` works in rounds toward an objective, `/resume` swaps in a past run's checkpoint, `/effort` changes how much the model reasons, and `/status` shows steps, tokens and what is not applied yet. `praxbot session --backend local --effort low` opens one with options.
+
+What happens in a run:
 
 1. The working tree (tracked and untracked files, respecting `.gitignore`) is uploaded into a fresh sandbox built from `python:3.12` and committed there as the baseline.
 2. The optional `--setup` command runs once, for dependencies.

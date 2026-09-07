@@ -25,7 +25,7 @@ from .settings import Settings, contree_auth_ini
 
 app = typer.Typer(
     add_completion=False,
-    no_args_is_help=True,
+    no_args_is_help=False,
     help="Prax Bot: a coding agent that works in a Nebius Token Factory Sandbox, powered by NVIDIA Nemotron.",
 )
 console = Console()
@@ -163,6 +163,55 @@ def _ask_followup() -> str:
         return ""
 
 
+def _agent_round(settings: Settings, ws: Any, task: str, llm: Any, on_event: Any, *, protect: list[str], skills: Any = (), plugins: Any = (), goal: bool = False) -> Any:
+    """One agent transcript on the workspace. Interruptions and errors keep the work already in the workspace."""
+    from .agent import Agent, AgentResult
+    from .tools import ToolBox
+
+    console.print("\n[bold]agent[/]")
+    agent = Agent(
+        llm, ToolBox(ws, protected=protect, skills=skills, plugins=plugins), max_steps=settings.max_steps, on_event=on_event,
+        investigate_model=settings.investigate_model, investigate_steps=settings.investigate_steps, goal=goal,
+    )
+    try:
+        return agent.run(task)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]interrupted; collecting the diff so far[/]")
+        return AgentResult(False, "interrupted by the user", 0, "interrupted")
+    except Exception as e:  # noqa: BLE001 - keep the work that is already in the workspace
+        console.print(f"\n[red]✗ the agent stopped: {type(e).__name__}: {escape(str(e)[:400])}[/]")
+        return AgentResult(False, f"stopped by an error: {type(e).__name__}: {str(e)[:200]}", 0, "error")
+
+
+def _print_result(result: Any, llm: Any, ws: Any, run_dir: Path, *, steps_total: int, round_steps: int | None, elapsed: float) -> None:
+    console.print()
+    table = Table(show_header=False, box=None, padding=(0, 2))
+    table.add_row("result", "[green]finished[/]" if result.finished else f"[yellow]stopped: {result.reason}[/]")
+    table.add_row("steps", str(steps_total) if round_steps is None else f"{steps_total} ({round_steps} in this round)")
+    table.add_row("tokens", f"{llm.usage.total_tokens:,} in {llm.usage.calls} calls")
+    table.add_row("sandbox", f"{ws.commands} commands · {len(ws.checkpoints)} checkpoints · cost {ws.total_cost:.4f}")
+    table.add_row("images", f"baseline {ws.checkpoints[0].image} → final {ws.image_id}")
+    table.add_row("elapsed", f"{elapsed:.0f}s")
+    table.add_row("log", str(run_dir))
+    console.print(table)
+    console.print(Panel(escape(result.summary or "(no summary)"), title="summary", border_style="green" if result.finished else "yellow"))
+
+
+def _print_diff(diff: str, ws: Any, run_dir: Path, export: Optional[Path] = None) -> None:
+    if ws.dropped_scratch:
+        console.print(f"[dim]left out of the diff, they look like scratch files: {escape(', '.join(ws.dropped_scratch))}[/]")
+    if not diff.strip():
+        console.print("no changes to the repository")
+        return
+    lines = diff.splitlines()
+    console.print(Syntax("\n".join(lines[:MAX_DIFF_LINES_SHOWN]), "diff", theme="ansi_dark", word_wrap=False))
+    if len(lines) > MAX_DIFF_LINES_SHOWN:
+        console.print(f"[dim]… {len(lines) - MAX_DIFF_LINES_SHOWN} more lines in {run_dir / 'diff.patch'}[/]")
+    if export:
+        export.write_text(diff, encoding="utf-8")
+        console.print(f"diff written to {export}")
+
+
 def _solve(
     settings: Settings,
     ws: Any,
@@ -192,10 +241,8 @@ def _solve(
     Each follow-up starts a new agent transcript on the same workspace: the task text carries the original
     request, the previous summary and the diff so far, and the sandbox state carries everything else.
     """
-    from .agent import Agent, AgentResult
     from .llm import LLM
     from .runs import continuation_task
-    from .tools import ToolBox
 
     if ask_followup is None:
         ask_followup = _ask_followup if sys.stdin.isatty() and not yes else (lambda: "")
@@ -207,19 +254,7 @@ def _solve(
     applied_ok: bool | None = None  # recorded once the user decides; None while undecided or with no diff
     while True:
         round_no += 1
-        console.print("\n[bold]agent[/]")
-        agent = Agent(
-            llm, ToolBox(ws, protected=protect, skills=skills, plugins=plugins), max_steps=settings.max_steps, on_event=on_event,
-            investigate_model=settings.investigate_model, investigate_steps=settings.investigate_steps, goal=goal,
-        )
-        try:
-            result = agent.run(task)
-        except KeyboardInterrupt:
-            console.print("\n[yellow]interrupted; collecting the diff so far[/]")
-            result = AgentResult(False, "interrupted by the user", 0, "interrupted")
-        except Exception as e:  # noqa: BLE001 - keep the work that is already in the workspace
-            console.print(f"\n[red]✗ the agent stopped: {type(e).__name__}: {escape(str(e)[:400])}[/]")
-            result = AgentResult(False, f"stopped by an error: {type(e).__name__}: {str(e)[:200]}", 0, "error")
+        result = _agent_round(settings, ws, task, llm, on_event, protect=protect, skills=skills, plugins=plugins, goal=goal)
         steps_total += result.steps
 
         diff: str | None = None
@@ -276,32 +311,8 @@ def _solve(
             console.print(f"the agent's final state is image {ws.image_id}; the log is in {run_dir}")
             raise typer.Exit(1)
 
-        elapsed = time.monotonic() - started
-        console.print()
-        table = Table(show_header=False, box=None, padding=(0, 2))
-        table.add_row("result", "[green]finished[/]" if result.finished else f"[yellow]stopped: {result.reason}[/]")
-        table.add_row("steps", str(steps_total) if not followups else f"{steps_total} ({result.steps} in this round)")
-        table.add_row("tokens", f"{llm.usage.total_tokens:,} in {llm.usage.calls} calls")
-        table.add_row("sandbox", f"{ws.commands} commands · {len(ws.checkpoints)} checkpoints · cost {ws.total_cost:.4f}")
-        table.add_row("images", f"baseline {ws.checkpoints[0].image} → final {ws.image_id}")
-        table.add_row("elapsed", f"{elapsed:.0f}s")
-        table.add_row("log", str(run_dir))
-        console.print(table)
-        console.print(Panel(escape(result.summary or "(no summary)"), title="summary", border_style="green" if result.finished else "yellow"))
-
-        if ws.dropped_scratch:
-            console.print(f"[dim]left out of the diff, they look like scratch files: {escape(', '.join(ws.dropped_scratch))}[/]")
-        if diff.strip():
-            lines = diff.splitlines()
-            shown = "\n".join(lines[:MAX_DIFF_LINES_SHOWN])
-            console.print(Syntax(shown, "diff", theme="ansi_dark", word_wrap=False))
-            if len(lines) > MAX_DIFF_LINES_SHOWN:
-                console.print(f"[dim]… {len(lines) - MAX_DIFF_LINES_SHOWN} more lines in {run_dir / 'diff.patch'}[/]")
-            if export:
-                export.write_text(diff, encoding="utf-8")
-                console.print(f"diff written to {export}")
-        else:
-            console.print("no changes to the repository")
+        _print_result(result, llm, ws, run_dir, steps_total=steps_total, round_steps=result.steps if followups else None, elapsed=time.monotonic() - started)
+        _print_diff(diff, ws, run_dir, export)
 
         more = auto_next(round_no, result, diff) if auto_next else None
         if more:
@@ -337,6 +348,342 @@ def _solve(
         console.print(f"not applied. The diff is saved at {run_dir / 'diff.patch'}")
     if result.reason == "error":
         raise typer.Exit(1)
+
+
+SESSION_HELP = """Type an instruction to have the agent work on it in the sandbox. Each instruction continues from the current state.
+  /diff                 show the changes so far
+  /apply                apply the changes to your working tree; later diffs continue from there
+  /undo                 put the sandbox back to where it was before the last instruction
+  /goal [--check CMD] [--rounds N] OBJECTIVE   work in rounds until the check passes or the model reports the goal met
+  /resume RUN [--from N]   swap in a workspace rebuilt from a past run's checkpoint
+  /effort LEVEL         off, low, high or xhigh for the next instructions
+  /status               steps, tokens, checkpoints, and what is not applied yet
+  /help                 this text
+  /quit                 leave; you are asked about unapplied changes"""
+
+
+class Session:
+    """One sandbox, many instructions: the interactive form of praxbot run."""
+
+    def __init__(self, settings: Settings, ws: Any, root: Path, *, backend: str, run_id: str, run_dir: Path, events_file: Any,
+                 on_event: Any, protect: list[str], skills: Any = (), plugins: Any = (), read_line: Any = None) -> None:
+        from .llm import LLM
+
+        self.settings, self.ws, self.root, self.backend = settings, ws, root, backend
+        self.run_id, self.run_dir, self.events_file, self.on_event = run_id, run_dir, events_file, on_event
+        self.protect, self.skills, self.plugins = protect, skills, plugins
+        self.read_line = read_line or self._prompt
+        self.llm = LLM(settings)
+        self.started = time.monotonic()
+        self.first_task: str | None = None
+        self.instructions: list[str] = []
+        self.last_result: Any = None
+        self.last_summary = ""
+        self.steps = 0
+        self.rounds = 0
+        self.round_starts: list[int] = []  # checkpoint before each instruction, for /undo
+        self.applied_rounds = 0
+        self.last_diff = ""
+
+    @staticmethod
+    def _prompt() -> str | None:
+        from rich.prompt import Prompt
+
+        try:
+            return Prompt.ask("\n[bold cyan]praxbot[/]", default="", show_default=False)
+        except (KeyboardInterrupt, EOFError):
+            console.print()
+            return None
+
+    def diff(self) -> str:
+        try:
+            self.last_diff = self.ws.diff()
+            (self.run_dir / "diff.patch").write_text(self.last_diff, encoding="utf-8")
+        except Exception as e:  # noqa: BLE001
+            console.print(f"[red]✗ could not extract the diff: {type(e).__name__}: {escape(str(e)[:300])}[/]")
+        return self.last_diff
+
+    def record(self) -> None:
+        r = self.last_result
+        (self.run_dir / "run.json").write_text(
+            json.dumps(
+                {
+                    "run_id": self.run_id,
+                    "task": self.first_task or "(session)",
+                    "followups": self.instructions,
+                    "session": {"rounds": self.rounds, "applied_rounds": self.applied_rounds},
+                    "resumed_from": None,
+                    "repo": str(self.root),
+                    "model": self.settings.model,
+                    "temperature": self.settings.temperature,
+                    "top_p": self.settings.top_p,
+                    "effort": self.settings.effort,
+                    "investigate_model": self.settings.investigate_model,
+                    "usage_by_model": self.llm.usage.by_model,
+                    "backend": self.backend,
+                    "base_image": self.settings.base_image if self.backend == "contree" else None,
+                    "finished": bool(r and r.finished),
+                    "reason": r.reason if r else "session",
+                    "steps": self.steps,
+                    "summary": self.last_summary,
+                    "model_calls": self.llm.usage.calls,
+                    "prompt_tokens": self.llm.usage.prompt_tokens,
+                    "completion_tokens": self.llm.usage.completion_tokens,
+                    "sandbox_commands": self.ws.commands,
+                    "sandbox_cost": self.ws.total_cost,
+                    "baseline_image": self.ws.checkpoints[0].image,
+                    "final_image": self.ws.image_id,
+                    "checkpoints": [dataclasses.asdict(c) for c in self.ws.checkpoints],
+                    "elapsed_s": time.monotonic() - self.started,
+                    "diff_error": None,
+                    "applied": self.applied_rounds > 0,
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+    def run_round(self, task: str, *, goal: bool = False) -> tuple[Any, str]:
+        self.round_starts.append(self.ws.current_step)
+        result = _agent_round(self.settings, self.ws, task, self.llm, self.on_event, protect=self.protect, skills=self.skills, plugins=self.plugins, goal=goal)
+        self.steps += result.steps
+        self.rounds += 1
+        self.last_result, self.last_summary = result, result.summary
+        diff = self.diff()
+        self.record()
+        _print_result(result, self.llm, self.ws, self.run_dir, steps_total=self.steps, round_steps=result.steps if self.rounds > 1 else None, elapsed=time.monotonic() - self.started)
+        _print_diff(diff, self.ws, self.run_dir)
+        return result, diff
+
+    def instruct(self, text: str) -> None:
+        from .runs import continuation_task
+
+        self.on_event("instruction", text=text)
+        if self.first_task is None:
+            self.first_task = text
+            task = text
+        else:
+            self.instructions.append(text)
+            task = continuation_task(self.first_task, self.last_summary, self.diff(), text)
+        self.run_round(task)
+
+    def goal(self, argument: str) -> None:
+        import shlex
+
+        from .goal import GoalDriver, goal_task
+        from .runs import continuation_task
+
+        try:
+            words = shlex.split(argument)
+        except ValueError as e:
+            console.print(f"[red]could not parse that: {escape(str(e))}[/]")
+            return
+        check: str | None = None
+        rounds = 5
+        rest: list[str] = []
+        i = 0
+        while i < len(words):
+            if words[i] == "--check" and i + 1 < len(words):
+                check, i = words[i + 1], i + 2
+            elif words[i] == "--rounds" and i + 1 < len(words) and words[i + 1].isdigit():
+                rounds, i = max(1, int(words[i + 1])), i + 2
+            else:
+                rest.append(words[i])
+                i += 1
+        objective = " ".join(rest).strip()
+        if not objective:
+            console.print("usage: /goal [--check CMD] [--rounds N] OBJECTIVE")
+            return
+        self.on_event("instruction", text=f"/goal {argument}")
+        if self.first_task is None:
+            self.first_task = objective
+        else:
+            self.instructions.append(f"goal: {objective}")
+        driver = GoalDriver(objective, self.ws, max_rounds=rounds, check=check, check_timeout=self.settings.command_timeout)
+        task = goal_task(objective, rounds, check)
+        if self.rounds:
+            task = continuation_task(self.first_task, self.last_summary, self.diff(), task)
+        for n in range(1, rounds + 1):
+            result, diff = self.run_round(task, goal=True)
+            nxt = driver.next_instruction(n, result, diff)
+            self.on_event("goal.round", round=n, met=driver.met, stopped=driver.stopped)
+            if nxt is None:
+                console.print(f"\n[bold]{'[green]' if driver.met else '[yellow]'}{escape(driver.status)}[/][/]")
+                return
+            task = continuation_task(objective, result.summary, diff, nxt)
+
+    def apply(self) -> bool:
+        diff = self.diff()
+        if not diff.strip():
+            console.print("nothing to apply")
+            return True
+        if not _apply_diff(self.root, diff):
+            console.print(f"the diff is saved at {self.run_dir / 'diff.patch'}")
+            return False
+        r = self.ws.run("git add -A && git -c user.email=praxbot@localhost -c user.name=praxbot commit -qm 'praxbot session: applied to the working tree'", timeout=120, mutate=True)
+        if r.exit_code != 0:
+            console.print(f"[yellow]applied, but the sandbox could not record it: {escape((r.stderr or r.stdout)[-300:])}[/]")
+        else:
+            console.print("[dim]later diffs continue from this state[/]")
+        self.applied_rounds = self.rounds
+        self.round_starts.clear()  # /undo cannot reach behind an apply
+        self.record()
+        return True
+
+    def undo(self) -> None:
+        if not self.round_starts:
+            console.print("nothing to undo")
+            return
+        step = self.round_starts.pop()
+        cp = self.ws.restore(step)
+        self.rounds = max(self.rounds - 1, 0)
+        if self.instructions:
+            self.instructions.pop()
+        elif self.first_task is not None and self.rounds == 0:
+            self.first_task = None
+        console.print(f"restored the sandbox to checkpoint {cp.step} ({escape(cp.label)})")
+        _print_diff(self.diff(), self.ws, self.run_dir)
+        self.record()
+
+    def resume(self, argument: str) -> None:
+        from .runs import load_run, reopen_workspace
+
+        words = argument.split()
+        if not words:
+            console.print("usage: /resume RUN-ID [--from N]")
+            return
+        run_id = words[0]
+        step: int | None = None
+        if "--from" in words:
+            try:
+                step = int(words[words.index("--from") + 1])
+            except (IndexError, ValueError):
+                console.print("usage: /resume RUN-ID [--from N]")
+                return
+        try:
+            past = load_run(run_id, self.settings)
+            if not past.checkpoints:
+                raise ValueError(f"run {run_id} has no checkpoints")
+            step = len(past.checkpoints) - 1 if step is None else step
+            self.ws = reopen_workspace(past, step, self.settings, self.on_event, f"{self.run_id}-r{self.rounds + 1}")
+        except Exception as e:  # noqa: BLE001
+            console.print(f"[red]✗ could not resume: {type(e).__name__}: {escape(str(e)[:300])}[/]")
+            return
+        self.first_task = str(past.info.get("task") or "") or self.first_task
+        self.last_summary = str(past.info.get("summary") or "")
+        self.round_starts.clear()
+        self.on_event("instruction", text=f"/resume {argument}")
+        console.print(f"workspace rebuilt from {run_id} checkpoint {step}")
+        _print_diff(self.diff(), self.ws, self.run_dir)
+
+    def status(self) -> None:
+        diff = self.diff()
+        table = Table(show_header=False, box=None, padding=(0, 2))
+        table.add_row("model", f"{self.settings.model} · {_sampling(self.settings)}")
+        table.add_row("rounds", f"{self.rounds} · {self.steps} steps · {self.llm.usage.total_tokens:,} tokens")
+        table.add_row("sandbox", f"{self.ws.commands} commands · {len(self.ws.checkpoints)} checkpoints · cost {self.ws.total_cost:.4f} · now {self.ws.image_id}")
+        table.add_row("changes", f"{diff.count('diff --git ')} files not applied" if diff.strip() else "none pending")
+        table.add_row("log", str(self.run_dir))
+        console.print(table)
+
+    def loop(self) -> None:
+        console.print("[dim]type an instruction, or /help[/]")
+        while True:
+            line = self.read_line()
+            if line is None:
+                break
+            line = line.strip()
+            if not line:
+                continue
+            if not line.startswith("/"):
+                self.instruct(line)
+                continue
+            command, _, argument = line.partition(" ")
+            command = command.lower()
+            if command in ("/quit", "/exit", "/q"):
+                break
+            elif command == "/help":
+                console.print(SESSION_HELP)
+            elif command == "/diff":
+                _print_diff(self.diff(), self.ws, self.run_dir)
+            elif command == "/apply":
+                self.apply()
+            elif command == "/undo":
+                self.undo()
+            elif command == "/goal":
+                self.goal(argument)
+            elif command == "/resume":
+                self.resume(argument)
+            elif command == "/effort":
+                try:
+                    self.settings = _settings(model=self.settings.model, base_image=self.settings.base_image, setup=self.settings.setup, max_steps=self.settings.max_steps,
+                                              temperature=self.settings.temperature, top_p=self.settings.top_p, effort=argument.strip() or None)
+                except typer.BadParameter as e:
+                    console.print(f"[red]{escape(str(e))}[/]")
+                    continue
+                from .llm import LLM
+
+                usage = self.llm.usage
+                self.llm = LLM(self.settings)
+                self.llm.usage = usage
+                console.print(f"effort {self.settings.effort}")
+            elif command == "/status":
+                self.status()
+            else:
+                console.print(f"unknown command {escape(command)}; /help lists them")
+        self.close()
+
+    def close(self) -> None:
+        self.record()
+        self.events_file.close()
+        diff = self.diff()
+        if not diff.strip():
+            return
+        if sys.stdin.isatty() and self.read_line == self._prompt:
+            if Confirm.ask("Apply the pending changes to the working tree?", default=False):
+                self.apply()
+                return
+        console.print(f"not applied. The diff is saved at {self.run_dir / 'diff.patch'}")
+
+
+def _start_session(repo: Path, model: Optional[str], base_image: Optional[str], setup: Optional[str], max_steps: Optional[int],
+                   backend: str, protect: list[str], verbose: bool, temperature: Optional[float], top_p: Optional[float], effort: Optional[str]) -> None:
+    if backend not in {"contree", "local"}:
+        raise typer.BadParameter("backend must be 'contree' or 'local'")
+    settings = _settings(model=model, base_image=base_image, setup=setup, max_steps=max_steps, temperature=temperature, top_p=top_p, effort=effort)
+    _require_credentials(settings, need_project=backend == "contree")
+    root = _repo_root(repo)
+    _header(settings, root, backend, "\n[dim]mode[/]   session: one sandbox, many instructions")
+    skills, plugins = _extensions(settings)
+    run_id, run_dir, events_file, on_event = _new_run(settings, verbose)
+    ws = _open_workspace(settings, backend, root, run_id, on_event)
+    Session(settings, ws, root, backend=backend, run_id=run_id, run_dir=run_dir, events_file=events_file, on_event=on_event,
+            protect=protect, skills=skills, plugins=plugins).loop()
+
+
+@app.command()
+def session(
+    repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository to work on"),
+    model: Optional[str] = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
+    base_image: Optional[str] = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
+    setup: Optional[str] = typer.Option(None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"),
+    max_steps: Optional[int] = typer.Option(None, min=1, max=200, help="Model turns per instruction (default 40)"),
+    backend: str = typer.Option("contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"),
+    protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
+    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 0.2)"),
+    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling; unset by default"),
+    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low, high (default), or xhigh"),
+) -> None:
+    """Open one sandbox on this repository and keep giving it instructions. Also what bare `praxbot` does."""
+    _start_session(repo, model, base_image, setup, max_steps, backend, protect, verbose, temperature, top_p, effort)
+
+
+@app.callback(invoke_without_command=True)
+def main(ctx: typer.Context) -> None:
+    """Prax Bot: a coding agent that works in a Nebius Token Factory Sandbox, powered by NVIDIA Nemotron. With no command, opens a session."""
+    if ctx.invoked_subcommand is None:
+        _start_session(Path("."), None, None, None, None, "contree", [], False, None, None, None)
 
 
 @app.command()
