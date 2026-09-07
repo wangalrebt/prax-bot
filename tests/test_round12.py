@@ -43,3 +43,11 @@ def test_late_budget_nudge_tells_the_model_to_wrap_up() -> None:
     assert "Only" not in tool_results[0], "step 1 of 5 is not late"
     assert "no repository file has been changed" in tool_results[1] and "Only 3 steps remain" in tool_results[1]
     assert "Wrap up" in tool_results[2] and "no repository file" not in tool_results[2]
+
+
+def test_protected_message_says_not_to_revert_for_stale_tests() -> None:
+    ws = FakeWorkspace({"tests/test_a.py": "assert old\n", "a.py": "old\n"})
+    box = ToolBox(ws, protected=("tests/*",))
+    box.call("read_file", json.dumps({"path": "tests/test_a.py"}))
+    out = box.call("edit_file", json.dumps({"path": "tests/test_a.py", "old": "old", "new": "new"}))
+    assert out.startswith("error:") and "keep your fix" in out and "Do not revert" in out

@@ -511,7 +511,8 @@ class ToolBox:
         return self._observed.get(path) == _digest(text)
 
     PROTECTED_MSG = ("is protected and must not be modified. Add a new test file or put reproduction scripts under "
-                     + SCRATCH_DIR + " instead.")
+                     + SCRATCH_DIR + " instead. If an existing test asserts the old behaviour, leave it: keep your fix "
+                     "and say so in finish. Do not revert a correct change to satisfy a stale test.")
 
     def _protected(self, path: str) -> bool:
         """True for an existing repository file matching a protected glob. New files and the scratch dir are free."""
