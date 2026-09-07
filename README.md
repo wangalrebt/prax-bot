@@ -64,6 +64,7 @@ Every run is logged under `~/.praxbot/runs/<run id>/`: `events.jsonl` (every too
 Past runs are first-class:
 
 ```bash
+uv run praxbot status                         # what is running now, recent runs and their verdicts, setup state
 uv run praxbot inspect --list                 # recent runs
 uv run praxbot inspect <run-id>               # steps and the checkpoint chain
 uv run praxbot inspect <run-id> --diff 3      # the repository as it stood at checkpoint 3, as a diff

@@ -7,6 +7,7 @@ import json
 import shutil
 import subprocess
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -152,6 +153,105 @@ def reopen_workspace(run: Run, step: int, settings: Settings, on_event: Any = No
 
     client = make_client()
     return Workspace(client, client.images.use(image), command_timeout=settings.command_timeout, on_event=on_event)
+
+
+IN_PROGRESS_WINDOW_S = 30 * 60  # a run without a record whose log moved within this window is still running
+
+
+@dataclass
+class RunStatus:
+    run_id: str
+    kind: str  # run, resume, goal
+    task: str
+    state: str  # finished, stopped: <reason>, in progress, abandoned
+    started: datetime | None
+    last_activity: datetime | None
+    steps: int | None
+    tokens: int | None
+    cost: float | None
+    files_changed: int
+    applied: bool | None
+    last_tool: str | None = None
+    goal: dict[str, Any] | None = None
+
+
+def run_started(run_id: str) -> datetime | None:
+    try:
+        return datetime.strptime(run_id[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+def run_status(run: Run, now: datetime | None = None) -> RunStatus:
+    """What one run is, what it did, and whether it is still going."""
+    now = now or datetime.now(timezone.utc)
+    info = run.info
+    events_path = run.directory / "events.jsonl"
+    last_activity = None
+    if events_path.exists():
+        last_activity = datetime.fromtimestamp(events_path.stat().st_mtime, tz=timezone.utc)
+    kind = "goal" if info.get("goal") else "resume" if info.get("resumed_from") else "run"
+    calls = [e for e in run.events if e.get("kind") == "tool.call"]
+    last_tool = f"{calls[-1].get('name')} (step {calls[-1].get('step')})" if calls else None
+    if "finished" in info:
+        state = "finished" if info.get("finished") else f"stopped: {info.get('reason', '')}"
+    elif last_activity and (now - last_activity).total_seconds() < IN_PROGRESS_WINDOW_S:
+        state = "in progress"
+    else:
+        state = "abandoned"
+    diff = run.diff
+    tokens = None
+    if "prompt_tokens" in info:
+        tokens = int(info.get("prompt_tokens") or 0) + int(info.get("completion_tokens") or 0)
+    return RunStatus(
+        run_id=run.run_id,
+        kind=kind,
+        task=str(info.get("task") or "").strip(),
+        state=state,
+        started=run_started(run.run_id),
+        last_activity=last_activity,
+        steps=info.get("steps"),
+        tokens=tokens,
+        cost=info.get("sandbox_cost"),
+        files_changed=diff.count("diff --git "),
+        applied=info.get("applied"),
+        last_tool=last_tool,
+        goal=info.get("goal"),
+    )
+
+
+def local_workspaces(settings: Settings) -> tuple[int, int]:
+    """Count and size in bytes of the local backend's workspaces, which can be large."""
+    base = settings.home / "local"
+    if not base.is_dir():
+        return 0, 0
+    dirs = [d for d in base.iterdir() if d.is_dir()]
+    r = subprocess.run(["du", "-sk", *map(str, dirs)], capture_output=True, text=True) if dirs else None
+    size = 0
+    if r is not None and r.returncode == 0:
+        size = sum(int(line.split()[0]) * 1024 for line in r.stdout.splitlines() if line.split())
+    return len(dirs), size
+
+
+def status_summary(settings: Settings, limit: int = 10) -> dict[str, Any]:
+    base = runs_dir(settings)
+    total = sum(1 for d in base.iterdir() if d.is_dir()) if base.exists() else 0
+    statuses = [run_status(r) for r in list_runs(settings, limit=limit)]
+    count, size = local_workspaces(settings)
+    return {"runs": statuses, "total_runs": total, "local_workspaces": count, "local_bytes": size}
+
+
+def ago(when: datetime | None, now: datetime | None = None) -> str:
+    if when is None:
+        return "?"
+    seconds = max(0, int(((now or datetime.now(timezone.utc)) - when).total_seconds()))
+    if seconds < 60:
+        return f"{seconds}s ago"
+    if seconds < 3600:
+        return f"{seconds // 60}m ago"
+    if seconds < 86400:
+        return f"{seconds // 3600}h ago"
+    return f"{seconds // 86400}d ago"
 
 
 def _short_args(name: str, raw: str) -> str:

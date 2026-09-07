@@ -162,6 +162,7 @@ def _solve(
     followups: list[str] = []
     steps_total = 0
     round_no = 0
+    applied_ok: bool | None = None  # recorded once the user decides; None while undecided or with no diff
     while True:
         round_no += 1
         console.print("\n[bold]agent[/]")
@@ -215,6 +216,7 @@ def _solve(
                         "checkpoints": [dataclasses.asdict(c) for c in ws.checkpoints],
                         "elapsed_s": elapsed,
                         "diff_error": diff_error,
+                        "applied": applied_ok,
                         **(extra() if callable(extra) else (extra or {})),
                     },
                     indent=2,
@@ -279,13 +281,65 @@ def _solve(
         apply = False
         console.print("[dim]no terminal to confirm on; pass --yes to apply automatically[/]")
     if apply:
-        if not _apply_diff(root, diff):
+        applied_ok = _apply_diff(root, diff)
+        write_info()
+        if not applied_ok:
             console.print(f"the diff is saved at {run_dir / 'diff.patch'}")
             raise typer.Exit(1)
     else:
+        applied_ok = False
+        write_info()
         console.print(f"not applied. The diff is saved at {run_dir / 'diff.patch'}")
     if result.reason == "error":
         raise typer.Exit(1)
+
+
+@app.command()
+def status(
+    limit: int = typer.Option(10, "--limit", "-n", min=1, max=100, help="How many recent runs to list"),
+) -> None:
+    """What Prax Bot is doing now, what it did recently, and whether it is set up."""
+    from .runs import ago, status_summary
+
+    settings = Settings.from_env()
+    missing = settings.missing()
+    summary = status_summary(settings, limit=limit)
+    runs = summary["runs"]
+    lines = [
+        f"[bold]Prax Bot[/] {__version__}",
+        f"[dim]model[/]    {settings.model}",
+        f"[dim]sandbox[/]  project {settings.project_id}" if settings.project_id else "[dim]sandbox[/]  no project id; only --backend local will work",
+        "[dim]auth[/]     ok" if not missing else f"[dim]auth[/]     [red]missing:[/] {escape('; '.join(missing))}",
+        f"[dim]runs[/]     {summary['total_runs']} under {settings.home / 'runs'}",
+    ]
+    if summary["local_workspaces"]:
+        lines.append(f"[dim]local[/]    {summary['local_workspaces']} workspaces, {summary['local_bytes'] / 1e9:.1f} GB under {settings.home / 'local'}")
+    console.print(Panel.fit("\n".join(lines), border_style="cyan"))
+
+    active = [r for r in runs if r.state == "in progress"]
+    for r in active:
+        console.print(
+            f"[bold green]in progress[/]  {r.run_id}  started {ago(r.started)}, last activity {ago(r.last_activity)}"
+            + (f", last tool {escape(r.last_tool)}" if r.last_tool else "") + f"\n  {escape(r.task[:100])}"
+        )
+    if not runs:
+        console.print("no runs yet. Start one with [bold]praxbot run \"<task>\"[/].")
+        return
+    table = Table(box=None, padding=(0, 2), header_style="dim")
+    for col in ("when", "kind", "task", "result", "steps", "tokens", "diff", "applied", "run id"):
+        table.add_column(col, no_wrap=col != "task")
+    for r in runs:
+        result = {"finished": "[green]finished[/]", "in progress": "[green]in progress[/]", "abandoned": "[dim]abandoned[/]"}.get(r.state, f"[yellow]{escape(r.state)}[/]")
+        if r.goal:
+            result += " · goal met" if r.goal.get("met") else f" · goal not met ({r.goal.get('rounds', 0)} rounds)"
+        table.add_row(
+            ago(r.started), r.kind, escape(r.task[:60] + ("…" if len(r.task) > 60 else "")), result,
+            "" if r.steps is None else str(r.steps), "" if r.tokens is None else f"{r.tokens:,}",
+            f"{r.files_changed} file{'s' if r.files_changed != 1 else ''}" if r.files_changed else "none",
+            {True: "yes", False: "no"}.get(r.applied, ""), r.run_id,
+        )
+    console.print(table)
+    console.print("[dim]praxbot inspect <run id> for the steps; praxbot resume <run id> to continue one.[/]")
 
 
 @app.command()
