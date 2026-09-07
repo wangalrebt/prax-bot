@@ -27,8 +27,9 @@ def test_scratch_files_only_match_root_level_script_names() -> None:
 def test_protected_paths_refuse_edits_and_writes() -> None:
     box = ToolBox(FakeWorkspace({"tests/test_a.py": "x\n", "src/a.py": "x\n"}), protected=("tests/*", "*/tests/*", "test_*.py"))
     box.call("read_file", {"path": "tests/test_a.py"})
-    assert box.call("edit_file", {"path": "tests/test_a.py", "old": "x", "new": "y"}) == "error: tests/test_a.py is protected and must not be modified"
-    assert box.call("write_file", {"path": "test_new.py", "content": "y"}).startswith("error: test_new.py is protected")
+    assert box.call("edit_file", {"path": "tests/test_a.py", "old": "x", "new": "y"}).startswith("error: tests/test_a.py is protected and must not be modified. Add a new test file")
+    assert box.call("write_file", {"path": "tests/test_new.py", "content": "y"}).startswith("wrote tests/test_new.py")  # new files are allowed
+    assert box.call("write_file", {"path": "/tmp/praxbot/scratch/test_repro.py", "content": "y"}).startswith("wrote /tmp/praxbot/scratch/test_repro.py")
     box.call("read_file", {"path": "src/a.py"})
     assert box.call("edit_file", {"path": "src/a.py", "old": "x", "new": "y"}).startswith("edited src/a.py")
 

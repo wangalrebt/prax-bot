@@ -30,6 +30,7 @@ Respond only with tool calls."""
 NUDGE = "Continue by calling a tool. Call finish when the task is complete or if you are stuck."
 MAX_NUDGES = 3  # consecutive turns without a tool call before finish is forced
 BLANK_RETRIES = 2  # a reply with no text and no tool call is retried before it counts as a stall
+BLANK_NUDGE = "Your last reply was cut off before it contained a tool call. Decide now and call one tool; keep any reasoning short."
 REPEAT_NUDGE = (
     "You have made the same call with the same arguments three times; its result will not change. "
     "Use the results you already have, try a different approach, or call finish and explain what is blocking you."
@@ -181,6 +182,8 @@ class Agent:
             if not calls and not (msg.content or "").strip() and blank_retries < BLANK_RETRIES:
                 # nothing came back at all: a cut-off or dropped reply, not a decision; ask again
                 blank_retries += 1
+                if finish_reason == "length" and not (messages and messages[-1].get("content") == BLANK_NUDGE):
+                    messages.append({"role": "user", "content": BLANK_NUDGE})
                 self.on_event("nudge", step=step + 1, reason=f"blank reply (finish_reason={finish_reason}), retrying")
                 continue
             blank_retries = 0

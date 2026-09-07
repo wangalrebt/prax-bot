@@ -1,0 +1,345 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "sympy__sympy-20916,django__django-11880,django__django-16899,matplotlib__matplotlib-25122,matplotlib__matplotlib-23476,sympy__sympy-15017,pytest-dev__pytest-5809,scikit-learn__scikit-learn-12585,psf__requests-5414,sphinx-doc__sphinx-8621,psf__requests-1142,pydata__xarray-4075",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "2",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "sympy__sympy-20916",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 948113,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 913948,
+          "completion_tokens": 34165
+        }
+      },
+      "sandbox_commands": 22,
+      "sandbox_cost": 0.09389226000000002,
+      "diff_lines": 0,
+      "summary": "(no summary given)",
+      "agent_elapsed": 241.0309197921306,
+      "resolved": false,
+      "patch_applied": false,
+      "eval": "no diff produced",
+      "wall": 241.03100891713984
+    },
+    {
+      "instance_id": "django__django-11880",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 46,
+      "tokens": 735116,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 46,
+          "prompt_tokens": 709767,
+          "completion_tokens": 25349
+        }
+      },
+      "sandbox_commands": 22,
+      "sandbox_cost": 0.08657772,
+      "diff_lines": 12,
+      "summary": "Fixed the __deepcopy__ method of the Field class in django/forms/fields.py to deep copy the error_messages dictionary. This ensures that when form fields are deep copied (e.g., when creating multiple form instances), each field has its own independent error_messages dictionary, preventing shared sta",
+      "agent_elapsed": 182.9770319161471,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "114/114",
+      "eval": "resolved",
+      "eval_cost": 0.03950853,
+      "wall": 192.48537958296947
+    },
+    {
+      "instance_id": "django__django-16899",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 761302,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 668032,
+          "completion_tokens": 93270
+        }
+      },
+      "sandbox_commands": 21,
+      "sandbox_cost": 0.045733620000000016,
+      "diff_lines": 17,
+      "summary": "(no summary given)",
+      "agent_elapsed": 366.1641481660772,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "54/54",
+      "eval": "resolved",
+      "eval_cost": 0.03989535,
+      "wall": 376.0013284580782
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-25122",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 39,
+      "tokens": 704713,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 39,
+          "prompt_tokens": 663039,
+          "completion_tokens": 41674
+        }
+      },
+      "sandbox_commands": 10,
+      "sandbox_cost": 0.10866599000000003,
+      "diff_lines": 17,
+      "summary": "Fixed the window correction in mlab._spectral_helper by removing np.abs and using the actual window values. Changed two lines:\n1. result /= (np.abs(window)**2).sum()  ->  result /= (window**2).sum()\n2. result /= np.abs(window).sum()**2    ->  result /= window.sum()**2\nVerified that the fix does not ",
+      "agent_elapsed": 199.8878065829631,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "12/12",
+      "p2p": "2476/2476",
+      "eval": "resolved",
+      "eval_cost": 0.19033419000000001,
+      "wall": 226.5266997080762
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23476",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1318399,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 59,
+          "prompt_tokens": 1183454,
+          "completion_tokens": 134945
+        }
+      },
+      "sandbox_commands": 17,
+      "sandbox_cost": 0.17079878,
+      "diff_lines": 20,
+      "summary": "(no summary given)",
+      "agent_elapsed": 474.3521239159163,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "104/104",
+      "eval": "not resolved",
+      "eval_cost": 0.19083663999999997,
+      "wall": 494.0215910829138
+    },
+    {
+      "instance_id": "sympy__sympy-15017",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 38,
+      "tokens": 810456,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 38,
+          "prompt_tokens": 775730,
+          "completion_tokens": 34726
+        }
+      },
+      "sandbox_commands": 24,
+      "sandbox_cost": 0.09869812,
+      "diff_lines": 22,
+      "summary": "I have fixed the issue by changing the computation of _loop_size in the _new methods of ImmutableDenseNDimArray and MutableDenseNDimArray to use functools.reduce with an initializer of 1, so that the product of an empty shape (rank-0 array) is 1 instead of 0. This makes len(a) return 1 for a rank-0 ",
+      "agent_elapsed": 239.78724904195406,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "14/14",
+      "eval": "resolved",
+      "eval_cost": 0.023508909999999997,
+      "wall": 245.04530479200184
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5809",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 45,
+      "tokens": 775952,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 45,
+          "prompt_tokens": 694557,
+          "completion_tokens": 81395
+        }
+      },
+      "sandbox_commands": 18,
+      "sandbox_cost": 0.026366050000000012,
+      "diff_lines": 16,
+      "summary": "Changed the lexer in src/_pytest/pastebin.py from 'python3' (or 'python' for Python 2) to 'text' to avoid HTTP errors when submitting pastebin content. This fix addresses the issue where certain content caused HTTP 400 errors with the 'python3' lexer. Verified that the pastebin functionality still w",
+      "agent_elapsed": 310.5408004580531,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "3/3",
+      "eval": "resolved",
+      "eval_cost": 0.02985124,
+      "wall": 317.8659125410486
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-12585",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 20,
+      "tokens": 184807,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 20,
+          "prompt_tokens": 176287,
+          "completion_tokens": 8520
+        }
+      },
+      "sandbox_commands": 20,
+      "sandbox_cost": 0.16003424000000005,
+      "diff_lines": 13,
+      "summary": "Fixed the issue where `clone` fails when a parameter is an estimator type (class) rather than an instance. The fix modifies `sklearn/base.py` line 51 to also check if the estimator is a type (i.e., a class) using `isinstance(estimator, type)`. This prevents attempting to call `get_params` on a class",
+      "agent_elapsed": 95.56484108301811,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "22/22",
+      "eval": "resolved",
+      "eval_cost": 0.03049028,
+      "wall": 101.80236341711134
+    },
+    {
+      "instance_id": "psf__requests-5414",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 787712,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 730089,
+          "completion_tokens": 57623
+        }
+      },
+      "sandbox_commands": 30,
+      "sandbox_cost": 0.058606740000000004,
+      "diff_lines": 29,
+      "summary": "(no summary given)",
+      "agent_elapsed": 291.40317429206334,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "122/130",
+      "eval": "not resolved",
+      "eval_cost": 0.02052543,
+      "wall": 297.31403841706924
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1457924,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 52,
+          "prompt_tokens": 1389305,
+          "completion_tokens": 68619
+        }
+      },
+      "sandbox_commands": 30,
+      "sandbox_cost": 0.06602114,
+      "diff_lines": 25,
+      "summary": "(no summary given)",
+      "agent_elapsed": 325.6303674171213,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "1/2",
+      "p2p": "31/31",
+      "eval": "not resolved",
+      "eval_cost": 0.03297686,
+      "wall": 332.64046545908786
+    },
+    {
+      "instance_id": "psf__requests-1142",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1220511,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 1166068,
+          "completion_tokens": 54443
+        }
+      },
+      "sandbox_commands": 27,
+      "sandbox_cost": 0.04492688,
+      "diff_lines": 23,
+      "summary": "(no summary given)",
+      "agent_elapsed": 291.52982858289033,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "5/5",
+      "eval": "resolved",
+      "eval_cost": 0.01615826,
+      "wall": 295.64738349989057
+    },
+    {
+      "instance_id": "pydata__xarray-4075",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 22,
+      "tokens": 305617,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 22,
+          "prompt_tokens": 295120,
+          "completion_tokens": 10497
+        }
+      },
+      "sandbox_commands": 21,
+      "sandbox_cost": 0.34873455,
+      "diff_lines": 14,
+      "summary": "Fixed the issue with boolean weights in weighted mean by converting weights to float in the _sum_of_weights method of the Weighted class in xarray/core/weighted.py. This ensures that the dot product returns a numeric sum instead of a boolean. Verified with the original MCVE and the existing test sui",
+      "agent_elapsed": 142.93137424997985,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "958/958",
+      "eval": "resolved",
+      "eval_cost": 0.07907885,
+      "wall": 156.2560475829523
+    }
+  ]
+}

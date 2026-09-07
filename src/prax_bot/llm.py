@@ -29,7 +29,7 @@ class Usage:
         entry["completion_tokens"] += completion
 
 
-MAX_COMPLETION_TOKENS = 8192  # room for reasoning plus a tool call; the server default can cut a call off
+MAX_COMPLETION_TOKENS = 16384  # room for reasoning plus a tool call; a cut-off reply wastes the whole turn
 
 
 class LLM:

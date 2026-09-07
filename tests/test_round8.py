@@ -33,12 +33,12 @@ def test_edits_require_a_fresh_read_after_commands_or_restores() -> None:
     assert box.call("edit_file", {"path": "a.py", "old": "x = 1", "new": "x = 2"}).startswith("edited a.py")
     # its own edit keeps the file fresh
     assert box.call("edit_file", {"path": "a.py", "old": "x = 2", "new": "x = 3"}).startswith("edited a.py")
-    box.call("run", {"command": "make format"})
-    assert "may have changed since you last read it" in box.call("edit_file", {"path": "a.py", "old": "x = 3", "new": "x = 4"})
-    box.call("read_file", {"path": "a.py"})
+    box.call("run", {"command": "pytest"})  # a command that changes nothing leaves the file fresh
     assert box.call("edit_file", {"path": "a.py", "old": "x = 3", "new": "x = 4"}).startswith("edited a.py")
-    box.call("restore", {"step": 0})
-    assert box.call("edit_file", {"path": "a.py", "old": "x = 4", "new": "x = 5"}).startswith("error: read a.py")
+    ws.files["a.py"] = b"x = 4  # formatted\n"  # something else changed the file
+    assert "It has changed since you last read it" in box.call("edit_file", {"path": "a.py", "old": "x = 4", "new": "x = 5"})
+    box.call("read_file", {"path": "a.py"})
+    assert box.call("edit_file", {"path": "a.py", "old": "x = 4", "new": "x = 5"}).startswith("edited a.py")
 
 
 def test_write_file_marks_the_file_observed() -> None:

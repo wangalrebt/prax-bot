@@ -341,6 +341,12 @@ def compact_tool_output(name: str, output: str, defs_for: Callable[[str], list[t
     return output if len(output) <= 300 else "[compacted] " + output[:280]
 
 
+def _digest(text: str) -> str:
+    import hashlib
+
+    return hashlib.sha1(text.encode("utf-8", "replace")).hexdigest()
+
+
 def pytest_failures(output: str) -> list[str]:
     """Test ids reported as FAILED or ERROR in pytest output, in order."""
     return list(dict.fromkeys(m.group(1) for m in PYTEST_FAILED_RE.finditer(output)))
@@ -355,8 +361,7 @@ class ToolBox:
         self._restores = 0
         self._first_failures: list[str] | None = None  # failing tests seen in the first test run
         self._edited = False
-        self._world = 0  # bumps whenever a command or restore may have changed files
-        self._observed: dict[str, int] = {}  # path -> world version at which the model last saw it
+        self._observed: dict[str, str] = {}  # path -> digest of the content the model last saw
         self._outputs = 0
         self.todos: list[dict[str, str]] = []
 
@@ -497,21 +502,35 @@ class ToolBox:
             )
         return clip(_limited(lines, a.max_results, r.truncated, "matches; narrow the pattern or path")) + note
 
-    def _observe(self, path: str) -> None:
-        self._observed[path] = self._world
+    def _observe(self, path: str, text: str) -> None:
+        self._observed[path] = _digest(text)
+
+    def _fresh(self, path: str, text: str) -> bool:
+        """The model has seen exactly this content, from a read or from its own last edit."""
+        return self._observed.get(path) == _digest(text)
+
+    PROTECTED_MSG = ("is protected and must not be modified. Add a new test file or put reproduction scripts under "
+                     + SCRATCH_DIR + " instead.")
 
     def _protected(self, path: str) -> bool:
+        """True for an existing repository file matching a protected glob. New files and the scratch dir are free."""
         import fnmatch
 
-        rel = path.strip().lstrip("./")
-        return any(fnmatch.fnmatch(rel, pat) for pat in self.protected)
-
-    def _fresh(self, path: str) -> bool:
-        return self._observed.get(path) == self._world
+        raw = path.strip()
+        if raw.startswith(SCRATCH_DIR):
+            return False
+        rel = raw.lstrip("./")
+        if not any(fnmatch.fnmatch(rel, pat) for pat in self.protected):
+            return False
+        try:
+            self.ws.read(path)
+        except (FileNotFoundError, IsADirectoryError, ValueError, WorkspaceError):
+            return False
+        return True
 
     def _read_file(self, a: ReadFile) -> str:
         text = self.ws.read(a.path).decode("utf-8", "replace")
-        self._observe(a.path)
+        self._observe(a.path, text)
         lines = text.splitlines()
         total = len(lines)
         if total == 0:
@@ -534,18 +553,18 @@ class ToolBox:
 
     def _edit_file(self, a: EditFile) -> str:
         if self._protected(a.path):
-            return f"error: {a.path} is protected and must not be modified"
+            return f"error: {a.path} {self.PROTECTED_MSG}"
         text = self.ws.read(a.path).decode("utf-8", "replace")
-        if not self._fresh(a.path):
+        if not self._fresh(a.path, text):
             return (f"error: read {a.path} before editing it. "
-                    + ("It may have changed since you last read it." if a.path in self._observed else "You have not read it in this session."))
+                    + ("It has changed since you last read it." if a.path in self._observed else "You have not read it in this session."))
         new_text, error = apply_edit(text, a.old, a.new, replace_all=a.replace_all)
         if error:
             return f"error: {error}"
         self.ws.write(a.path, new_text.encode("utf-8"))
         self._defs.pop(a.path, None)
         self._edited = True
-        self._observe(a.path)
+        self._observe(a.path, new_text)
         return (
             f"edited {a.path}: replaced {a.old.count(chr(10)) + 1} lines with {a.new.count(chr(10)) + 1} lines"
             f" (checkpoint {self.ws.current_step})"
@@ -553,7 +572,7 @@ class ToolBox:
 
     def _write_file(self, a: WriteFile) -> str:
         if self._protected(a.path):
-            return f"error: {a.path} is protected and must not be modified"
+            return f"error: {a.path} {self.PROTECTED_MSG}"
         try:
             self.ws.read(a.path)
         except FileNotFoundError:
@@ -563,7 +582,7 @@ class ToolBox:
         self.ws.write(a.path, a.content.encode("utf-8"))
         self._defs.pop(a.path, None)
         self._edited = True
-        self._observe(a.path)
+        self._observe(a.path, a.content)
         return f"wrote {a.path} ({len(a.content)} characters, checkpoint {self.ws.current_step})"
 
     def _run(self, a: Run) -> str:
@@ -579,7 +598,6 @@ class ToolBox:
         )
         r = self.ws.run(wrapped, timeout=a.timeout or None, mutate=True)
         self._defs.clear()  # the command may have changed any file
-        self._world += 1
         output, size = r.stdout, None
         m = re.search(r"__praxbot_bytes=(\d+)\s*$", output)
         if m:
@@ -647,6 +665,5 @@ class ToolBox:
             return (f"error: restore limit of {MAX_RESTORES} reached for this run. Keep the current state; "
                     "if tests fail for reasons unrelated to your change, say so in finish.")
         self._restores += 1
-        self._world += 1
         target = self.ws.restore(a.step)
         return f"restored the workspace to checkpoint {target.step} ({target.label}); now at checkpoint {self.ws.current_step}"
