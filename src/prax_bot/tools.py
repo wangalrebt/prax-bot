@@ -359,6 +359,7 @@ class ToolBox:
         self._paths: list[str] = []
         self._defs: dict[str, list[tuple[int, str]]] = {}
         self._restores = 0
+        self._edit_steps: list[int] = []  # checkpoints at which a repository file was changed
         self._first_failures: list[str] | None = None  # failing tests seen in the first test run
         self._edited = False
         self._observed: dict[str, str] = {}  # path -> digest of the content the model last saw
@@ -564,6 +565,7 @@ class ToolBox:
         self.ws.write(a.path, new_text.encode("utf-8"))
         self._defs.pop(a.path, None)
         self._edited = True
+        self._note_repo_edit(a.path)
         self._observe(a.path, new_text)
         return (
             f"edited {a.path}: replaced {a.old.count(chr(10)) + 1} lines with {a.new.count(chr(10)) + 1} lines"
@@ -582,6 +584,7 @@ class ToolBox:
         self.ws.write(a.path, a.content.encode("utf-8"))
         self._defs.pop(a.path, None)
         self._edited = True
+        self._note_repo_edit(a.path)
         self._observe(a.path, a.content)
         return f"wrote {a.path} ({len(a.content)} characters, checkpoint {self.ws.current_step})"
 
@@ -660,10 +663,25 @@ class ToolBox:
             bits.append(f"now passing that failed before: " + ", ".join(fixed[:8]))
         return ("note: " + "; ".join(bits)) if bits else ""
 
+    def _note_repo_edit(self, path: str) -> None:
+        if not resolve_in_workdir(path, self.ws.workdir).startswith(SCRATCH_DIR):
+            self._edit_steps.append(self.ws.current_step)
+
+    @property
+    def repo_edited(self) -> bool:
+        """Whether any repository file has been changed and the change is still in the workspace."""
+        return bool(self._edit_steps)
+
     def _restore(self, a: Restore) -> str:
         if self._restores >= MAX_RESTORES:
             return (f"error: restore limit of {MAX_RESTORES} reached for this run. Keep the current state; "
                     "if tests fail for reasons unrelated to your change, say so in finish.")
+        if self._edit_steps and all(s > a.step for s in self._edit_steps):
+            kept = ", ".join(str(s) for s in self._edit_steps)
+            return (f"error: restoring to checkpoint {a.step} would discard every change you have made to the repository "
+                    f"(your edits are checkpoints {kept}). Keep them: restore to a later checkpoint, or undo the one change "
+                    "that is wrong with edit_file. Unrelated test failures are not a reason to start over.")
         self._restores += 1
         target = self.ws.restore(a.step)
+        self._edit_steps = [s for s in self._edit_steps if s <= target.step]
         return f"restored the workspace to checkpoint {target.step} ({target.label}); now at checkpoint {self.ws.current_step}"

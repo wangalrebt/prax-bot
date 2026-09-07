@@ -29,6 +29,10 @@ Respond only with tool calls."""
 
 NUDGE = "Continue by calling a tool. Call finish when the task is complete or if you are stuck."
 MAX_NUDGES = 3  # consecutive turns without a tool call before finish is forced
+LATE_FRACTION = 5  # the last fifth of the budget counts as late; the model is told to wrap up
+LATE_NO_EDIT = ("Only {left} steps remain and no repository file has been changed. Stop investigating: "
+                "make the most likely fix now, then call finish.")
+LATE_EDITED = "Only {left} steps remain. Wrap up: run the relevant tests once if you have not, then call finish with a summary."
 BLANK_RETRIES = 2  # a reply with no text and no tool call is retried before it counts as a stall
 BLANK_NUDGE = "Your last reply was cut off before it contained a tool call. Decide now and call one tool; keep any reasoning short."
 REPEAT_NUDGE = (
@@ -231,6 +235,10 @@ class Agent:
                 if name == "todo_write":
                     self.on_event("todo", step=step, todos=list(getattr(self.toolbox, "todos", [])))
                 output = f"{output}\n(step {step} of {self.max_steps})"
+                left = self.max_steps - step
+                if 0 < left <= max(3, self.max_steps // LATE_FRACTION):
+                    repo_edited = getattr(self.toolbox, "repo_edited", edited)
+                    output += " " + (LATE_EDITED if repo_edited else LATE_NO_EDIT).format(left=left)
                 self.on_event("tool.result", step=step, name=name, output=output)
                 messages.append({"role": "tool", "tool_call_id": tc.id, "content": output})
                 call_names[tc.id] = name
