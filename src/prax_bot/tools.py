@@ -19,6 +19,8 @@ SOURCE_SUFFIXES = (".py", ".js", ".ts", ".tsx", ".go", ".rs", ".java", ".rb", ".
 TEST_PATH_RE = re.compile(r"(^|/)tests?(/|_)|_test\.py$|(^|/)test_|(^|/)conftest\.py$")
 REPO_MAP_BUDGET = 8_000
 MAX_RESTORES = 3
+OUTPUT_DIR = "${TMPDIR:-/tmp}/praxbot"
+OUTPUT_TAIL_BYTES = 20_000
 PYTEST_FAILED_RE = re.compile(r"^(?:FAILED|ERROR) (\S+?)(?: - .*)?$", re.M)
 REPO_MAP_MAX_FILES = 60
 OUTPUT_REF_RE = re.compile(r'File "(?:/work/)?([\w./-]+\.py)", line (\d+)|(?<![\w/])([\w./-]+\.py):(\d+)')
@@ -51,8 +53,9 @@ class ReadFile(BaseModel):
 
 class EditFile(BaseModel):
     path: str = Field(..., description="Existing file relative to the repository root")
-    old: str = Field(..., description="Exact text to replace. It must occur exactly once in the file.")
+    old: str = Field(..., description="Exact text to replace. It must occur exactly once in the file unless replace_all is true.")
     new: str = Field(..., description="Replacement text")
+    replace_all: bool = Field(False, description="Replace every exact occurrence instead of requiring a unique one")
 
 
 class WriteFile(BaseModel):
@@ -61,8 +64,18 @@ class WriteFile(BaseModel):
 
 
 class Run(BaseModel):
-    command: str = Field(..., description="Shell command, run with bash in the repository root")
+    command: str = Field(..., description="Shell command, run in the repository root (or workdir)")
     timeout: int = Field(0, ge=0, le=3600, description="Seconds; 0 means the default of 300")
+    workdir: str = Field(".", description="Directory to run in, relative to the repository root. State such as cwd does not persist between calls, so use this instead of cd.")
+
+
+class TodoItem(BaseModel):
+    content: str = Field(..., description="A short imperative line")
+    status: str = Field(..., pattern="^(pending|in_progress|completed)$", description="pending, in_progress, or completed")
+
+
+class TodoWrite(BaseModel):
+    todos: list[TodoItem] = Field(..., description="The complete list; it replaces the previous list")
 
 
 class Restore(BaseModel):
@@ -81,6 +94,7 @@ TOOL_MODELS: dict[str, type[BaseModel]] = {
     "edit_file": EditFile,
     "write_file": WriteFile,
     "run": Run,
+    "todo_write": TodoWrite,
     "restore": Restore,
     "finish": Finish,
 }
@@ -92,7 +106,8 @@ TOOL_DESCRIPTIONS = {
     "outline": "List the functions and classes a file defines, with line numbers. Use it to navigate a large file before reading a region.",
     "edit_file": "Replace one exact occurrence of `old` with `new` in an existing file.",
     "write_file": "Create a new file with the given content. Fails if the file exists; use edit_file instead.",
-    "run": "Run a shell command in the repository root inside the sandbox. Returns exit code and output. Each run creates a checkpoint.",
+    "run": "Run a shell command in the repository root inside the sandbox. Returns the exit code and the tail of the output; the full output is saved to a file whose path is reported, and you can grep or sed that file with another run. Each run creates a checkpoint.",
+    "todo_write": "Record the plan for multi-step work as a task list and update it as you go. Send the entire list every time; it replaces the previous one.",
     "restore": "Restore the whole workspace to an earlier checkpoint, undoing later edits and commands. Use it only when your own edit broke something that worked before. Tests that were already failing before your edits are not a reason to restore. At most three restores per run.",
     "finish": "Finish the task. Call this once the change is made and verified, or if you cannot complete the task.",
 }
@@ -187,18 +202,23 @@ def closest_region(text: str, old: str, context: int = 2) -> str:
     return "\n".join(f"{n + 1:>{width}}| {file_lines[n]}" for n in range(lo, hi))
 
 
-def apply_edit(text: str, old: str, new: str) -> tuple[str, str | None]:
+def apply_edit(text: str, old: str, new: str, *, replace_all: bool = False) -> tuple[str, str | None]:
     """Return (new_text, error). Matching is exact first, then tolerant of trailing
-    whitespace, then tolerant of indentation, as long as the match is unique."""
+    whitespace, then tolerant of indentation, as long as the match is unique.
+    With replace_all, every exact occurrence is replaced and no fuzzy matching is used."""
     if not old:
         return text, "old must not be empty"
     old = _strip_line_numbers(old)
 
     count = text.count(old)
+    if replace_all:
+        if count == 0:
+            return text, "old text was not found in the file. Read the file and copy the exact text."
+        return text.replace(old, new), None
     if count == 1:
         return text.replace(old, new, 1), None
     if count > 1:
-        return text, f"old text occurs {count} times; include more surrounding context so it matches exactly once."
+        return text, f"old text occurs {count} times; include more surrounding context so it matches exactly once, or set replace_all."
 
     file_lines = text.split("\n")
     old_lines = old.split("\n")
@@ -332,6 +352,10 @@ class ToolBox:
         self._restores = 0
         self._first_failures: list[str] | None = None  # failing tests seen in the first test run
         self._edited = False
+        self._world = 0  # bumps whenever a command or restore may have changed files
+        self._observed: dict[str, int] = {}  # path -> world version at which the model last saw it
+        self._outputs = 0
+        self.todos: list[dict[str, str]] = []
 
     def definitions(self, paths: list[str]) -> dict[str, list[tuple[int, str]]]:
         """Line-numbered definitions per file, from one grep over all files not yet cached."""
@@ -465,8 +489,15 @@ class ToolBox:
             )
         return clip(_limited(lines, a.max_results, r.truncated, "matches; narrow the pattern or path")) + note
 
+    def _observe(self, path: str) -> None:
+        self._observed[path] = self._world
+
+    def _fresh(self, path: str) -> bool:
+        return self._observed.get(path) == self._world
+
     def _read_file(self, a: ReadFile) -> str:
         text = self.ws.read(a.path).decode("utf-8", "replace")
+        self._observe(a.path)
         lines = text.splitlines()
         total = len(lines)
         if total == 0:
@@ -489,12 +520,16 @@ class ToolBox:
 
     def _edit_file(self, a: EditFile) -> str:
         text = self.ws.read(a.path).decode("utf-8", "replace")
-        new_text, error = apply_edit(text, a.old, a.new)
+        if not self._fresh(a.path):
+            return (f"error: read {a.path} before editing it. "
+                    + ("It may have changed since you last read it." if a.path in self._observed else "You have not read it in this session."))
+        new_text, error = apply_edit(text, a.old, a.new, replace_all=a.replace_all)
         if error:
             return f"error: {error}"
         self.ws.write(a.path, new_text.encode("utf-8"))
         self._defs.pop(a.path, None)
         self._edited = True
+        self._observe(a.path)
         return (
             f"edited {a.path}: replaced {a.old.count(chr(10)) + 1} lines with {a.new.count(chr(10)) + 1} lines"
             f" (checkpoint {self.ws.current_step})"
@@ -510,32 +545,61 @@ class ToolBox:
         self.ws.write(a.path, a.content.encode("utf-8"))
         self._defs.pop(a.path, None)
         self._edited = True
+        self._observe(a.path)
         return f"wrote {a.path} ({len(a.content)} characters, checkpoint {self.ws.current_step})"
 
     def _run(self, a: Run) -> str:
-        r = self.ws.run(a.command, timeout=a.timeout or None, mutate=True)
+        workdir = a.workdir.strip() or "."
+        resolve_in_workdir(workdir, self.ws.workdir)
+        self._outputs += 1
+        log = f"{OUTPUT_DIR}/out-{self._outputs}.log"
+        # Run in the requested directory; keep the complete output in a file and return its tail.
+        inner = f"cd {shlex.quote(workdir)} && {{ {a.command}\n}}"
+        wrapped = (
+            f"mkdir -p {OUTPUT_DIR}; {{ {inner}; }} > {log} 2>&1; rc=$?; "
+            f"tail -c {OUTPUT_TAIL_BYTES} {log}; echo; echo \"__praxbot_bytes=$(wc -c < {log})\"; exit $rc"
+        )
+        r = self.ws.run(wrapped, timeout=a.timeout or None, mutate=True)
         self._defs.clear()  # the command may have changed any file
+        self._world += 1
+        output, size = r.stdout, None
+        m = re.search(r"__praxbot_bytes=(\d+)\s*$", output)
+        if m:
+            size = int(m.group(1))
+            output = output[: m.start()].rstrip("\n")
         status = f"exit code {r.exit_code}"
         if r.timed_out:
             status += " (timed out)"
         header = f"{status} · {r.elapsed_s:.1f}s · checkpoint {self.ws.current_step}"
         parts = [header]
-        if r.stdout.strip():
-            parts.append("stdout:\n" + clip(r.stdout.rstrip(), MAX_TOOL_OUTPUT // 2))
+        if output.strip():
+            parts.append("output:\n" + clip(output.rstrip(), MAX_TOOL_OUTPUT))
         if r.stderr.strip():
             parts.append("stderr:\n" + clip(r.stderr.rstrip(), MAX_TOOL_OUTPUT // 2))
+        if size is not None and size > OUTPUT_TAIL_BYTES:
+            parts.append(f"(showing the last {OUTPUT_TAIL_BYTES:,} of {size:,} bytes; the full output is in {log}, grep or sed it with run)")
+        elif size is not None:
+            parts.append(f"(full output saved in {log})")
         if r.truncated:
             parts.append("(output was truncated by the sandbox)")
         try:
-            referenced = self.referenced_definitions(r.stdout + "\n" + r.stderr)
+            referenced = self.referenced_definitions(output + "\n" + r.stderr)
         except (WorkspaceError, ValueError):
             referenced = ""
         if referenced:
             parts.append(referenced)
-        note = self._note_preexisting_failures(r.stdout + "\n" + r.stderr)
+        note = self._note_preexisting_failures(output + "\n" + r.stderr)
         if note:
             parts.append(note)
         return "\n".join(parts)
+
+    def _todo_write(self, a: TodoWrite) -> str:
+        self.todos = [t.model_dump() for t in a.todos]
+        counts = {s: sum(1 for t in self.todos if t["status"] == s) for s in ("pending", "in_progress", "completed")}
+        marks = {"pending": "[ ]", "in_progress": "[>]", "completed": "[x]"}
+        lines = [f"{marks[t['status']]} {t['content']}" for t in self.todos]
+        return (f"todo list recorded: {counts['completed']} done, {counts['in_progress']} in progress, {counts['pending']} pending\n"
+                + "\n".join(lines))
 
     def _note_preexisting_failures(self, output: str) -> str:
         """Remember which tests failed before any edit; later, point out failures that are not new."""
@@ -565,5 +629,6 @@ class ToolBox:
             return (f"error: restore limit of {MAX_RESTORES} reached for this run. Keep the current state; "
                     "if tests fail for reasons unrelated to your change, say so in finish.")
         self._restores += 1
+        self._world += 1
         target = self.ws.restore(a.step)
         return f"restored the workspace to checkpoint {target.step} ({target.label}); now at checkpoint {self.ws.current_step}"

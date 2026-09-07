@@ -26,6 +26,7 @@ def test_preexisting_failures_are_pointed_out() -> None:
     box = ToolBox(RunFake([first, later]))
     out1 = box.call("run", {"command": "pytest"})
     assert "note: 2 tests fail before any edit" in out1 and "t/test_net.py::test_http" in out1
+    box.call("read_file", {"path": "a.py"})
     box.call("edit_file", {"path": "a.py", "old": "x = 1", "new": "x = 2"})
     out2 = box.call("run", {"command": "pytest"})
     assert "1 of these failures were already failing before your edits: t/test_net.py::test_http" in out2
@@ -34,6 +35,7 @@ def test_preexisting_failures_are_pointed_out() -> None:
 
 def test_first_test_run_after_an_edit_is_not_treated_as_baseline() -> None:
     box = ToolBox(RunFake(["FAILED t/test_a.py::test_bug\n1 failed"]))
+    box.call("read_file", {"path": "a.py"})
     box.call("edit_file", {"path": "a.py", "old": "x = 1", "new": "x = 2"})
     out = box.call("run", {"command": "pytest"})
     assert "note:" not in out

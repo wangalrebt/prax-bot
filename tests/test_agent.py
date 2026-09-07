@@ -53,7 +53,7 @@ def test_tool_calls_are_dispatched_until_finish() -> None:
     final_messages = llm.requests[-1][0]
     assert final_messages[0]["role"] == "system" and final_messages[1] == {"role": "user", "content": "fix it"}
     assert [m["role"] for m in final_messages[2:]] == ["assistant", "tool", "assistant", "tool", "tool"]
-    assert final_messages[3]["tool_call_id"] == "call-read_file" and final_messages[3]["content"] == "ok read_file"
+    assert final_messages[3]["tool_call_id"] == "call-read_file" and final_messages[3]["content"] == "ok read_file\n(step 1 of 10)"
     assert "finish" in events and events.count("tool.result") == 3
 
 

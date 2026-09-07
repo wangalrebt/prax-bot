@@ -68,6 +68,9 @@ class Reporter:
                 c.print(f"       [{style}]{escape(output)}[/]")
             else:
                 c.print(f"       [{style}]{escape(_one_line(output.splitlines()[0] if output else '', MAX_RESULT_PREVIEW))}[/]")
+        elif kind == "todo":
+            done = sum(1 for t in payload["todos"] if t.get("status") == "completed")
+            c.print(f"       [dim]todo list: {done}/{len(payload['todos'])} done[/]")
         elif kind == "nudge":
             c.print(f"       [yellow]{escape(payload['reason'])}; asked the model to change approach[/]")
         elif kind == "context.elided":

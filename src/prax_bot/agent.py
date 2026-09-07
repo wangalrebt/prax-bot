@@ -19,6 +19,8 @@ Rules:
 - Use edit_file for changes to existing files and write_file only for new files. If edit_file reports that the text was not found, copy the exact lines from the region it shows instead of retrying the same text.
 - Run the relevant tests with run before finishing and make them pass. If the project needs dependencies, install them with run (for example: pip install -e . pytest).
 - Every run and edit creates a numbered checkpoint. If something goes wrong, use restore to go back to an earlier checkpoint.
+- For work with several steps, write a todo list with todo_write first and update it as you go.
+- Read a file before editing it, and read it again after commands that may have changed it.
 - Never invent results. Report only what the tools returned.
 - When the task is complete and verified, call finish with a short summary of what changed and how it was verified. If you cannot complete the task, call finish and say so honestly.
 
@@ -193,6 +195,9 @@ class Agent:
                 output = self.toolbox.call(name, raw_args)
                 if name in ("edit_file", "write_file"):
                     edited = True
+                if name == "todo_write":
+                    self.on_event("todo", step=step, todos=list(getattr(self.toolbox, "todos", [])))
+                output = f"{output}\n(step {step} of {self.max_steps})"
                 self.on_event("tool.result", step=step, name=name, output=output)
                 messages.append({"role": "tool", "tool_call_id": tc.id, "content": output})
                 call_names[tc.id] = name
