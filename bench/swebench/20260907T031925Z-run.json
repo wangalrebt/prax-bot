@@ -1,0 +1,40 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "sphinx-doc__sphinx-8621",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "1",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1121309,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 55,
+          "prompt_tokens": 1027293,
+          "completion_tokens": 94016
+        }
+      },
+      "sandbox_commands": 27,
+      "sandbox_cost": 0.054428639999999986,
+      "diff_lines": 13,
+      "summary": "(no summary given)",
+      "agent_elapsed": 357.00152854202315,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "31/31",
+      "eval": "resolved",
+      "eval_cost": 0.03242011,
+      "wall": 365.05366466683336
+    }
+  ]
+}
