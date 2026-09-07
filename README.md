@@ -86,7 +86,20 @@ uv run praxbot goal "the CLI has a --json flag documented in the README"        
 
 Each round is a fresh conversation on the same workspace, seeded with the goal, the previous round's summary and the diff so far. After every round the check command runs in the sandbox without creating a checkpoint; when it exits 0 the goal is met and the diff is shown. Without `--check`, the model ends a round with `finish(goal_met=true)` when it judges the goal achieved. The run stops early after the round cap, after two rounds that changed nothing, or on an error, and says which. The record in `run.json` keeps the objective, the rounds used and the verdict.
 
-Every command and edit the agent made is an immutable sandbox image, so any intermediate state can be diffed, restored, or resumed after the fact. `resume` starts a new sandbox from the chosen image, so the installed dependencies and the work so far are already there, and writes a new run that records which run and checkpoint it came from. If the repository has an `AGENTS.md` or `CLAUDE.md`, its contents are given to the model at the start of the run.
+Every command and edit the agent made is an immutable sandbox image, so any intermediate state can be diffed, restored, or resumed after the fact. `resume` starts a new sandbox from the chosen image, so the installed dependencies and the work so far are already there, and writes a new run that records which run and checkpoint it came from.
+
+### Instructions, skills, and plugins
+
+**AGENTS.md.** If the repository has an `AGENTS.md` (or `CLAUDE.md`) at its root, the model reads it at the start of every run. An `AGENTS.md` inside a subdirectory is shown the first time the model reads or edits a file under that directory, so package-level rules reach it when they matter. `praxbot init` writes a root `AGENTS.md` for a repository that has none: the agent reads the project files, runs the tests once to confirm the command, and drafts the guide; you see the diff and choose whether to keep it.
+
+**Skills** follow the SKILL.md convention: a directory with a `SKILL.md` whose front matter gives a `name` and a `description`. Only the names and descriptions are shown at the start of a run; the model calls `load_skill` to read one in full when the work calls for it. Skills committed in the repository live under `.praxbot/skills/<name>/SKILL.md` and are read inside the sandbox; personal ones live under `~/.praxbot/skills/<name>/SKILL.md`. `examples/skills/` has one to copy.
+
+**Plugins** add tools. A plugin is a Python file in `~/.praxbot/plugins/` that defines `register(add)` and calls `add(name, description, ArgsModel, handler)` for each tool, where `ArgsModel` is a pydantic class and `handler(workspace, args)` returns the text the model sees. Handlers run on your machine, so plugins load only from your home directory, never from the repository being worked on; anything a plugin wants to run in the sandbox goes through `workspace.run`. `examples/plugins/lint.py` adds a `lint` tool that runs ruff in the sandbox:
+
+```bash
+cp examples/plugins/lint.py ~/.praxbot/plugins/
+uv run praxbot run "fix the unused imports flagged by lint"
+``` If the repository has an `AGENTS.md` or `CLAUDE.md`, its contents are given to the model at the start of the run.
 
 ## How the sandbox is used
 

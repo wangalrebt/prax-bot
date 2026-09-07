@@ -131,7 +131,12 @@ class Agent:
         self.max_steps = max_steps
         self.max_transcript_chars = max_transcript_chars
         self.on_event = on_event or _noop
-        self.tools = tool_specs(goal=goal)
+        self._goal = goal
+        self.tools = self._specs()
+
+    def _specs(self) -> list[dict[str, Any]]:
+        specs = getattr(self.toolbox, "specs", None)
+        return specs(goal=self._goal) if specs else tool_specs(goal=self._goal)
 
     def run(self, task: str) -> AgentResult:
         messages: list[dict[str, Any]] = [
@@ -161,6 +166,17 @@ class Agent:
                     "read regions with start_line and end_line, and call outline for files not shown.\n" + overview,
                 })
                 self.on_event("repo.map", chars=len(overview))
+        skills_overview = getattr(self.toolbox, "skills_overview", None)
+        if skills_overview is not None:
+            try:
+                skills_text = skills_overview()
+            except Exception as e:  # noqa: BLE001 - skills are a convenience, never a blocker
+                skills_text = ""
+                self.on_event("skills", count=0, error=f"{type(e).__name__}: {str(e)[:120]}")
+            if skills_text:
+                messages.append({"role": "user", "content": skills_text})
+                self.on_event("skills", count=skills_text.count("\n- "))
+            self.tools = self._specs()  # load_skill appears once skills are known
         call_names: dict[str, str] = {}
         compact = getattr(self.toolbox, "compact", None)
         nudges = 0

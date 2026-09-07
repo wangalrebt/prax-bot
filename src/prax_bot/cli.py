@@ -31,6 +31,15 @@ app = typer.Typer(
 console = Console()
 
 MAX_DIFF_LINES_SHOWN = 400
+INIT_TASK = (
+    "{what}: a short guide for coding agents working in this repository. Cover, in this order: what the project is "
+    "in one sentence; how to install its dependencies; how to run the tests, and the linters or type checkers if it has any; "
+    "the layout of the code (which directories hold what); conventions worth knowing (style, naming, where tests go, "
+    "commit or changelog rules if documented); and anything surprising a newcomer would trip over. Keep it under 80 lines. "
+    "Base every command and statement on files you actually read (pyproject, setup files, CI configs, Makefiles, READMEs, "
+    "existing tests); run the test command once to confirm it works, and never invent commands. "
+    "Change no file other than AGENTS.md."
+)
 NO_SANDBOX_ACCESS = (
     "the sandbox API refused the request (403). Sandboxes are in beta and access is granted per project: "
     "request it at https://tokenfactory.nebius.com/sandboxes/about, or run with --backend local meanwhile."
@@ -51,6 +60,21 @@ def _sampling(settings: Settings) -> str:
     if settings.effort != "high":
         parts.append(f"effort {settings.effort}")
     return " · ".join(parts)
+
+
+def _extensions(settings: Settings) -> tuple[list[Any], list[Any]]:
+    """Personal skills and plugins from the home directory, announced on the terminal."""
+    from .plugins import load_plugins
+    from .skills import home_skills
+    from .tools import TOOL_MODELS
+
+    skills = home_skills(settings.home)
+    plugins = load_plugins(settings.home, set(TOOL_MODELS) | {"load_skill"}, lambda msg: console.print(f"[yellow]warning:[/] {escape(msg)}"))
+    if skills:
+        console.print(f"[dim]skills[/]   {escape(', '.join(sk.name for sk in skills))} (from {settings.home / 'skills'})")
+    if plugins:
+        console.print(f"[dim]plugins[/]  {escape(', '.join(t.name for t in plugins))} (from {settings.home / 'plugins'})")
+    return skills, plugins
 
 
 def _repo_root(path: Path) -> Path:
@@ -160,6 +184,8 @@ def _solve(
     auto_next: Any = None,
     extra: Any = None,
     goal: bool = False,
+    skills: Any = (),
+    plugins: Any = (),
 ) -> None:
     """Run the agent on the workspace, show the diff, take follow-up instructions, then offer to apply.
 
@@ -183,7 +209,7 @@ def _solve(
         round_no += 1
         console.print("\n[bold]agent[/]")
         agent = Agent(
-            llm, ToolBox(ws, protected=protect), max_steps=settings.max_steps, on_event=on_event,
+            llm, ToolBox(ws, protected=protect, skills=skills, plugins=plugins), max_steps=settings.max_steps, on_event=on_event,
             investigate_model=settings.investigate_model, investigate_steps=settings.investigate_steps, goal=goal,
         )
         try:
@@ -387,14 +413,52 @@ def run(
     root = _repo_root(repo)
 
     _header(settings, root, backend)
-    console.print(f"[bold]task[/]  {escape(task)}\n")
+    console.print(f"[bold]task[/]  {escape(task)}")
+    skills, plugins = _extensions(settings)
+    console.print()
 
     run_id, run_dir, events_file, on_event = _new_run(settings, verbose)
     started = time.monotonic()
     ws = _open_workspace(settings, backend, root, run_id, on_event)
     _solve(
         settings, ws, root, task, backend=backend, run_id=run_id, run_dir=run_dir, events_file=events_file,
-        on_event=on_event, yes=yes, export=export, protect=protect, started=started,
+        on_event=on_event, yes=yes, export=export, protect=protect, started=started, skills=skills, plugins=plugins,
+    )
+
+
+@app.command()
+def init(
+    repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository"),
+    force: bool = typer.Option(False, "--force", help="Write AGENTS.md even if one exists"),
+    model: Optional[str] = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
+    base_image: Optional[str] = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
+    setup: Optional[str] = typer.Option(None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"),
+    max_steps: Optional[int] = typer.Option(None, min=1, max=200, help="Model turns before the run is stopped (default 40)"),
+    backend: str = typer.Option("contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Write the file without asking"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
+) -> None:
+    """Write an AGENTS.md for this repository: how to install, test and lint it, its layout and conventions, from what the agent finds."""
+    if backend not in {"contree", "local"}:
+        raise typer.BadParameter("backend must be 'contree' or 'local'")
+    settings = _settings(model=model, base_image=base_image, setup=setup, max_steps=max_steps)
+    _require_credentials(settings, need_project=backend == "contree")
+    root = _repo_root(repo)
+    if (root / "AGENTS.md").exists() and not force:
+        console.print(f"{root / 'AGENTS.md'} already exists; pass --force to replace it, or edit it by hand.")
+        raise typer.Exit(1)
+    task = INIT_TASK.format(what="Replace the existing AGENTS.md at the repository root" if force else "Create AGENTS.md at the repository root")
+    _header(settings, root, backend)
+    console.print("[bold]task[/]  write AGENTS.md")
+    skills, plugins = _extensions(settings)
+    console.print()
+    run_id, run_dir, events_file, on_event = _new_run(settings, verbose)
+    started = time.monotonic()
+    ws = _open_workspace(settings, backend, root, run_id, on_event)
+    _solve(
+        settings, ws, root, task, backend=backend, run_id=run_id, run_dir=run_dir, events_file=events_file,
+        on_event=on_event, yes=yes, export=None, protect=[], started=started, record_task="init: write AGENTS.md",
+        skills=skills, plugins=plugins,
     )
 
 
@@ -464,7 +528,9 @@ def goal(
     _require_credentials(settings, need_project=backend == "contree")
     root = _repo_root(repo)
     _header(settings, root, backend, f"\n[dim]goal[/]   up to {rounds} rounds" + (f", met when `{escape(check)}` exits 0" if check else ", the model decides when it is met"))
-    console.print(f"[bold]goal[/]  {escape(objective)}\n")
+    console.print(f"[bold]goal[/]  {escape(objective)}")
+    skills, plugins = _extensions(settings)
+    console.print()
 
     run_id, run_dir, events_file, on_event = _new_run(settings, verbose)
     started = time.monotonic()
@@ -481,7 +547,7 @@ def goal(
     _solve(
         settings, ws, root, goal_task(objective, rounds, check), backend=backend, run_id=run_id, run_dir=run_dir,
         events_file=events_file, on_event=on_event, yes=yes, export=export, protect=protect, started=started,
-        record_task=objective, goal=True, auto_next=after_round,
+        record_task=objective, goal=True, auto_next=after_round, skills=skills, plugins=plugins,
         extra=lambda: {"goal": {"objective": objective, "check": check, "max_rounds": rounds, "rounds": driver.rounds, "met": driver.met, "stopped": driver.stopped}},
     )
 
@@ -541,7 +607,9 @@ def resume(
         )
     )
     console.print(f"[bold]task[/]  {escape(str(info.get('task', '')))}")
-    console.print(f"[bold]next[/]  {escape(instruction or 'finish the original task')}\n")
+    console.print(f"[bold]next[/]  {escape(instruction or 'finish the original task')}")
+    skills, plugins = _extensions(settings)
+    console.print()
 
     new_run_id, run_dir, events_file, on_event = _new_run(settings, verbose)
     started = time.monotonic()
@@ -565,7 +633,7 @@ def resume(
         settings, ws, root, task, backend=backend, run_id=new_run_id, run_dir=run_dir, events_file=events_file,
         on_event=on_event, yes=yes, export=export, protect=protect, started=started,
         resumed_from={"run_id": run_id, "step": step, "image": checkpoint["image"], "instruction": instruction},
-        record_task=str(info.get("task", "")),
+        record_task=str(info.get("task", "")), skills=skills, plugins=plugins,
     )
 
 

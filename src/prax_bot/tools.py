@@ -83,6 +83,10 @@ class Restore(BaseModel):
     step: int = Field(..., ge=0, description="Checkpoint number to restore the workspace to")
 
 
+class LoadSkill(BaseModel):
+    name: str = Field(..., description="The skill's name, from the list of available skills")
+
+
 class Finish(BaseModel):
     summary: str = Field(..., description="What changed, how it was verified, and anything left undone")
 
@@ -359,13 +363,23 @@ def pytest_failures(output: str) -> list[str]:
 
 
 class ToolBox:
-    def __init__(self, workspace: Workspace, *, protected: Sequence[str] = ()) -> None:
+    def __init__(
+        self,
+        workspace: Workspace,
+        *,
+        protected: Sequence[str] = (),
+        skills: Sequence[Any] = (),
+        plugins: Sequence[Any] = (),
+    ) -> None:
         self.ws = workspace
         self.protected = tuple(protected)
         self._paths: list[str] = []
         self._defs: dict[str, list[tuple[int, str]]] = {}
         self._restores = 0
         self._edit_steps: list[int] = []  # checkpoints at which a repository file was changed
+        self._skills: dict[str, Any] = {sk.name: sk for sk in skills}
+        self._extra: dict[str, Any] = {t.name: t for t in plugins}
+        self._shown_instructions: set[str] = set()  # nested AGENTS.md files already shown to the model
         self._first_failures: list[str] | None = None  # failing tests seen in the first test run
         self._edited = False
         self._observed: dict[str, str] = {}  # path -> digest of the content the model last saw
@@ -391,6 +405,57 @@ class ToolBox:
 
     def compact(self, name: str, output: str) -> str:
         return compact_tool_output(name, output, self.defs_for)
+
+    LOAD_SKILL_DESCRIPTION = "Read a skill's full instructions. Call it, with the name from the skills list, before doing work the skill covers."
+
+    def specs(self, *, goal: bool = False) -> list[dict[str, Any]]:
+        """Tool schemas for this run: the built-ins, load_skill when skills exist, and plugin tools."""
+        from .plugins import ExtraTool
+
+        specs = tool_specs(goal=goal)
+        if self._skills and "load_skill" not in self._extra:
+            self._extra["load_skill"] = ExtraTool("load_skill", self.LOAD_SKILL_DESCRIPTION, LoadSkill, self._load_skill)
+        return specs + [t.spec() for t in self._extra.values()]
+
+    def skills_overview(self) -> str:
+        """Names and descriptions of the skills; the repository's own are discovered from its file list."""
+        from .skills import overview, repo_skills
+
+        if not self._paths and getattr(self.ws, "run", None):
+            r = self.ws.run("git ls-files -co --exclude-standard", timeout=60, mutate=False, truncate_output_at=2 * 1024 * 1024)
+            self._paths = r.stdout.splitlines()
+        for sk in repo_skills(self.ws, self._paths):
+            self._skills.setdefault(sk.name, sk)
+        return overview(list(self._skills.values()))
+
+    def _load_skill(self, ws: Any, a: LoadSkill) -> str:
+        sk = self._skills.get(a.name.strip())
+        if sk is None:
+            return f"error: no skill named {a.name!r}. Available: {', '.join(self._skills) or 'none'}"
+        return f"Skill {sk.name} ({sk.source}):\n{sk.text()}"
+
+    def nested_instructions(self, path: str, limit: int = 3_000) -> str:
+        """The nearest AGENTS.md above a path, below the repository root, the first time that directory is touched."""
+        rel = resolve_in_workdir(path, self.ws.workdir)[len(self.ws.workdir):].strip("/")
+        parts = rel.split("/")[:-1]
+        for depth in range(len(parts), 0, -1):
+            directory = "/".join(parts[:depth])
+            for name in ("AGENTS.md", "CLAUDE.md"):
+                candidate = f"{directory}/{name}"
+                if candidate in self._shown_instructions:
+                    return ""
+                if self._paths and candidate not in self._paths:
+                    continue
+                try:
+                    text = self.ws.read(candidate).decode("utf-8", "replace").strip()
+                except (FileNotFoundError, IsADirectoryError, ValueError, OSError):
+                    continue
+                self._shown_instructions.add(candidate)
+                if not text:
+                    return ""
+                clipped = text[:limit] + ("\n… (truncated)" if len(text) > limit else "")
+                return f"\n\nInstructions from {candidate} apply here:\n{clipped}"
+        return ""
 
     def project_instructions(self, limit: int = 4_000) -> str:
         """Contents of the repository's agent instruction file, if it has one."""
@@ -448,9 +513,11 @@ class ToolBox:
         return "code referenced above:\n" + "\n".join(lines) if lines else ""
 
     def call(self, name: str, raw_args: str | dict[str, Any] | None) -> str:
-        model = TOOL_MODELS.get(name)
+        extra = self._extra.get(name)
+        model = extra.model if extra else TOOL_MODELS.get(name)
         if model is None or name == "finish":
-            return f"error: unknown tool {name!r}. Available tools: {', '.join(TOOL_MODELS)}"
+            available = list(TOOL_MODELS) + list(self._extra)
+            return f"error: unknown tool {name!r}. Available tools: {', '.join(available)}"
         try:
             args = json.loads(raw_args) if isinstance(raw_args, str) else (raw_args or {})
             if not isinstance(args, dict):
@@ -458,9 +525,16 @@ class ToolBox:
             parsed = model.model_validate(args)
         except (json.JSONDecodeError, ValueError, ValidationError) as e:
             return f"error: invalid arguments for {name}: {e}"
-        handler: Callable[[Any], str] = getattr(self, f"_{name}")
+        if extra:
+            handler: Callable[[Any], str] = lambda a: str(extra.handler(self.ws, a))  # noqa: E731
+        else:
+            handler = getattr(self, f"_{name}")
         try:
-            return handler(parsed)
+            output = handler(parsed)
+            path = getattr(parsed, "path", None)
+            if path and name in ("read_file", "edit_file", "write_file", "outline") and not output.startswith("error:"):
+                output += self.nested_instructions(path)
+            return output
         except FileNotFoundError as e:
             return f"error: file not found: {e}"
         except IsADirectoryError as e:
