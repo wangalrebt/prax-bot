@@ -1,0 +1,35 @@
+{
+  "args": {
+    "src": "/private/tmp/claude-501/-Users-wangalrebt-code-prax-bot/9c0eeda1-dd4f-42c0-99e3-6698696a3550/scratchpad/bench_src",
+    "out": "bench/results/sampling-off",
+    "tasks": "jinja-batch-filter",
+    "backend": "contree",
+    "eval": "contree",
+    "max_steps": 40,
+    "timeout": 1800,
+    "validate": false,
+    "reeval": false
+  },
+  "results": [
+    {
+      "name": "jinja-batch-filter",
+      "exit": 0,
+      "finished": true,
+      "reason": "finish",
+      "steps": 9,
+      "tokens": 73367,
+      "sandbox_commands": 10,
+      "sandbox_cost": 0.04703443,
+      "agent_elapsed": 109.55766245885752,
+      "wall": 109.77067920798436,
+      "diff_lines": 13,
+      "touched_tests": [],
+      "summary": "Fixed the jinja2 batch filter bug in src/jinja2/filters.py line 1131. Changed the condition from `if len(tmp) > linecount:` to `if len(tmp) >= linecount:` to correctly create batches of the specified size instead of batches with one extra item. The test `tests/test_filters.py::TestFilter::test_batch",
+      "passed": true,
+      "eval": "132 passed in 0.38s",
+      "eval_where": "sandbox 18b195ec-33e7-49ef-b18a-c3da53e0463b",
+      "eval_cost": 0.03946295,
+      "eval_attempts": 1
+    }
+  ]
+}
