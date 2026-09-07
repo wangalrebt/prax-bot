@@ -1,0 +1,863 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "sympy__sympy-20916,django__django-11880,django__django-16899,matplotlib__matplotlib-25122,matplotlib__matplotlib-23476,sympy__sympy-15017,sympy__sympy-17655,django__django-12193,pytest-dev__pytest-5809,scikit-learn__scikit-learn-12585,psf__requests-5414,sphinx-doc__sphinx-8621,matplotlib__matplotlib-20676,psf__requests-1142,pydata__xarray-4075,sphinx-doc__sphinx-9591,sphinx-doc__sphinx-9258,scikit-learn__scikit-learn-25232,psf__requests-2317,astropy__astropy-14995,pydata__xarray-4629,pytest-dev__pytest-5262,scikit-learn__scikit-learn-13328,astropy__astropy-7166,pytest-dev__pytest-7521,pydata__xarray-4094,pylint-dev__pylint-4970,pylint-dev__pylint-7277,astropy__astropy-14309,pallets__flask-5014,pylint-dev__pylint-6903",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "3",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "sympy__sympy-20916",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1123560,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 1088170,
+          "completion_tokens": 35390
+        }
+      },
+      "sandbox_commands": 22,
+      "sandbox_cost": 0.06453311,
+      "diff_lines": 0,
+      "summary": "(no summary given)",
+      "agent_elapsed": 287.6994551671669,
+      "resolved": false,
+      "patch_applied": false,
+      "eval": "no diff produced",
+      "wall": 287.6995080001652
+    },
+    {
+      "instance_id": "django__django-11880",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 43,
+      "tokens": 956324,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 43,
+          "prompt_tokens": 939465,
+          "completion_tokens": 16859
+        }
+      },
+      "sandbox_commands": 18,
+      "sandbox_cost": 0.0607105,
+      "diff_lines": 12,
+      "summary": "Fixed the __deepcopy__ method of the Field class in django/forms/fields.py to deep copy the error_messages dictionary. This ensures that when a form field is deep copied, its error messages are not shared between copies. Verified by running the forms test suite and a custom test that confirms error ",
+      "agent_elapsed": 187.7054563749116,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "114/114",
+      "eval": "resolved",
+      "eval_cost": 0.03996682,
+      "wall": 196.90064099989831
+    },
+    {
+      "instance_id": "django__django-16899",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 38,
+      "tokens": 944497,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 38,
+          "prompt_tokens": 925431,
+          "completion_tokens": 19066
+        }
+      },
+      "sandbox_commands": 19,
+      "sandbox_cost": 0.06735364,
+      "diff_lines": 17,
+      "summary": "Modified django/contrib/admin/checks.py in the _check_readonly_fields_item method to include the field name in the error message when a readonly field is not found. The error message now reads: \"The value of '%s' refers to '%s', which is not a callable, an attribute of '%s', or an attribute of '%s'.",
+      "agent_elapsed": 187.06158204190433,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "54/54",
+      "eval": "resolved",
+      "eval_cost": 0.04149509,
+      "wall": 197.10991591704078
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-25122",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1020991,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 948660,
+          "completion_tokens": 72331
+        }
+      },
+      "sandbox_commands": 22,
+      "sandbox_cost": 0.39125699,
+      "diff_lines": 22,
+      "summary": "(no summary given)",
+      "agent_elapsed": 439.98670916701667,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "12/12",
+      "p2p": "2476/2476",
+      "eval": "resolved",
+      "eval_cost": 0.19430959,
+      "wall": 466.8787028340157
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23476",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1594700,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 51,
+          "prompt_tokens": 1328635,
+          "completion_tokens": 266065
+        }
+      },
+      "sandbox_commands": 12,
+      "sandbox_cost": 0.05522681,
+      "diff_lines": 18,
+      "summary": "(no summary given)",
+      "agent_elapsed": 1221.4102950829547,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "104/104",
+      "eval": "not resolved",
+      "eval_cost": 0.19308825,
+      "wall": 1241.7327305420768
+    },
+    {
+      "instance_id": "sympy__sympy-15017",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 19,
+      "tokens": 325259,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 19,
+          "prompt_tokens": 314491,
+          "completion_tokens": 10768
+        }
+      },
+      "sandbox_commands": 12,
+      "sandbox_cost": 0.042083960000000004,
+      "diff_lines": 35,
+      "summary": "Fixed the length of rank-0 arrays (scalars) to return 1 instead of 0 by changing the _loop_size calculation in both dense and sparse NDimArray classes from `functools.reduce(lambda x,y: x*y, shape) if shape else 0` to `functools.reduce(lambda x,y: x*y, shape, 1)`. This ensures that the product of an",
+      "agent_elapsed": 93.83094145893119,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "14/14",
+      "eval": "resolved",
+      "eval_cost": 0.02279338,
+      "wall": 99.30823295889422
+    },
+    {
+      "instance_id": "sympy__sympy-17655",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 942956,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 878668,
+          "completion_tokens": 64288
+        }
+      },
+      "sandbox_commands": 14,
+      "sandbox_cost": 0.06423666,
+      "diff_lines": 0,
+      "summary": "(no summary given)",
+      "agent_elapsed": 338.83395662507974,
+      "resolved": false,
+      "patch_applied": false,
+      "eval": "no diff produced",
+      "wall": 338.834034957923
+    },
+    {
+      "instance_id": "django__django-12193",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 32,
+      "tokens": 543563,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 32,
+          "prompt_tokens": 530045,
+          "completion_tokens": 13518
+        }
+      },
+      "sandbox_commands": 18,
+      "sandbox_cost": 0.06242006999999998,
+      "diff_lines": 18,
+      "summary": "Fixed the issue in SplitArrayWidget where BooleanField widgets would incorrectly retain the 'checked' attribute after the first True value. The fix involved making a copy of the attrs dictionary for each subwidget in the get_context method to prevent attribute leakage. Verified with a custom test sc",
+      "agent_elapsed": 154.87285358295776,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "11/11",
+      "eval": "not resolved",
+      "eval_cost": 0.04091582999999999,
+      "wall": 164.34078874997795
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5809",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 14,
+      "tokens": 167986,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 14,
+          "prompt_tokens": 157395,
+          "completion_tokens": 10591
+        }
+      },
+      "sandbox_commands": 13,
+      "sandbox_cost": 0.023940039999999996,
+      "diff_lines": 13,
+      "summary": "Changed the lexer in src/_pytest/pastebin.py from 'python3' (or 'python' for Python 2) to 'text' to avoid HTTP 400 errors when submitting pastebin content. This fix addresses the issue where certain content caused Bad Request errors from bpaste.net. The change was verified by running the pastebin te",
+      "agent_elapsed": 80.50396533310413,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "3/3",
+      "eval": "resolved",
+      "eval_cost": 0.02925419,
+      "wall": 87.37101758318022
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-12585",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 19,
+      "tokens": 210335,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 19,
+          "prompt_tokens": 198044,
+          "completion_tokens": 12291
+        }
+      },
+      "sandbox_commands": 19,
+      "sandbox_cost": 0.11509457,
+      "diff_lines": 13,
+      "summary": "Fixed the clone function in sklearn/base.py to handle estimator types (classes) as parameters. Changed the condition in clone() to also check if the estimator is a type (class) using isinstance(estimator, type). This prevents attempting to call get_params() on a class, which would fail. Verified the",
+      "agent_elapsed": 116.0198127918411,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "22/22",
+      "eval": "resolved",
+      "eval_cost": 0.030367679999999998,
+      "wall": 121.66355608403683
+    },
+    {
+      "instance_id": "psf__requests-5414",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 812910,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 737228,
+          "completion_tokens": 75682
+        }
+      },
+      "sandbox_commands": 23,
+      "sandbox_cost": 0.041530019999999994,
+      "diff_lines": 0,
+      "summary": "(no summary given)",
+      "agent_elapsed": 666.6414400418289,
+      "resolved": false,
+      "patch_applied": false,
+      "eval": "no diff produced",
+      "wall": 666.6415547500364
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 26,
+      "tokens": 398414,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 26,
+          "prompt_tokens": 348166,
+          "completion_tokens": 50248
+        }
+      },
+      "sandbox_commands": 22,
+      "sandbox_cost": 0.06490238000000001,
+      "diff_lines": 13,
+      "summary": "Fixed the KeyboardTransform in sphinx/builders/html/transforms.py to correctly handle standalone keystrokes that are compound-key separators (-, +, ^) and compound keystrokes where these characters appear as keystrokes rather than separators. Changed the regex pattern from r'(-|\\+|\\^|\\s+)' to r'(\\s+",
+      "agent_elapsed": 507.12552316696383,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "31/31",
+      "eval": "resolved",
+      "eval_cost": 0.03269612,
+      "wall": 514.0937842919957
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-20676",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 20,
+      "tokens": 330788,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 20,
+          "prompt_tokens": 311566,
+          "completion_tokens": 19222
+        }
+      },
+      "sandbox_commands": 13,
+      "sandbox_cost": 0.15999739000000002,
+      "diff_lines": 20,
+      "summary": "Fixed the issue where interactive SpanSelector incorrectly forced axes limits to include 0. The problem was in the `new_axes` method of the SpanSelector class, where the initial rectangle was always positioned at (0,0) in data coordinates, causing the axes to expand to include 0 when the rectangle w",
+      "agent_elapsed": 327.61170649994165,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/2",
+      "p2p": "32/32",
+      "eval": "not resolved",
+      "eval_cost": 0.12085865999999999,
+      "wall": 341.63101499993354
+    },
+    {
+      "instance_id": "psf__requests-1142",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1083745,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 992658,
+          "completion_tokens": 91087
+        }
+      },
+      "sandbox_commands": 23,
+      "sandbox_cost": 0.03695068,
+      "diff_lines": 22,
+      "summary": "(no summary given)",
+      "agent_elapsed": 745.398705041036,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "5/5",
+      "eval": "resolved",
+      "eval_cost": 0.01668185,
+      "wall": 749.5488797910511
+    },
+    {
+      "instance_id": "pydata__xarray-4075",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 22,
+      "tokens": 215134,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 22,
+          "prompt_tokens": 202373,
+          "completion_tokens": 12761
+        }
+      },
+      "sandbox_commands": 16,
+      "sandbox_cost": 0.16917327,
+      "diff_lines": 18,
+      "summary": "Fixed the issue with boolean weights in weighted mean by converting boolean weights to integers in the _sum_of_weights method of the Weighted class in xarray/core/weighted.py. The fix ensures that the dot product operation works correctly with boolean arrays by casting them to integers before comput",
+      "agent_elapsed": 223.3768797921948,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "958/958",
+      "eval": "resolved",
+      "eval_cost": 0.08056908,
+      "wall": 237.21646808320656
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-9591",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 18,
+      "tokens": 263805,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 18,
+          "prompt_tokens": 227546,
+          "completion_tokens": 36259
+        }
+      },
+      "sandbox_commands": 15,
+      "sandbox_cost": 0.04574235,
+      "diff_lines": 20,
+      "summary": "Fixed cross-references in property's type annotations by modifying the _parse_annotation function in sphinx/domains/python.py to generate pending_xref nodes for simple name annotations (ast.Name) when an environment is available. This ensures that types like 'Point' in property return annotations (e",
+      "agent_elapsed": 300.2117617910262,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "44/44",
+      "eval": "not resolved",
+      "eval_cost": 0.041062140000000004,
+      "wall": 308.12691120803356
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-9258",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 41,
+      "tokens": 861494,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 41,
+          "prompt_tokens": 822501,
+          "completion_tokens": 38993
+        }
+      },
+      "sandbox_commands": 33,
+      "sandbox_cost": 0.15469335,
+      "diff_lines": 25,
+      "summary": "Added support for union types specification using | in Sphinx docfields. Modified sphinx/util/docfields.py in the TypedField.make_field method to split type strings by '|' and create cross-references for each part. Verified that existing tests pass and created a test project confirming the correct r",
+      "agent_elapsed": 426.04510066704825,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "45/45",
+      "eval": "not resolved",
+      "eval_cost": 0.040757520000000005,
+      "wall": 433.89496033312753
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-25232",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 31,
+      "tokens": 542025,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 31,
+          "prompt_tokens": 526047,
+          "completion_tokens": 15978
+        }
+      },
+      "sandbox_commands": 14,
+      "sandbox_cost": 2.41901867,
+      "diff_lines": 50,
+      "summary": "Added the `fill_value` parameter to `IterativeImputer` for use when `initial_strategy` is set to \"constant\". The parameter is passed to the internal `SimpleImputer` used for initial imputation. Updated the `__init__` method, `_parameter_constraints`, and class docstring to include the new parameter.",
+      "agent_elapsed": 227.30405933316797,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "214/214",
+      "eval": "resolved",
+      "eval_cost": 1.27234772,
+      "wall": 270.22350266599096
+    },
+    {
+      "instance_id": "psf__requests-2317",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 974274,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 932279,
+          "completion_tokens": 41995
+        }
+      },
+      "sandbox_commands": 30,
+      "sandbox_cost": 0.044563490000000004,
+      "diff_lines": 13,
+      "summary": "(no summary given)",
+      "agent_elapsed": 351.56953566591255,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "8/8",
+      "p2p": "133/133",
+      "eval": "resolved",
+      "eval_cost": 0.01901478,
+      "wall": 1442.384661332937
+    },
+    {
+      "instance_id": "astropy__astropy-14995",
+      "repo": "astropy/astropy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 19,
+      "tokens": 285283,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 19,
+          "prompt_tokens": 256468,
+          "completion_tokens": 28815
+        }
+      },
+      "sandbox_commands": 14,
+      "sandbox_cost": 0.06323198000000001,
+      "diff_lines": 35,
+      "summary": "Fixed mask propagation in NDDataRef arithmetic operations when one operand lacks a mask. The issue was in the _arithmetic_mask method in astropy/nddata/mixins/ndarithmetic.py, where the logic for handling cases with one missing mask was incorrect. Rewrote the conditional logic to properly return the",
+      "agent_elapsed": 147.16862791683525,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "179/179",
+      "eval": "resolved",
+      "eval_cost": 0.33067562,
+      "wall": 187.64625758398324
+    },
+    {
+      "instance_id": "pydata__xarray-4629",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 14,
+      "tokens": 147205,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 14,
+          "prompt_tokens": 144266,
+          "completion_tokens": 2939
+        }
+      },
+      "sandbox_commands": 16,
+      "sandbox_cost": 0.15957154999999998,
+      "diff_lines": 13,
+      "summary": "Fixed the issue in xarray/core/merge.py where merge(combine_attrs='override') was referencing the attrs from the first object instead of copying them. Changed line 504 from `return variable_attrs[0]` to `return dict(variable_attrs[0])`. Verified the fix with the provided example and ensured the exis",
+      "agent_elapsed": 106.1259061251767,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "32/32",
+      "eval": "resolved",
+      "eval_cost": 0.058351770000000004,
+      "wall": 116.6275807081256
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5262",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 33,
+      "tokens": 545422,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 33,
+          "prompt_tokens": 517754,
+          "completion_tokens": 27668
+        }
+      },
+      "sandbox_commands": 22,
+      "sandbox_cost": 0.14183826000000002,
+      "diff_lines": 17,
+      "summary": "Fixed the issue by adding a `mode` property to the `EncodedFile` class in `src/_pytest/capture.py`. The property returns the mode of the underlying buffer with any 'b' (binary) flag removed, ensuring that code like youtube-dl which checks for 'b' in the mode to decide between writing bytes or string",
+      "agent_elapsed": 228.81002170802094,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "108/108",
+      "eval": "resolved",
+      "eval_cost": 0.07798779,
+      "wall": 241.95577137498185
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-13328",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 17,
+      "tokens": 236994,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 17,
+          "prompt_tokens": 216038,
+          "completion_tokens": 20956
+        }
+      },
+      "sandbox_commands": 10,
+      "sandbox_cost": 0.04519935,
+      "diff_lines": 13,
+      "summary": "Fixed TypeError when supplying boolean X to HuberRegressor.fit by replacing unary minus with binary subtraction in line 93 of sklearn/linear_model/huber.py. The change converts the boolean mask appropriately for both boolean and numeric input arrays. Verified with reproduction script and existing te",
+      "agent_elapsed": 126.50635862513445,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "9/9",
+      "eval": "resolved",
+      "eval_cost": 0.03498568,
+      "wall": 133.03141020797193
+    },
+    {
+      "instance_id": "astropy__astropy-7166",
+      "repo": "astropy/astropy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 29,
+      "tokens": 329069,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 29,
+          "prompt_tokens": 315517,
+          "completion_tokens": 13552
+        }
+      },
+      "sandbox_commands": 18,
+      "sandbox_cost": 0.11590305999999997,
+      "diff_lines": 32,
+      "summary": "Fixed InheritDocstrings metaclass in astropy/utils/misc.py to handle properties by changing the condition from inspect.isfunction(val) to (inspect.isfunction(val) or isinstance(val, property)). Updated the docstring to reflect that it now works for methods and properties. Verified the fix with a rep",
+      "agent_elapsed": 140.59934558300301,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "6/6",
+      "eval": "resolved",
+      "eval_cost": 0.03953322,
+      "wall": 147.5622610419523
+    },
+    {
+      "instance_id": "pytest-dev__pytest-7521",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 23,
+      "tokens": 341923,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 23,
+          "prompt_tokens": 328672,
+          "completion_tokens": 13251
+        }
+      },
+      "sandbox_commands": 18,
+      "sandbox_cost": 0.07868439,
+      "diff_lines": 12,
+      "summary": "Fixed the issue where capfd.readouterr() was converting \\r to \\n. The problem was in the FDCaptureBinary class where the EncodedFile wrapper was using the default newline translation (which converts \\r to \\n on write). By setting newline=\"\" in the EncodedFile constructor, we disable newline translat",
+      "agent_elapsed": 226.53785824985243,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "125/125",
+      "eval": "resolved",
+      "eval_cost": 0.07760127,
+      "wall": 239.31561362487264
+    },
+    {
+      "instance_id": "pydata__xarray-4094",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 46,
+      "tokens": 1502325,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 46,
+          "prompt_tokens": 1438072,
+          "completion_tokens": 64253
+        }
+      },
+      "sandbox_commands": 28,
+      "sandbox_cost": 0.36283462,
+      "diff_lines": 17,
+      "summary": "Fixed the issue in DataArray.to_unstacked_dataset where single-dimension variables caused a MergeError due to attempting to drop a coordinate that was no longer present after squeezing. The fix checks if the stacked dimension exists in the coordinates before attempting to drop it. Verified with the ",
+      "agent_elapsed": 874.4174394169822,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "862/862",
+      "eval": "resolved",
+      "eval_cost": 0.13995205,
+      "wall": 893.8013349170797
+    },
+    {
+      "instance_id": "pylint-dev__pylint-4970",
+      "repo": "pylint-dev/pylint",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1118540,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 1068436,
+          "completion_tokens": 50104
+        }
+      },
+      "sandbox_commands": 28,
+      "sandbox_cost": 0.09151461000000002,
+      "diff_lines": 13,
+      "summary": "(no summary given)",
+      "agent_elapsed": 744.3806709169876,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "17/17",
+      "eval": "not resolved",
+      "eval_cost": 0.019883799999999997,
+      "wall": 750.0598441248294
+    },
+    {
+      "instance_id": "pylint-dev__pylint-7277",
+      "repo": "pylint-dev/pylint",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 19,
+      "tokens": 286050,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 19,
+          "prompt_tokens": 272671,
+          "completion_tokens": 13379
+        }
+      },
+      "sandbox_commands": 15,
+      "sandbox_cost": 0.17633178,
+      "diff_lines": 18,
+      "summary": "Fixed the issue where pylint would remove the first item from sys.path when run from runpy, even if it was not the current directory. The fix modifies `pylint/__init__.py`'s `modify_sys_path` function to only remove the first entry if it is one of \"\", \".\", or the current working directory (os.getcwd",
+      "agent_elapsed": 251.29863908397965,
+      "resolved": false,
+      "eval": "error: ContreeTransportError: ContreeTransportError(request=RequestInfo(url='https://api.tokenfactory.nebius.com/sandboxes/v1/operations/01a07aa1-ae45-7715-b367-237458bd18ab', method='GET'), response=None, error='', _raw=ReadError",
+      "wall": 309.2498358748853
+    },
+    {
+      "instance_id": "astropy__astropy-14309",
+      "repo": "astropy/astropy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 17,
+      "tokens": 327057,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 17,
+          "prompt_tokens": 312714,
+          "completion_tokens": 14343
+        }
+      },
+      "sandbox_commands": 15,
+      "sandbox_cost": 0.14016317000000003,
+      "diff_lines": 15,
+      "summary": "Fixed IndexError in astropy/io/fits/connect.py's is_fits function by adding a check for empty args before accessing args[0]. The function now returns False when no args are provided, preventing the tuple index out of range error. Verified fix with the original failing case and ensured existing tests",
+      "agent_elapsed": 202.4430630831048,
+      "resolved": false,
+      "eval": "error: ContreeTransportError: ContreeTransportError(request=RequestInfo(url='https://api.tokenfactory.nebius.com/sandboxes/v1/operations/01a07aa1-6ceb-7398-9e15-824b390a95ad', method='GET'), response=None, error='', _raw=ReadError",
+      "wall": 276.71929804212414
+    },
+    {
+      "instance_id": "pallets__flask-5014",
+      "repo": "pallets/flask",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 15,
+      "tokens": 266012,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 15,
+          "prompt_tokens": 258098,
+          "completion_tokens": 7914
+        }
+      },
+      "sandbox_commands": 13,
+      "sandbox_cost": 0.02222023,
+      "diff_lines": 13,
+      "summary": "Added a check in the Blueprint constructor to raise a ValueError if the name is empty. This prevents the creation of a Blueprint with an empty name, which could cause issues. The fix was verified by running the existing test suite for blueprints, which passes, and by a custom test that confirms the ",
+      "agent_elapsed": 153.46820958307944,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "59/59",
+      "eval": "resolved",
+      "eval_cost": 0.0252256,
+      "wall": 159.4367639159318
+    },
+    {
+      "instance_id": "pylint-dev__pylint-6903",
+      "repo": "pylint-dev/pylint",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1485940,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 1453967,
+          "completion_tokens": 31973
+        }
+      },
+      "sandbox_commands": 30,
+      "sandbox_cost": 0.1941801,
+      "diff_lines": 19,
+      "summary": "(no summary given)",
+      "agent_elapsed": 447.36806691694073,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "8/8",
+      "eval": "resolved",
+      "eval_cost": 0.09796037,
+      "wall": 461.22808087500744
+    }
+  ]
+}

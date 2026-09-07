@@ -210,7 +210,48 @@ The same twelve tasks were then run twice more from scratch, with no retries, to
 
 The round-11 changes (files protected only when they already exist, staleness checked by content, a 16k completion cap, a nudge on cut-off replies) did not move the score, and the two-task drop is within the swing of tasks that sit at the edge of the 50-step budget: every miss in both clean runs used all 50 steps. Reading the logs of the round-11 misses shows one harness problem, not a model one. In sympy-15017 the model had the correct two-line fix in place by step 20, was refused twice when it tried to edit a protected test file, then called `restore` back to checkpoint 1 and lost its own work; requests-5414 did the same with a `restore` to the baseline at step 48. Both ended with no diff. sympy-20916 spent its 50 steps on 17 searches and 10 scratch scripts and never edited a repository file. Round 12 made those two changes: a `restore` that would discard every repository edit is refused, and in the last fifth of the budget every tool result says to make the edit or finish. Run again, the same twelve tasks came back to 8 of 12. The refusal fired once, on requests-5414, and the edit it saved was submitted but wrong; sympy-15017 passed without ever calling `restore`. The nudge changed nothing on sympy-20916, which ignored it ten times and kept writing scratch scripts. And django-16899, resolved in both earlier clean runs, ended with no diff after 31 steps: the model made the correct fix, was refused on the protected test file, then reverted its own change so the old assertions would pass. The protection message now says to keep the fix when an existing test asserts the old behaviour. That is the harness as frozen for the larger sample below.
 
-Twelve tasks is a small sample and these are the easier tier of Verified, so this is not comparable to leaderboard numbers on the full 500. It is a genuine measurement on real GitHub issues with hidden tests.
+With the harness frozen at that point, every task in the "under 15 minutes" tier at up to three per repository, 31 in all, was run once, three at a time, with no retries:
+
+| instance | repo | resolved | steps | tokens |
+|---|---|---|---|---|
+| astropy__astropy-14309 | astropy/astropy | yes | 17 | 327k |
+| astropy__astropy-14995 | astropy/astropy | yes | 19 | 285k |
+| astropy__astropy-7166 | astropy/astropy | yes | 29 | 329k |
+| django__django-11880 | django/django | yes | 43 | 956k |
+| django__django-16899 | django/django | yes | 38 | 944k |
+| matplotlib__matplotlib-25122 | matplotlib/matplotlib | yes | 50 | 1021k |
+| pallets__flask-5014 | pallets/flask | yes | 15 | 266k |
+| psf__requests-1142 | psf/requests | yes | 50 | 1084k |
+| psf__requests-2317 | psf/requests | yes | 50 | 974k |
+| pydata__xarray-4075 | pydata/xarray | yes | 22 | 215k |
+| pydata__xarray-4094 | pydata/xarray | yes | 46 | 1502k |
+| pydata__xarray-4629 | pydata/xarray | yes | 14 | 147k |
+| pylint-dev__pylint-6903 | pylint-dev/pylint | yes | 50 | 1486k |
+| pylint-dev__pylint-7277 | pylint-dev/pylint | yes | 19 | 286k |
+| pytest-dev__pytest-5262 | pytest-dev/pytest | yes | 33 | 545k |
+| pytest-dev__pytest-5809 | pytest-dev/pytest | yes | 14 | 168k |
+| pytest-dev__pytest-7521 | pytest-dev/pytest | yes | 23 | 342k |
+| scikit-learn__scikit-learn-12585 | scikit-learn/scikit-learn | yes | 19 | 210k |
+| scikit-learn__scikit-learn-13328 | scikit-learn/scikit-learn | yes | 17 | 237k |
+| scikit-learn__scikit-learn-25232 | scikit-learn/scikit-learn | yes | 31 | 542k |
+| sphinx-doc__sphinx-8621 | sphinx-doc/sphinx | yes | 26 | 398k |
+| sympy__sympy-15017 | sympy/sympy | yes | 19 | 325k |
+| django__django-12193 | django/django | no | 32 | 544k |
+| matplotlib__matplotlib-20676 | matplotlib/matplotlib | no | 20 | 331k |
+| matplotlib__matplotlib-23476 | matplotlib/matplotlib | no | 50 | 1595k |
+| psf__requests-5414 | psf/requests | no (no diff) | 50 | 813k |
+| pylint-dev__pylint-4970 | pylint-dev/pylint | no | 50 | 1119k |
+| sphinx-doc__sphinx-9258 | sphinx-doc/sphinx | no | 41 | 861k |
+| sphinx-doc__sphinx-9591 | sphinx-doc/sphinx | no | 18 | 264k |
+| sympy__sympy-17655 | sympy/sympy | no (no diff) | 50 | 943k |
+| sympy__sympy-20916 | sympy/sympy | no (no diff) | 50 | 1124k |
+| **22 of 31 resolved** | | | | 20.2M total |
+
+The original twelve repeated their 8 of 12 inside this run; the nineteen new tasks went 13 of 19. Two evaluations, pylint-7277 and astropy-14309, failed on a transient error from the sandbox API after the agent had finished and its patch was saved; they were graded again from the saved patch without running the agent again, and both resolved.
+
+The nine misses, from their logs, fall into three groups. Four finished early and confident with a plausible fix in the right file that the hidden tests reject (django-12193, matplotlib-20676, sphinx-9591, sphinx-9258): one edit each, tests run, a clear summary, wrong. Three ended with no diff: sympy-20916 never localised the bug in five attempts now, while sympy-17655 and requests-5414 made an edit, judged it wrong, and undid it with `edit_file`; the `restore` refusal fired twice on requests-5414 and held, but nothing stops the model from editing its own change back out, and nothing should. Two used the whole budget on a wrong diff (matplotlib-23476, pylint-4970). None of the nine lost work to the harness.
+
+Thirty-one tasks is still a small sample and these are the easier tier of Verified, so this is not comparable to leaderboard numbers on the full 500. It is a genuine measurement on real GitHub issues with hidden tests, run once, with the harness frozen before the run.
 
 ## Development
 

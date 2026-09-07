@@ -1,0 +1,42 @@
+{
+  "args": {
+    "cmd": "reeval",
+    "ids": "pylint-dev__pylint-7277,astropy__astropy-14309",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "1",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "pylint-dev__pylint-7277",
+      "repo": "pylint-dev/pylint",
+      "difficulty": "<15 min fix",
+      "steps": 19,
+      "tokens": 286050,
+      "diff_lines": 18,
+      "agent_elapsed": 251.29863908397965,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "122/122",
+      "eval": "resolved",
+      "eval_cost": 0.17977753999999999
+    },
+    {
+      "instance_id": "astropy__astropy-14309",
+      "repo": "astropy/astropy",
+      "difficulty": "<15 min fix",
+      "steps": 17,
+      "tokens": 327057,
+      "diff_lines": 15,
+      "agent_elapsed": 202.4430630831048,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "141/141",
+      "eval": "resolved",
+      "eval_cost": 0.34015858
+    }
+  ]
+}
