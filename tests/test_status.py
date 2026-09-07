@@ -39,10 +39,15 @@ def test_status_summary_classifies_runs(tmp_path: Path) -> None:
     (d / "run.json").write_text(json.dumps(info))
     make_in_progress(tmp_path, "20260904T000000Z-ddd")
     make_in_progress(tmp_path, "20260904T000100Z-eee", age_s=3 * 3600)
+    d = make_run(tmp_path, "20260905T000000Z-fff")
+    info = json.loads((d / "run.json").read_text())
+    info.update({"session": {"rounds": 3, "applied_rounds": 1}})
+    (d / "run.json").write_text(json.dumps(info))
 
     summary = status_summary(s, limit=10)
     by_id = {r.run_id: r for r in summary["runs"]}
-    assert summary["total_runs"] == 5 and [r.run_id for r in summary["runs"]][0] == "20260904T000100Z-eee"
+    assert summary["total_runs"] == 6 and [r.run_id for r in summary["runs"]][0] == "20260905T000000Z-fff"
+    assert by_id["20260905T000000Z-fff"].kind == "session"
     assert by_id["20260901T000000Z-aaa"].kind == "run" and by_id["20260901T000000Z-aaa"].state == "finished"
     assert by_id["20260901T000000Z-aaa"].tokens == 120 and by_id["20260901T000000Z-aaa"].files_changed == 1
     assert by_id["20260902T000000Z-bbb"].kind == "goal" and by_id["20260902T000000Z-bbb"].applied is True

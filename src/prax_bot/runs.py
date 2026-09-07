@@ -161,7 +161,7 @@ IN_PROGRESS_WINDOW_S = 30 * 60  # a run without a record whose log moved within 
 @dataclass
 class RunStatus:
     run_id: str
-    kind: str  # run, resume, goal
+    kind: str  # run, resume, goal, session
     task: str
     state: str  # finished, stopped: <reason>, in progress, abandoned
     started: datetime | None
@@ -190,7 +190,7 @@ def run_status(run: Run, now: datetime | None = None) -> RunStatus:
     last_activity = None
     if events_path.exists():
         last_activity = datetime.fromtimestamp(events_path.stat().st_mtime, tz=timezone.utc)
-    kind = "goal" if info.get("goal") else "resume" if info.get("resumed_from") else "run"
+    kind = "session" if info.get("session") else "goal" if info.get("goal") else "resume" if info.get("resumed_from") else "run"
     calls = [e for e in run.events if e.get("kind") == "tool.call"]
     last_tool = f"{calls[-1].get('name')} (step {calls[-1].get('step')})" if calls else None
     if "finished" in info:
