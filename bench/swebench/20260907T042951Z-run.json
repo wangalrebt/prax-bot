@@ -1,0 +1,339 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "sympy__sympy-20916,django__django-11880,django__django-16899,matplotlib__matplotlib-25122,matplotlib__matplotlib-23476,sympy__sympy-15017,pytest-dev__pytest-5809,scikit-learn__scikit-learn-12585,psf__requests-5414,sphinx-doc__sphinx-8621,psf__requests-1142,pydata__xarray-4075",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "2",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "sympy__sympy-20916",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1006227,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 990838,
+          "completion_tokens": 15389
+        }
+      },
+      "sandbox_commands": 32,
+      "sandbox_cost": 0.05472832000000002,
+      "diff_lines": 0,
+      "summary": "(no summary given)",
+      "agent_elapsed": 237.30014058295637,
+      "resolved": false,
+      "patch_applied": false,
+      "eval": "no diff produced",
+      "wall": 237.3001720418688
+    },
+    {
+      "instance_id": "django__django-11880",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 22,
+      "tokens": 227125,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 22,
+          "prompt_tokens": 217867,
+          "completion_tokens": 9258
+        }
+      },
+      "sandbox_commands": 16,
+      "sandbox_cost": 0.06817114999999999,
+      "diff_lines": 12,
+      "summary": "Fixed the __deepcopy__ method of django.forms.fields.Field to deep copy the error_messages dictionary. Previously, the method performed a shallow copy, causing all instances of a field to share the same error_messages dictionary. The fix adds `result.error_messages = copy.deepcopy(self.error_message",
+      "agent_elapsed": 91.5794405839406,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "114/114",
+      "eval": "resolved",
+      "eval_cost": 0.03999297,
+      "wall": 101.26690437505022
+    },
+    {
+      "instance_id": "django__django-16899",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 46,
+      "tokens": 785006,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 46,
+          "prompt_tokens": 738727,
+          "completion_tokens": 46279
+        }
+      },
+      "sandbox_commands": 20,
+      "sandbox_cost": 0.040496939999999995,
+      "diff_lines": 17,
+      "summary": "I have successfully modified the error message in django/contrib/admin/checks.py to include the field name in the readonly_fields check, changing the message from \"The value of '%s' is not a callable, an attribute of '%s', or an attribute of '%s'.\" to \"The value of '%s' refers to '%s', which is not ",
+      "agent_elapsed": 322.2785562919453,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "54/54",
+      "eval": "resolved",
+      "eval_cost": 0.040579500000000004,
+      "wall": 331.96034916699864
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-25122",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 49,
+      "tokens": 1064979,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 49,
+          "prompt_tokens": 1012529,
+          "completion_tokens": 52450
+        }
+      },
+      "sandbox_commands": 26,
+      "sandbox_cost": 0.51324251,
+      "diff_lines": 17,
+      "summary": "Fixed the window correction in mlab._spectral_helper for PSD modes:\n- In density scaling (scale_by_freq=True), changed (np.abs(window)**2).sum() to (window**2).sum()\n- In spectrum scaling (scale_by_freq=False), changed np.abs(window).sum()**2 to window.sum()**2\nThis removes the unnecessary absolute ",
+      "agent_elapsed": 388.7027044589631,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "12/12",
+      "p2p": "2476/2476",
+      "eval": "resolved",
+      "eval_cost": 0.18985015,
+      "wall": 414.9186942919623
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23476",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1448920,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 1323299,
+          "completion_tokens": 125621
+        }
+      },
+      "sandbox_commands": 32,
+      "sandbox_cost": 0.19356735,
+      "diff_lines": 59,
+      "summary": "(no summary given)",
+      "agent_elapsed": 533.1514981659129,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "104/104",
+      "eval": "not resolved",
+      "eval_cost": 0.1915365,
+      "wall": 552.4024792080745
+    },
+    {
+      "instance_id": "sympy__sympy-15017",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1208384,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 1175406,
+          "completion_tokens": 32978
+        }
+      },
+      "sandbox_commands": 25,
+      "sandbox_cost": 0.09865657999999998,
+      "diff_lines": 0,
+      "summary": "(no summary given)",
+      "agent_elapsed": 241.19486958300695,
+      "resolved": false,
+      "patch_applied": false,
+      "eval": "no diff produced",
+      "wall": 241.19493079185486
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5809",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1047546,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 971334,
+          "completion_tokens": 76212
+        }
+      },
+      "sandbox_commands": 23,
+      "sandbox_cost": 0.05056375999999999,
+      "diff_lines": 57,
+      "summary": "(no summary given)",
+      "agent_elapsed": 365.56745370896533,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "3/3",
+      "eval": "not resolved",
+      "eval_cost": 0.02926256,
+      "wall": 372.54638920887373
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-12585",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 24,
+      "tokens": 237774,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 24,
+          "prompt_tokens": 228481,
+          "completion_tokens": 9293
+        }
+      },
+      "sandbox_commands": 23,
+      "sandbox_cost": 0.13618947999999997,
+      "diff_lines": 22,
+      "summary": "Fixed the issue where clone fails when estimator parameters are estimator types (classes). Made two changes to sklearn/base.py:\n1. In clone function: added `or isinstance(estimator, type)` to the condition that checks for get_params, so classes are treated as non-estimators and handled by safe fallb",
+      "agent_elapsed": 113.62987508298829,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "22/22",
+      "eval": "resolved",
+      "eval_cost": 0.030496930000000002,
+      "wall": 119.32913825009018
+    },
+    {
+      "instance_id": "psf__requests-5414",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1025679,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 52,
+          "prompt_tokens": 928335,
+          "completion_tokens": 97344
+        }
+      },
+      "sandbox_commands": 25,
+      "sandbox_cost": 0.053183900000000006,
+      "diff_lines": 0,
+      "summary": "(no summary given)",
+      "agent_elapsed": 395.63291183300316,
+      "resolved": false,
+      "patch_applied": false,
+      "eval": "no diff produced",
+      "wall": 395.63301608292386
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 24,
+      "tokens": 486200,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 24,
+          "prompt_tokens": 434147,
+          "completion_tokens": 52053
+        }
+      },
+      "sandbox_commands": 23,
+      "sandbox_cost": 0.07607043000000001,
+      "diff_lines": 13,
+      "summary": "Fixed the issue with the kbd role producing incorrect HTML when compound-key separators (-, +, ^) are used as keystrokes. Modified the pattern in sphinx/builders/html/transforms.py to only treat these characters as separators when they are surrounded by non-whitespace (i.e., part of a compound keyst",
+      "agent_elapsed": 243.9704286660999,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "31/31",
+      "eval": "resolved",
+      "eval_cost": 0.03165661,
+      "wall": 250.85650829109363
+    },
+    {
+      "instance_id": "psf__requests-1142",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1276820,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 51,
+          "prompt_tokens": 1204054,
+          "completion_tokens": 72766
+        }
+      },
+      "sandbox_commands": 14,
+      "sandbox_cost": 0.02405863,
+      "diff_lines": 14,
+      "summary": "(no summary given)",
+      "agent_elapsed": 337.6737215409521,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "0/5",
+      "eval": "not resolved",
+      "eval_cost": 0.00975854,
+      "wall": 341.2245837911032
+    },
+    {
+      "instance_id": "pydata__xarray-4075",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 18,
+      "tokens": 293989,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 18,
+          "prompt_tokens": 273898,
+          "completion_tokens": 20091
+        }
+      },
+      "sandbox_commands": 16,
+      "sandbox_cost": 0.22083824,
+      "diff_lines": 14,
+      "summary": "Fixed the issue with boolean weights in weighted mean by converting weights to float in the _reduce method of the Weighted class. This ensures proper numeric computation when boolean weights are used. Verified with the provided MCVE and additional test cases, and all existing tests pass.",
+      "agent_elapsed": 140.83648687507957,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "958/958",
+      "eval": "resolved",
+      "eval_cost": 0.07971595000000001,
+      "wall": 153.86590737500228
+    }
+  ]
+}
