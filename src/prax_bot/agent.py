@@ -28,6 +28,8 @@ Rules:
 Respond only with tool calls."""
 
 NUDGE = "Continue by calling a tool. Call finish when the task is complete or if you are stuck."
+MAX_NUDGES = 3  # consecutive turns without a tool call before finish is forced
+BLANK_RETRIES = 2  # a reply with no text and no tool call is retried before it counts as a stall
 REPEAT_NUDGE = (
     "You have made the same call with the same arguments three times; its result will not change. "
     "Use the results you already have, try a different approach, or call finish and explain what is blocking you."
@@ -159,8 +161,10 @@ class Agent:
         step = 0  # model turns that called at least one tool; turns without a tool call do not count
         edited = False
         empty_finish_refused = False
+        blank_retries = 0
         while True:
-            force_finish = step >= self.max_steps - 1 or nudges >= 2
+            stalled = nudges >= MAX_NUDGES
+            force_finish = step >= self.max_steps - 1 or stalled
             investigating = self.investigate_model and step < self.investigate_steps and not edited
             model = self.investigate_model if investigating else None
             compacted = compact_old_tool_results(
@@ -170,10 +174,18 @@ class Agent:
                 self.on_event("context.elided", count=compacted)
 
             msg = self.llm.complete(messages, self.tools, tool_choice=FORCE_FINISH if force_finish else "auto", model=model)
-            messages.append(assistant_message(msg))
-            self.on_event("llm.call", step=step + 1, usage=self.llm.usage, model=model or getattr(self.llm, "model", ""))
-
             calls = getattr(msg, "tool_calls", None) or []
+            finish_reason = getattr(self.llm, "last_finish_reason", None)
+            self.on_event("llm.call", step=step + 1, usage=self.llm.usage, model=model or getattr(self.llm, "model", ""), finish_reason=finish_reason)
+
+            if not calls and not (msg.content or "").strip() and blank_retries < BLANK_RETRIES:
+                # nothing came back at all: a cut-off or dropped reply, not a decision; ask again
+                blank_retries += 1
+                self.on_event("nudge", step=step + 1, reason=f"blank reply (finish_reason={finish_reason}), retrying")
+                continue
+            blank_retries = 0
+            messages.append(assistant_message(msg))
+
             if msg.content:
                 self.on_event("assistant", step=step + 1, text=msg.content)
             if not calls:
@@ -191,6 +203,14 @@ class Agent:
                 raw_args = tc.function.arguments or "{}"
                 self.on_event("tool.call", step=step, name=name, args=raw_args)
                 if name == "finish":
+                    if stalled and not _has_summary(raw_args) and step < self.max_steps - 1:
+                        # forced after a stall, but the model sent another tool's arguments: it wants to keep working
+                        nudges = 0
+                        output = "error: finish needs a summary. Continue with the tool you meant to call."
+                        self.on_event("tool.result", step=step, name=name, output=output)
+                        messages.append({"role": "tool", "tool_call_id": tc.id, "content": output})
+                        call_names[tc.id] = name
+                        continue
                     if not edited and not empty_finish_refused and not force_finish:
                         empty_finish_refused = True
                         output = ("error: no changes have been made to the repository. If the task cannot be done, call finish "
@@ -233,6 +253,14 @@ def call_signature(name: str, raw_args: str) -> str:
         return f"{name}:{json.dumps(args, sort_keys=True)}"
     except Exception:  # noqa: BLE001 - invalid arguments are their own kind of repeat
         return f"{name}:{raw_args}"
+
+
+def _has_summary(raw_args: str) -> bool:
+    try:
+        args = json.loads(raw_args)
+    except json.JSONDecodeError:
+        return False
+    return isinstance(args, dict) and bool(args.get("summary"))
 
 
 def _finish_summary(raw_args: str) -> str:

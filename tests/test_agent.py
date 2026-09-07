@@ -58,14 +58,13 @@ def test_tool_calls_are_dispatched_until_finish() -> None:
 
 
 def test_prose_without_tools_is_nudged_then_forced() -> None:
-    llm = FakeLLM([reply("Let me think."), reply("Still thinking."), reply(None, call("finish", summary="gave up"))])
+    llm = FakeLLM([reply("Let me think."), reply("Still thinking."), reply("Hmm."), reply(None, call("finish", summary="gave up"))])
     result = Agent(llm, FakeToolBox(), max_steps=10).run("task")
 
     assert result.finished and result.summary == "gave up"
-    assert llm.requests[0][1] == "auto" and llm.requests[1][1] == "auto"
-    assert llm.requests[2][1] == FORCE_FINISH
-    nudges = [m for m in llm.requests[2][0] if m["role"] == "user"][1:]
-    assert len(nudges) == 2
+    assert [tc for _, tc in llm.requests] == ["auto", "auto", "auto", FORCE_FINISH]
+    nudges = [m for m in llm.requests[3][0] if m["role"] == "user"][1:]
+    assert len(nudges) == 3
 
 
 def test_budget_forces_finish_on_last_step() -> None:

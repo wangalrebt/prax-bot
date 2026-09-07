@@ -1,0 +1,121 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "sympy__sympy-20916,sympy__sympy-15017,matplotlib__matplotlib-23476,sphinx-doc__sphinx-8621",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "2",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "sympy__sympy-20916",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 23,
+      "tokens": 260228,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 23,
+          "prompt_tokens": 254075,
+          "completion_tokens": 6153
+        }
+      },
+      "sandbox_commands": 14,
+      "sandbox_cost": 0.07539012,
+      "diff_lines": 13,
+      "summary": "Fixed the issue where subscripts on Greek letters were not formatted in Unicode pretty printing. The problem was in the regex pattern in sympy/printing/conventions.py that only matched ASCII letters for splitting super/subscripts. Changed the pattern to ^([^\\W\\d_]+)([0-9]+)$ with UNICODE flag to sup",
+      "agent_elapsed": 89.66242237505503,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "1/1",
+      "eval": "not resolved",
+      "eval_cost": 0.02523989,
+      "wall": 95.41753233294003
+    },
+    {
+      "instance_id": "sympy__sympy-15017",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 15,
+      "tokens": 175792,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 15,
+          "prompt_tokens": 172375,
+          "completion_tokens": 3417
+        }
+      },
+      "sandbox_commands": 11,
+      "sandbox_cost": 0.026451880000000004,
+      "diff_lines": 22,
+      "summary": "Fixed the issue where len() of rank-0 arrays returned 0. Changed the _loop_size calculation in sympy/tensor/array/dense_ndim_array.py to use functools.reduce with an initial value of 1, so that for an empty shape (rank-0) the product is 1. This makes len(a) return 1 for a scalar array, matching the ",
+      "agent_elapsed": 54.505653040949255,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "14/14",
+      "eval": "resolved",
+      "eval_cost": 0.02279615,
+      "wall": 60.46219329093583
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23476",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 48,
+      "tokens": 1062647,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 923626,
+          "completion_tokens": 139021
+        }
+      },
+      "sandbox_commands": 31,
+      "sandbox_cost": 0.26415794,
+      "diff_lines": 71,
+      "summary": "Fixed the DPI doubling issue on unpickling for macOS backend on M1 Macs by modifying the FigureCanvasMac.__init__ method to properly initialize the macOS canvas with the correct logical size based on the figure's DPI and device pixel ratio. The fix ensures that after unpickling, the figure's DPI rem",
+      "agent_elapsed": 514.0971837921534,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "104/104",
+      "eval": "not resolved",
+      "eval_cost": 0.19198494000000002,
+      "wall": 533.4625735001173
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 4,
+      "tokens": 53658,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 6,
+          "prompt_tokens": 32667,
+          "completion_tokens": 20991
+        }
+      },
+      "sandbox_commands": 6,
+      "sandbox_cost": 0.00732724,
+      "diff_lines": 0,
+      "summary": "(no summary given)",
+      "agent_elapsed": 77.8988935421221,
+      "resolved": false,
+      "patch_applied": false,
+      "eval": "no diff produced",
+      "wall": 77.89892770792358
+    }
+  ]
+}

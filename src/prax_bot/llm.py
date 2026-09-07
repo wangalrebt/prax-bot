@@ -29,6 +29,9 @@ class Usage:
         entry["completion_tokens"] += completion
 
 
+MAX_COMPLETION_TOKENS = 8192  # room for reasoning plus a tool call; the server default can cut a call off
+
+
 class LLM:
     """Thin wrapper over the OpenAI-compatible Token Factory endpoint."""
 
@@ -41,6 +44,7 @@ class LLM:
             timeout=180.0,
         )
         self.usage = Usage()
+        self.last_finish_reason: str | None = None
 
     def complete(
         self,
@@ -58,7 +62,9 @@ class LLM:
             tools=tools,
             tool_choice=tool_choice,
             temperature=temperature,
+            max_tokens=MAX_COMPLETION_TOKENS,
         )
+        self.last_finish_reason = getattr(response.choices[0], "finish_reason", None)
         usage = getattr(response, "usage", None)
         self.usage.add(
             chosen,
