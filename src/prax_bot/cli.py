@@ -93,6 +93,186 @@ def _apply_diff(root: Path, diff: str) -> bool:
     return True
 
 
+def _new_run(settings: Settings, verbose: bool) -> tuple[str, Path, Any, Any]:
+    """A fresh run directory with its event log and the on_event callback that feeds it and the terminal."""
+    from .render import Reporter
+
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:6]
+    run_dir = settings.home / "runs" / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    events_file = (run_dir / "events.jsonl").open("a", encoding="utf-8")
+    reporter = Reporter(console, verbose=verbose)
+
+    def on_event(kind: str, **payload: Any) -> None:
+        record = {"t": time.time(), "kind": kind, **{k: _json_safe(v) for k, v in payload.items()}}
+        events_file.write(json.dumps(record) + "\n")
+        events_file.flush()
+        reporter(kind, **payload)
+
+    return run_id, run_dir, events_file, on_event
+
+
+def _ask_followup() -> str:
+    """A further instruction typed by the user, or an empty string to stop."""
+    from rich.prompt import Prompt
+
+    try:
+        return Prompt.ask("[bold]follow-up[/] [dim](Enter to finish)[/]", default="", show_default=False).strip()
+    except (KeyboardInterrupt, EOFError):
+        console.print()
+        return ""
+
+
+def _solve(
+    settings: Settings,
+    ws: Any,
+    root: Path,
+    task: str,
+    *,
+    backend: str,
+    run_id: str,
+    run_dir: Path,
+    events_file: Any,
+    on_event: Any,
+    yes: bool,
+    export: Optional[Path],
+    protect: list[str],
+    started: float,
+    resumed_from: dict[str, Any] | None = None,
+    record_task: str | None = None,
+    ask_followup: Any = None,
+) -> None:
+    """Run the agent on the workspace, show the diff, take follow-up instructions, then offer to apply.
+
+    Each follow-up starts a new agent transcript on the same workspace: the task text carries the original
+    request, the previous summary and the diff so far, and the sandbox state carries everything else.
+    """
+    from .agent import Agent, AgentResult
+    from .llm import LLM
+    from .runs import continuation_task
+    from .tools import ToolBox
+
+    if ask_followup is None:
+        ask_followup = _ask_followup if sys.stdin.isatty() and not yes else (lambda: "")
+    llm = LLM(settings)
+    original_task = task
+    followups: list[str] = []
+    steps_total = 0
+    while True:
+        console.print("\n[bold]agent[/]")
+        agent = Agent(
+            llm, ToolBox(ws, protected=protect), max_steps=settings.max_steps, on_event=on_event,
+            investigate_model=settings.investigate_model, investigate_steps=settings.investigate_steps,
+        )
+        try:
+            result = agent.run(task)
+        except KeyboardInterrupt:
+            console.print("\n[yellow]interrupted; collecting the diff so far[/]")
+            result = AgentResult(False, "interrupted by the user", 0, "interrupted")
+        except Exception as e:  # noqa: BLE001 - keep the work that is already in the workspace
+            console.print(f"\n[red]✗ the agent stopped: {type(e).__name__}: {escape(str(e)[:400])}[/]")
+            result = AgentResult(False, f"stopped by an error: {type(e).__name__}: {str(e)[:200]}", 0, "error")
+        steps_total += result.steps
+
+        diff: str | None = None
+        diff_error: str | None = None
+        try:
+            diff = ws.diff()
+            (run_dir / "diff.patch").write_text(diff, encoding="utf-8")
+        except Exception as e:  # noqa: BLE001
+            diff_error = f"{type(e).__name__}: {str(e)[:400]}"
+        elapsed = time.monotonic() - started
+        (run_dir / "run.json").write_text(
+            json.dumps(
+                {
+                    "run_id": run_id,
+                    "task": record_task or original_task,
+                    "followups": followups,
+                    "resumed_from": resumed_from,
+                    "repo": str(root),
+                    "model": settings.model,
+                    "investigate_model": settings.investigate_model,
+                    "usage_by_model": llm.usage.by_model,
+                    "backend": backend,
+                    "base_image": settings.base_image if backend == "contree" and not resumed_from else None,
+                    "finished": result.finished,
+                    "reason": result.reason,
+                    "steps": steps_total,
+                    "summary": result.summary,
+                    "model_calls": llm.usage.calls,
+                    "prompt_tokens": llm.usage.prompt_tokens,
+                    "completion_tokens": llm.usage.completion_tokens,
+                    "sandbox_commands": ws.commands,
+                    "sandbox_cost": ws.total_cost,
+                    "baseline_image": ws.checkpoints[0].image,
+                    "final_image": ws.image_id,
+                    "checkpoints": [dataclasses.asdict(c) for c in ws.checkpoints],
+                    "elapsed_s": elapsed,
+                    "diff_error": diff_error,
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        if diff is None:
+            events_file.close()
+            console.print(f"[red]✗ could not extract the diff: {escape(diff_error or '')}[/]")
+            console.print(f"the agent's final state is image {ws.image_id}; the log is in {run_dir}")
+            raise typer.Exit(1)
+
+        console.print()
+        table = Table(show_header=False, box=None, padding=(0, 2))
+        table.add_row("result", "[green]finished[/]" if result.finished else f"[yellow]stopped: {result.reason}[/]")
+        table.add_row("steps", str(steps_total) if not followups else f"{steps_total} ({result.steps} in this round)")
+        table.add_row("tokens", f"{llm.usage.total_tokens:,} in {llm.usage.calls} calls")
+        table.add_row("sandbox", f"{ws.commands} commands · {len(ws.checkpoints)} checkpoints · cost {ws.total_cost:.4f}")
+        table.add_row("images", f"baseline {ws.checkpoints[0].image} → final {ws.image_id}")
+        table.add_row("elapsed", f"{elapsed:.0f}s")
+        table.add_row("log", str(run_dir))
+        console.print(table)
+        console.print(Panel(escape(result.summary or "(no summary)"), title="summary", border_style="green" if result.finished else "yellow"))
+
+        if ws.dropped_scratch:
+            console.print(f"[dim]left out of the diff, they look like scratch files: {escape(', '.join(ws.dropped_scratch))}[/]")
+        if diff.strip():
+            lines = diff.splitlines()
+            shown = "\n".join(lines[:MAX_DIFF_LINES_SHOWN])
+            console.print(Syntax(shown, "diff", theme="ansi_dark", word_wrap=False))
+            if len(lines) > MAX_DIFF_LINES_SHOWN:
+                console.print(f"[dim]… {len(lines) - MAX_DIFF_LINES_SHOWN} more lines in {run_dir / 'diff.patch'}[/]")
+            if export:
+                export.write_text(diff, encoding="utf-8")
+                console.print(f"diff written to {export}")
+        else:
+            console.print("no changes to the repository")
+
+        more = ask_followup()
+        if not more:
+            break
+        followups.append(more)
+        on_event("followup", instruction=more)
+        task = continuation_task(original_task, result.summary, diff, more)
+
+    events_file.close()
+    if not diff.strip():
+        return
+    if yes:
+        apply = True
+    elif sys.stdin.isatty():
+        apply = Confirm.ask("Apply this diff to the working tree?", default=False)
+    else:
+        apply = False
+        console.print("[dim]no terminal to confirm on; pass --yes to apply automatically[/]")
+    if apply:
+        if not _apply_diff(root, diff):
+            console.print(f"the diff is saved at {run_dir / 'diff.patch'}")
+            raise typer.Exit(1)
+    else:
+        console.print(f"not applied. The diff is saved at {run_dir / 'diff.patch'}")
+    if result.reason == "error":
+        raise typer.Exit(1)
+
+
 @app.command()
 def run(
     task: str = typer.Argument(..., help="What to do, in plain language"),
@@ -108,15 +288,10 @@ def run(
     protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
 ) -> None:
-    """Solve a task in the current repository. Runs entirely in a sandbox, then asks before applying the diff."""
-    from contree_sdk import ContreeSync
+    """Solve a task in the current repository. Runs entirely in a sandbox, shows the diff, takes follow-up instructions, then asks before applying."""
     from contree_sdk.sdk.exceptions import ForbiddenError
 
-    from .agent import Agent, AgentResult
-    from .llm import LLM
-    from .render import Reporter
     from .sandbox import WorkspaceError, create_workspace, make_client
-    from .tools import ToolBox
 
     if backend not in {"contree", "local"}:
         raise typer.BadParameter("backend must be 'contree' or 'local'")
@@ -135,18 +310,7 @@ def run(
     )
     console.print(f"[bold]task[/]  {escape(task)}\n")
 
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:6]
-    run_dir = settings.home / "runs" / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
-    events_file = (run_dir / "events.jsonl").open("a", encoding="utf-8")
-    reporter = Reporter(console, verbose=verbose)
-
-    def on_event(kind: str, **payload: Any) -> None:
-        record = {"t": time.time(), "kind": kind, **{k: _json_safe(v) for k, v in payload.items()}}
-        events_file.write(json.dumps(record) + "\n")
-        events_file.flush()
-        reporter(kind, **payload)
-
+    run_id, run_dir, events_file, on_event = _new_run(settings, verbose)
     started = time.monotonic()
     console.print("[bold]sandbox[/]" if backend == "contree" else "[bold]local workspace[/]")
     try:
@@ -167,107 +331,90 @@ def run(
         console.print(f"[red]✗ sandbox error: {type(e).__name__}: {escape(str(e))}[/]")
         raise typer.Exit(1) from None
 
-    console.print("\n[bold]agent[/]")
-    llm = LLM(settings)
-    agent = Agent(
-        llm, ToolBox(ws, protected=protect), max_steps=settings.max_steps, on_event=on_event,
-        investigate_model=settings.investigate_model, investigate_steps=settings.investigate_steps,
+    _solve(
+        settings, ws, root, task, backend=backend, run_id=run_id, run_dir=run_dir, events_file=events_file,
+        on_event=on_event, yes=yes, export=export, protect=protect, started=started,
     )
-    try:
-        result = agent.run(task)
-    except KeyboardInterrupt:
-        console.print("\n[yellow]interrupted; collecting the diff so far[/]")
-        result = AgentResult(False, "interrupted by the user", 0, "interrupted")
-    except Exception as e:  # noqa: BLE001 - keep the work that is already in the workspace
-        console.print(f"\n[red]✗ the agent stopped: {type(e).__name__}: {escape(str(e)[:400])}[/]")
-        result = AgentResult(False, f"stopped by an error: {type(e).__name__}: {str(e)[:200]}", 0, "error")
 
-    diff: str | None = None
-    diff_error: str | None = None
+
+@app.command()
+def resume(
+    run_id: Optional[str] = typer.Argument(None, help="The run to continue. Default: the latest run"),
+    instruction: Optional[str] = typer.Argument(None, help="What to do next. Default: finish the original task"),
+    from_step: Optional[int] = typer.Option(None, "--from", min=0, help="Checkpoint to start from (see praxbot inspect --list). Default: the last one"),
+    model: Optional[str] = typer.Option(None, help="Model id on Token Factory. Default: the model of the run"),
+    max_steps: Optional[int] = typer.Option(None, min=1, max=200, help="Model turns before the run is stopped (default 40)"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Apply the diff without asking"),
+    export: Optional[Path] = typer.Option(None, help="Also write the diff to this file"),
+    protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit. Repeatable"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
+) -> None:
+    """Continue a past run from one of its checkpoints, in a workspace rebuilt from that image."""
+    from contree_sdk.sdk.exceptions import ForbiddenError
+
+    from .runs import latest_run_id, load_run, reopen_workspace, continuation_task
+    from .sandbox import WorkspaceError
+
+    settings = Settings.from_env(model=model, max_steps=max_steps)
+    run_id = run_id or latest_run_id(settings)
+    if run_id is None:
+        console.print("no runs yet")
+        raise typer.Exit(1)
     try:
-        diff = ws.diff()
-        (run_dir / "diff.patch").write_text(diff, encoding="utf-8")
+        past = load_run(run_id, settings)
+    except FileNotFoundError as e:
+        console.print(f"[red]✗ {escape(str(e))}[/]")
+        raise typer.Exit(1) from None
+    info = past.info
+    if not past.checkpoints:
+        console.print(f"[red]✗ run {run_id} has no checkpoints to resume from[/]")
+        raise typer.Exit(1)
+    step = len(past.checkpoints) - 1 if from_step is None else from_step
+    if not 0 <= step < len(past.checkpoints):
+        console.print(f"[red]✗ run {run_id} has checkpoints 0 to {len(past.checkpoints) - 1}[/]")
+        raise typer.Exit(1)
+    backend = str(info.get("backend") or "contree")
+    if model is None and info.get("model"):
+        settings = dataclasses.replace(settings, model=str(info["model"]))
+    _require_credentials(settings, need_project=backend == "contree")
+    root = _repo_root(Path(str(info.get("repo") or ".")))
+    checkpoint = past.checkpoints[step]
+
+    console.print(
+        Panel.fit(
+            f"[bold]Prax Bot[/] {__version__}\n"
+            f"[dim]repo[/]   {root}\n[dim]model[/]  {settings.model}\n"
+            f"[dim]resume[/] {run_id} from checkpoint {step} ({escape(str(checkpoint.get('label', ''))[:60])}), image {escape(str(checkpoint['image']))}",
+            border_style="cyan",
+        )
+    )
+    console.print(f"[bold]task[/]  {escape(str(info.get('task', '')))}")
+    console.print(f"[bold]next[/]  {escape(instruction or 'finish the original task')}\n")
+
+    new_run_id, run_dir, events_file, on_event = _new_run(settings, verbose)
+    started = time.monotonic()
+    console.print("[bold]sandbox[/]" if backend == "contree" else "[bold]local workspace[/]")
+    try:
+        ws = reopen_workspace(past, step, settings, on_event, new_run_id)
+        diff_so_far = ws.diff()
+    except (WorkspaceError, FileNotFoundError) as e:
+        console.print(f"[red]✗ {escape(str(e))}[/]")
+        raise typer.Exit(1) from None
+    except ForbiddenError:
+        console.print(f"[red]✗ {escape(NO_SANDBOX_ACCESS)}[/]")
+        raise typer.Exit(1) from None
     except Exception as e:  # noqa: BLE001
-        diff_error = f"{type(e).__name__}: {str(e)[:400]}"
-    elapsed = time.monotonic() - started
-    (run_dir / "run.json").write_text(
-        json.dumps(
-            {
-                "run_id": run_id,
-                "task": task,
-                "repo": str(root),
-                "model": settings.model,
-                "investigate_model": settings.investigate_model,
-                "usage_by_model": llm.usage.by_model,
-                "backend": backend,
-                "base_image": settings.base_image if backend == "contree" else None,
-                "finished": result.finished,
-                "reason": result.reason,
-                "steps": result.steps,
-                "summary": result.summary,
-                "model_calls": llm.usage.calls,
-                "prompt_tokens": llm.usage.prompt_tokens,
-                "completion_tokens": llm.usage.completion_tokens,
-                "sandbox_commands": ws.commands,
-                "sandbox_cost": ws.total_cost,
-                "baseline_image": ws.checkpoints[0].image,
-                "final_image": ws.image_id,
-                "checkpoints": [dataclasses.asdict(c) for c in ws.checkpoints],
-                "elapsed_s": elapsed,
-                "diff_error": diff_error,
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
+        console.print(f"[red]✗ sandbox error: {type(e).__name__}: {escape(str(e))}[/]")
+        raise typer.Exit(1) from None
+
+    instruction = instruction or "Continue the original task from this state: check what is still missing, finish it, and run the tests."
+    task = continuation_task(str(info.get("task", "")), str(info.get("summary") or ""), diff_so_far, instruction)
+    _solve(
+        settings, ws, root, task, backend=backend, run_id=new_run_id, run_dir=run_dir, events_file=events_file,
+        on_event=on_event, yes=yes, export=export, protect=protect, started=started,
+        resumed_from={"run_id": run_id, "step": step, "image": checkpoint["image"], "instruction": instruction},
+        record_task=str(info.get("task", "")),
     )
-    events_file.close()
-    if diff is None:
-        console.print(f"[red]✗ could not extract the diff: {escape(diff_error or '')}[/]")
-        console.print(f"the agent's final state is image {ws.image_id}; the log is in {run_dir}")
-        raise typer.Exit(1)
-
-    console.print()
-    table = Table(show_header=False, box=None, padding=(0, 2))
-    table.add_row("result", "[green]finished[/]" if result.finished else f"[yellow]stopped: {result.reason}[/]")
-    table.add_row("steps", str(result.steps))
-    table.add_row("tokens", f"{llm.usage.total_tokens:,} in {llm.usage.calls} calls")
-    table.add_row("sandbox", f"{ws.commands} commands · {len(ws.checkpoints)} checkpoints · cost {ws.total_cost:.4f}")
-    table.add_row("images", f"baseline {ws.checkpoints[0].image} → final {ws.image_id}")
-    table.add_row("elapsed", f"{elapsed:.0f}s")
-    table.add_row("log", str(run_dir))
-    console.print(table)
-    console.print(Panel(escape(result.summary or "(no summary)"), title="summary", border_style="green" if result.finished else "yellow"))
-
-    if ws.dropped_scratch:
-        console.print(f"[dim]left out of the diff, they look like scratch files: {escape(', '.join(ws.dropped_scratch))}[/]")
-    if not diff.strip():
-        console.print("no changes to the repository")
-        return
-
-    lines = diff.splitlines()
-    shown = "\n".join(lines[:MAX_DIFF_LINES_SHOWN])
-    console.print(Syntax(shown, "diff", theme="ansi_dark", word_wrap=False))
-    if len(lines) > MAX_DIFF_LINES_SHOWN:
-        console.print(f"[dim]… {len(lines) - MAX_DIFF_LINES_SHOWN} more lines in {run_dir / 'diff.patch'}[/]")
-    if export:
-        export.write_text(diff, encoding="utf-8")
-        console.print(f"diff written to {export}")
-
-    if yes:
-        apply = True
-    elif sys.stdin.isatty():
-        apply = Confirm.ask("Apply this diff to the working tree?", default=False)
-    else:
-        apply = False
-        console.print("[dim]no terminal to confirm on; pass --yes to apply automatically[/]")
-    if apply:
-        if not _apply_diff(root, diff):
-            console.print(f"the diff is saved at {run_dir / 'diff.patch'}")
-            raise typer.Exit(1)
-    else:
-        console.print(f"not applied. The diff is saved at {run_dir / 'diff.patch'}")
-    if result.reason == "error":
-        raise typer.Exit(1)
 
 
 @app.command()

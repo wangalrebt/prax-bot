@@ -121,6 +121,7 @@ class LocalWorkspace:
                 ["bash", "-c", command],
                 cwd=cwd,
                 env=self._env(),
+                stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 start_new_session=True,

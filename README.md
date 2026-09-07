@@ -40,7 +40,8 @@ What happens:
 2. The optional `--setup` command runs once, for dependencies.
 3. Nemotron works through a small tool set: `list_files`, `search`, `read_file`, `outline`, `edit_file`, `write_file`, `run`, `restore`, `finish`. Every `run` and every edit produces a new immutable sandbox image, which is a checkpoint the model can `restore`.
 4. When the model calls `finish`, or the step budget ends, the diff against the baseline is pulled out of the sandbox and shown.
-5. You choose whether to apply it. Applying changes the working tree only; nothing is committed.
+5. You can type a follow-up instruction ("also handle the negative case"). The agent continues in the same sandbox, with the original task, its previous summary and the diff so far as context, and shows the new diff. Press Enter to stop.
+6. You choose whether to apply the diff. Applying changes the working tree only; nothing is committed.
 
 Options:
 
@@ -68,9 +69,12 @@ uv run praxbot inspect <run-id>               # steps and the checkpoint chain
 uv run praxbot inspect <run-id> --diff 3      # the repository as it stood at checkpoint 3, as a diff
 uv run praxbot inspect <run-id> --apply 3     # put that state into your working tree
 uv run praxbot report <run-id> --open         # a self-contained HTML report
+uv run praxbot resume                         # continue the latest run from its last checkpoint
+uv run praxbot resume <run-id> "add a test for the empty case"   # continue with a new instruction
+uv run praxbot resume <run-id> --from 3       # continue from checkpoint 3 instead of the last one
 ```
 
-Every command and edit the agent made is an immutable sandbox image, so any intermediate state can be diffed or restored after the fact. If the repository has an `AGENTS.md` or `CLAUDE.md`, its contents are given to the model at the start of the run.
+Every command and edit the agent made is an immutable sandbox image, so any intermediate state can be diffed, restored, or resumed after the fact. `resume` starts a new sandbox from the chosen image, so the installed dependencies and the work so far are already there, and writes a new run that records which run and checkpoint it came from. If the repository has an `AGENTS.md` or `CLAUDE.md`, its contents are given to the model at the start of the run.
 
 ## How the sandbox is used
 

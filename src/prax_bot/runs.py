@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import json
+import shutil
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -102,6 +103,55 @@ def checkpoint_diff(run: Run, step: int, settings: Settings | None = None) -> st
     if result.exit_code != 0:
         raise RuntimeError(str(result.stderr or "").strip())
     return str(result.stdout or "")
+
+
+MAX_CONTEXT_DIFF_CHARS = 30_000
+
+
+def continuation_task(original_task: str, summary: str | None, diff: str, instruction: str) -> str:
+    """The task text for continuing earlier work: what was asked, what was done, the diff so far, what to do now."""
+    shown = diff.strip()
+    if len(shown) > MAX_CONTEXT_DIFF_CHARS:
+        shown = shown[:MAX_CONTEXT_DIFF_CHARS] + "\n... (diff truncated; run `git diff HEAD` to see all of it)"
+    return (
+        "You are continuing earlier work in this repository. The workspace already contains the changes below,\n"
+        "uncommitted, relative to the baseline commit HEAD. Build on them; do not start over.\n\n"
+        f"Original task:\n{original_task.strip()}\n\n"
+        f"Summary of the earlier work:\n{(summary or '').strip() or '(none)'}\n\n"
+        f"Changes so far (git diff HEAD):\n```diff\n{shown or '(no changes yet)'}\n```\n\n"
+        f"Now do this:\n{instruction.strip()}"
+    )
+
+
+def reopen_workspace(run: Run, step: int, settings: Settings, on_event: Any = None, new_run_id: str = "resume") -> Any:
+    """A live workspace rebuilt from one checkpoint of a past run.
+
+    Sandboxes are immutable images, so the contree backend simply starts from that image.
+    The local backend clones the snapshot directory and the run's virtualenv into a new run root.
+    """
+    checkpoints = run.checkpoints
+    if not 0 <= step < len(checkpoints):
+        raise ValueError(f"run {run.run_id} has checkpoints 0 to {len(checkpoints) - 1}")
+    image = checkpoints[step]["image"]
+    if image.startswith("local:"):
+        from .local import LocalWorkspace, clone_dir
+
+        old_root = settings.home / "local" / run.run_id
+        snap = old_root / "snapshots" / image.split(":", 1)[1]
+        if not snap.is_dir():
+            raise FileNotFoundError(f"local snapshot {snap} no longer exists")
+        root = settings.home / "local" / new_run_id
+        if root.exists():
+            shutil.rmtree(root)
+        root.mkdir(parents=True)
+        clone_dir(snap, root / "current")
+        if (old_root / "venv").is_dir():
+            clone_dir(old_root / "venv", root / "venv")
+        return LocalWorkspace(root, command_timeout=settings.command_timeout, on_event=on_event)
+    from .sandbox import Workspace, make_client
+
+    client = make_client()
+    return Workspace(client, client.images.use(image), command_timeout=settings.command_timeout, on_event=on_event)
 
 
 def _short_args(name: str, raw: str) -> str:
