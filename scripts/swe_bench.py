@@ -150,8 +150,9 @@ def run_instance(row, args, scratch: Path) -> dict:
         image, baseline = prepare_baseline(client, row, settings)
         ws = TestbedWorkspace(client, baseline, workdir=TESTBED, command_timeout=settings.command_timeout, on_event=on_event)
         llm = LLM(settings)
+        protected = ("tests/*", "*/tests/*", "*/test_*.py", "test_*.py", "*_test.py", "*/conftest.py", "conftest.py", "testing/*", "*/testing/*")
         agent = Agent(
-            llm, ToolBox(ws), max_steps=settings.max_steps, on_event=on_event,
+            llm, ToolBox(ws, protected=protected), max_steps=settings.max_steps, on_event=on_event,
             investigate_model=settings.investigate_model, investigate_steps=settings.investigate_steps,
         )
         agent_result = agent.run(task_text(row))

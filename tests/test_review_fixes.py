@@ -71,7 +71,7 @@ def test_list_and_search_handle_empty_paths_errors_and_limits() -> None:
 
 def test_repeated_identical_calls_trigger_a_nudge() -> None:
     same = lambda: reply(None, call("run", command="pytest"))  # noqa: E731
-    llm = FakeLLM([same(), same(), same(), reply(None, call("finish", summary="stuck"))])
+    llm = FakeLLM([same(), same(), same(), reply(None, call("finish", summary="stuck")), reply(None, call("finish", summary="stuck"))])
     events: list[tuple[str, dict]] = []
     result = Agent(llm, FakeToolBox(), max_steps=10, on_event=lambda k, **p: events.append((k, p))).run("t")
     assert result.finished

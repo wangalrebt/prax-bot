@@ -6,12 +6,13 @@ import difflib
 import json
 import re
 import shlex
+from collections.abc import Sequence
 from typing import Any, Callable
 
 from contree_sdk.sdk.exceptions import ContreeError
 from pydantic import BaseModel, Field, ValidationError
 
-from .sandbox import Workspace, WorkspaceError, resolve_in_workdir
+from .sandbox import SCRATCH_DIR, Workspace, WorkspaceError, resolve_in_workdir
 
 SEARCH_EXCLUDED_DIRS = (".git", "node_modules", ".venv", "venv", "__pycache__", ".pytest_cache")
 DEFINITION_RE = r"^\s*(async def|def|class|function|func|fn|struct|impl|trait|interface|type|module)\s+[A-Za-z_]"
@@ -105,7 +106,7 @@ TOOL_DESCRIPTIONS = {
     "read_file": "Read a file with line numbers. At most 400 lines per call; use start_line and end_line to read a region.",
     "outline": "List the functions and classes a file defines, with line numbers. Use it to navigate a large file before reading a region.",
     "edit_file": "Replace one exact occurrence of `old` with `new` in an existing file.",
-    "write_file": "Create a new file with the given content. Fails if the file exists; use edit_file instead.",
+    "write_file": f"Create a new file with the given content. Fails if the file exists; use edit_file instead. Throwaway scripts belong under {SCRATCH_DIR}, not in the repository.",
     "run": "Run a shell command in the repository root inside the sandbox. Returns the exit code and the tail of the output; the full output is saved to a file whose path is reported, and you can grep or sed that file with another run. Each run creates a checkpoint.",
     "todo_write": "Record the plan for multi-step work as a task list and update it as you go. Send the entire list every time; it replaces the previous one.",
     "restore": "Restore the whole workspace to an earlier checkpoint, undoing later edits and commands. Use it only when your own edit broke something that worked before. Tests that were already failing before your edits are not a reason to restore. At most three restores per run.",
@@ -346,8 +347,10 @@ def pytest_failures(output: str) -> list[str]:
 
 
 class ToolBox:
-    def __init__(self, workspace: Workspace) -> None:
+    def __init__(self, workspace: Workspace, *, protected: Sequence[str] = ()) -> None:
         self.ws = workspace
+        self.protected = tuple(protected)
+        self._paths: list[str] = []
         self._defs: dict[str, list[tuple[int, str]]] = {}
         self._restores = 0
         self._first_failures: list[str] | None = None  # failing tests seen in the first test run
@@ -392,7 +395,8 @@ class ToolBox:
     def repo_map(self, task: str, budget: int = REPO_MAP_BUDGET) -> str:
         """Definitions with line numbers for the most relevant source files, within a character budget."""
         r = self.ws.run("git ls-files -co --exclude-standard", timeout=60, mutate=False, truncate_output_at=2 * 1024 * 1024)
-        files = rank_files(r.stdout.splitlines(), task)[:REPO_MAP_MAX_FILES]
+        self._paths = r.stdout.splitlines()
+        files = rank_files(self._paths, task)[:REPO_MAP_MAX_FILES]
         if not files:
             return ""
         defs = self.definitions(files)
@@ -482,7 +486,11 @@ class ToolBox:
         lines = r.stdout.splitlines()
         if not lines:
             if r.exit_code > 1:
-                return f"error: {r.stderr.strip() or 'search failed'}"
+                hint = ""
+                if "No such file" in r.stderr and self._paths:
+                    tops = sorted({p.split("/", 1)[0] for p in self._paths if "/" in p})
+                    hint = f" The repository's top-level directories are: {', '.join(tops[:25])}."
+                return f"error: {r.stderr.strip() or 'search failed'}.{hint}"
             return (
                 "no matches. Do not guess names: search for a shorter substring, set ignore_case, "
                 "or call outline on the file to see what it defines." + note
@@ -491,6 +499,12 @@ class ToolBox:
 
     def _observe(self, path: str) -> None:
         self._observed[path] = self._world
+
+    def _protected(self, path: str) -> bool:
+        import fnmatch
+
+        rel = path.strip().lstrip("./")
+        return any(fnmatch.fnmatch(rel, pat) for pat in self.protected)
 
     def _fresh(self, path: str) -> bool:
         return self._observed.get(path) == self._world
@@ -519,6 +533,8 @@ class ToolBox:
         return f"{a.path}: {len(lines)} definitions\n" + _limited(lines, 300, False, "definitions")
 
     def _edit_file(self, a: EditFile) -> str:
+        if self._protected(a.path):
+            return f"error: {a.path} is protected and must not be modified"
         text = self.ws.read(a.path).decode("utf-8", "replace")
         if not self._fresh(a.path):
             return (f"error: read {a.path} before editing it. "
@@ -536,6 +552,8 @@ class ToolBox:
         )
 
     def _write_file(self, a: WriteFile) -> str:
+        if self._protected(a.path):
+            return f"error: {a.path} is protected and must not be modified"
         try:
             self.ws.read(a.path)
         except FileNotFoundError:

@@ -25,7 +25,7 @@ def test_search_no_match_hint_and_ignore_case() -> None:
 def test_repeated_call_is_caught_even_when_interleaved() -> None:
     same = lambda: reply(None, call("search", pattern="colwidths ="))  # noqa: E731
     other = lambda p: reply(None, call("read_file", path=p))  # noqa: E731
-    llm = FakeLLM([same(), other("a.py"), same(), other("b.py"), same(), reply(None, call("finish", summary="s"))])
+    llm = FakeLLM([same(), other("a.py"), same(), other("b.py"), same(), reply(None, call("finish", summary="s")), reply(None, call("finish", summary="s"))])
     events: list[tuple[str, dict]] = []
     Agent(llm, FakeToolBox(), max_steps=20, on_event=lambda k, **p: events.append((k, p))).run("t")
     nudges = [p for k, p in events if k == "nudge"]

@@ -225,7 +225,7 @@ def test_diff_retries_transient_sandbox_errors(monkeypatch) -> None:
         return original(*a, **k)
 
     ws.image.run = flaky
-    assert ws.diff().startswith("diff --git") and calls["n"] == 2
+    assert ws.diff().startswith("diff --git") and calls["n"] == 3  # the failed call, then listing and diff
     ws.image.run = lambda *a, **k: (_ for _ in ()).throw(ContreeError.__new__(ContreeError))
     with pytest.raises(WorkspaceError, match="after 3 attempts"):
         ws.diff()

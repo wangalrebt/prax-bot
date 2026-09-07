@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import io
 import os
+import shlex
 import shutil
 import signal
 import subprocess
@@ -19,6 +20,7 @@ from pathlib import Path
 from .sandbox import (
     DIFF_EXCLUDES,
     DIFF_OUTPUT_LIMIT,
+    SCRATCH_DIR,
     Checkpoint,
     CommandResult,
     EventFn,
@@ -27,6 +29,7 @@ from .sandbox import (
     pack_repo,
     repo_file_names,
     resolve_in_workdir,
+    scratch_files,
     suspicious_files,
 )
 from .settings import WORKDIR, Settings
@@ -55,6 +58,7 @@ class LocalWorkspace:
         self.checkpoints: list[Checkpoint] = []
         self.total_cost = 0.0
         self.commands = 0
+        self.dropped_scratch: list[str] = []
         for d in (self.snapshots, root / "home", root / "tmp"):
             d.mkdir(parents=True, exist_ok=True)
         self._checkpoint("baseline")
@@ -77,6 +81,8 @@ class LocalWorkspace:
 
     def _local_path(self, path: str) -> Path:
         absolute = resolve_in_workdir(path, self.workdir)
+        if absolute.startswith(SCRATCH_DIR):
+            return self.root / "tmp" / "praxbot" / "scratch" / absolute[len(SCRATCH_DIR) :].lstrip("/")
         return self.current / absolute[len(self.workdir) :].lstrip("/")
 
     def _env(self) -> dict[str, str]:
@@ -169,7 +175,10 @@ class LocalWorkspace:
         return target
 
     def diff(self) -> str:
-        r = self.run("git add -A && git diff --cached --binary HEAD", mutate=False, truncate_output_at=DIFF_OUTPUT_LIMIT)
+        listing = self.run("git ls-files --others --exclude-standard", mutate=False)
+        self.dropped_scratch = scratch_files(listing.stdout.splitlines()) if listing.exit_code == 0 else []
+        excludes = " ".join(shlex.quote(f":(exclude){p}") for p in self.dropped_scratch)
+        r = self.run(f"git add -A && git diff --cached --binary HEAD -- . {excludes}", mutate=False, truncate_output_at=DIFF_OUTPUT_LIMIT)
         if r.exit_code != 0:
             raise WorkspaceError(f"git diff failed: {r.stderr.strip()}")
         if r.truncated:

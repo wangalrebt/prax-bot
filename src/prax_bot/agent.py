@@ -21,6 +21,7 @@ Rules:
 - Every run and edit creates a numbered checkpoint. If something goes wrong, use restore to go back to an earlier checkpoint.
 - For work with several steps, write a todo list with todo_write first and update it as you go.
 - Read a file before editing it, and read it again after commands that may have changed it.
+- Put reproduction and debugging scripts under /tmp/praxbot/scratch (write_file accepts that path), never in the repository. Only files that belong to the fix should be left in the repository.
 - Never invent results. Report only what the tools returned.
 - When the task is complete and verified, call finish with a short summary of what changed and how it was verified. If you cannot complete the task, call finish and say so honestly.
 
@@ -157,6 +158,7 @@ class Agent:
         recent_calls: list[str] = []
         step = 0  # model turns that called at least one tool; turns without a tool call do not count
         edited = False
+        empty_finish_refused = False
         while True:
             force_finish = step >= self.max_steps - 1 or nudges >= 2
             investigating = self.investigate_model and step < self.investigate_steps and not edited
@@ -189,6 +191,14 @@ class Agent:
                 raw_args = tc.function.arguments or "{}"
                 self.on_event("tool.call", step=step, name=name, args=raw_args)
                 if name == "finish":
+                    if not edited and not empty_finish_refused and not force_finish:
+                        empty_finish_refused = True
+                        output = ("error: no changes have been made to the repository. If the task cannot be done, call finish "
+                                  "again and explain why in the summary; otherwise keep working.")
+                        self.on_event("tool.result", step=step, name=name, output=output)
+                        messages.append({"role": "tool", "tool_call_id": tc.id, "content": output})
+                        call_names[tc.id] = name
+                        continue
                     summary = _finish_summary(raw_args)
                     self.on_event("finish", step=step, summary=summary)
                     return AgentResult(True, summary, step, "finish")

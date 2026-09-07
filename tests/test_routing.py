@@ -34,9 +34,9 @@ def test_investigation_model_is_used_until_the_first_edit_or_step_limit() -> Non
     assert llm.usage.by_model == {"ultra": {"calls": 3, "prompt_tokens": 30, "completion_tokens": 3},
                                   "super": {"calls": 2, "prompt_tokens": 20, "completion_tokens": 2}}
 
-    llm2 = RoutingFakeLLM([reply(None, call("read_file", path="a.py")) for _ in range(3)] + [reply(None, call("finish", summary="s"))])
+    llm2 = RoutingFakeLLM([reply(None, call("read_file", path="a.py")) for _ in range(3)] + [reply(None, call("finish", summary="s"))] * 2)
     Agent(llm2, FakeToolBox(), max_steps=10, investigate_model="ultra", investigate_steps=2).run("t")
-    assert llm2.models == ["ultra", "ultra", None, None]
+    assert llm2.models == ["ultra", "ultra", None, None, None]
 
 
 def test_usage_totals_stay_consistent_with_per_model_breakdown() -> None:

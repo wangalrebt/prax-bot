@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import io
 import posixpath
+import re
 import shlex
 import subprocess
 import tarfile
@@ -85,16 +86,26 @@ class Checkpoint:
     label: str
 
 
-def resolve_in_workdir(path: str, workdir: str = WORKDIR) -> str:
-    """Map a model-supplied path onto an absolute path inside the sandbox workdir.
+SCRATCH_DIR = "/tmp/praxbot/scratch"  # throwaway scripts live here, outside the repository and the diff
+SCRATCH_NAME_RE = re.compile(r"^(reproduce|repro|scratch|debug|tmp|temp)[^/]*$|^test_[^/]*\.py$|^[^/]*_test\.py$")
 
-    Raises ValueError for paths that would escape the workdir.
+
+def resolve_in_workdir(path: str, workdir: str = WORKDIR) -> str:
+    """Map a model-supplied path onto an absolute path inside the sandbox workdir or the scratch dir.
+
+    Raises ValueError for paths that would escape both.
     """
     raw = (path or ".").strip()
     candidate = posixpath.normpath(raw if raw.startswith("/") else posixpath.join(workdir, raw))
-    if candidate != workdir and not candidate.startswith(workdir + "/"):
-        raise ValueError(f"path {path!r} is outside the repository ({workdir})")
-    return candidate
+    for root in (workdir, SCRATCH_DIR):
+        if candidate == root or candidate.startswith(root + "/"):
+            return candidate
+    raise ValueError(f"path {path!r} is outside the repository ({workdir}); throwaway files belong in {SCRATCH_DIR}")
+
+
+def scratch_files(new_paths: list[str]) -> list[str]:
+    """New repository-root files that look like reproduction or debugging scripts."""
+    return [p for p in new_paths if "/" not in p and SCRATCH_NAME_RE.match(p)]
 
 
 def repo_file_names(repo_root: Path) -> list[str]:
@@ -158,6 +169,7 @@ class Workspace:
         self.checkpoints: list[Checkpoint] = []
         self.total_cost = 0.0
         self.commands = 0
+        self.dropped_scratch: list[str] = []
         self._checkpoint("baseline")
 
     @property
@@ -273,8 +285,11 @@ class Workspace:
         last: Exception | None = None
         for attempt in range(attempts):
             try:
+                listing = self.run("git ls-files --others --exclude-standard", mutate=False)
+                self.dropped_scratch = scratch_files(listing.stdout.splitlines()) if listing.exit_code == 0 else []
+                excludes = " ".join(shlex.quote(f":(exclude){p}") for p in self.dropped_scratch)
                 r = self.run(
-                    "git add -A && git diff --cached --binary HEAD",
+                    f"git add -A && git diff --cached --binary HEAD -- . {excludes}",
                     mutate=False,
                     truncate_output_at=DIFF_OUTPUT_LIMIT,
                 )

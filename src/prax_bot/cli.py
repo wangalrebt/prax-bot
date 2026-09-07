@@ -105,6 +105,7 @@ def run(
     backend: str = typer.Option("contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"),
     yes: bool = typer.Option(False, "--yes", "-y", help="Apply the diff without asking"),
     export: Optional[Path] = typer.Option(None, help="Also write the diff to this file"),
+    protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
 ) -> None:
     """Solve a task in the current repository. Runs entirely in a sandbox, then asks before applying the diff."""
@@ -169,7 +170,7 @@ def run(
     console.print("\n[bold]agent[/]")
     llm = LLM(settings)
     agent = Agent(
-        llm, ToolBox(ws), max_steps=settings.max_steps, on_event=on_event,
+        llm, ToolBox(ws, protected=protect), max_steps=settings.max_steps, on_event=on_event,
         investigate_model=settings.investigate_model, investigate_steps=settings.investigate_steps,
     )
     try:
@@ -237,6 +238,8 @@ def run(
     console.print(table)
     console.print(Panel(escape(result.summary or "(no summary)"), title="summary", border_style="green" if result.finished else "yellow"))
 
+    if ws.dropped_scratch:
+        console.print(f"[dim]left out of the diff, they look like scratch files: {escape(', '.join(ws.dropped_scratch))}[/]")
     if not diff.strip():
         console.print("no changes to the repository")
         return
