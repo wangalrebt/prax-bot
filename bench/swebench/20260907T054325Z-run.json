@@ -1,0 +1,342 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "sympy__sympy-20916,django__django-11880,django__django-16899,matplotlib__matplotlib-25122,matplotlib__matplotlib-23476,sympy__sympy-15017,pytest-dev__pytest-5809,scikit-learn__scikit-learn-12585,psf__requests-5414,sphinx-doc__sphinx-8621,psf__requests-1142,pydata__xarray-4075",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "2",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "sympy__sympy-20916",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1283027,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 1227304,
+          "completion_tokens": 55723
+        }
+      },
+      "sandbox_commands": 22,
+      "sandbox_cost": 0.09232858000000002,
+      "diff_lines": 0,
+      "summary": "(no summary given)",
+      "agent_elapsed": 413.609358665999,
+      "resolved": false,
+      "patch_applied": false,
+      "eval": "no diff produced",
+      "wall": 413.60949195805006
+    },
+    {
+      "instance_id": "django__django-11880",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 40,
+      "tokens": 773602,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 40,
+          "prompt_tokens": 752212,
+          "completion_tokens": 21390
+        }
+      },
+      "sandbox_commands": 32,
+      "sandbox_cost": 0.11411181000000001,
+      "diff_lines": 12,
+      "summary": "Fixed the issue where Form Field's __deepcopy__ method did not deep copy the error_messages dictionary. Modified django/forms/fields.py to include a deep copy of error_messages in the __deepcopy__ method of the Field class. Verified the fix with custom tests and ran the existing test suite for forms",
+      "agent_elapsed": 225.95984529098496,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "114/114",
+      "eval": "resolved",
+      "eval_cost": 0.039588469999999994,
+      "wall": 235.20395949995145
+    },
+    {
+      "instance_id": "django__django-16899",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 31,
+      "tokens": 300844,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 31,
+          "prompt_tokens": 270090,
+          "completion_tokens": 30754
+        }
+      },
+      "sandbox_commands": 18,
+      "sandbox_cost": 0.046113520000000005,
+      "diff_lines": 0,
+      "summary": "I was unable to complete the fix because the test expectations for the readonly_fields error message are defined in protected test files that cannot be modified. The fix requires updating the error message in django/contrib/admin/checks.py to include the field name (like other admin checks do), but ",
+      "agent_elapsed": 202.0409643750172,
+      "resolved": false,
+      "patch_applied": false,
+      "eval": "no diff produced",
+      "wall": 202.041056209011
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-25122",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 47,
+      "tokens": 1027802,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 47,
+          "prompt_tokens": 1000527,
+          "completion_tokens": 27275
+        }
+      },
+      "sandbox_commands": 28,
+      "sandbox_cost": 0.38169636,
+      "diff_lines": 17,
+      "summary": "Fixed the window correction in mlab._spectral_helper by removing unnecessary np.abs calls:\n- In the scale_by_freq branch: changed (np.abs(window)**2).sum() to (window**2).sum()\n- In the else branch: changed np.abs(window).sum()**2 to window.sum()**2\nThis ensures correct results for windows with nega",
+      "agent_elapsed": 367.1394377918914,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "12/12",
+      "p2p": "2476/2476",
+      "eval": "resolved",
+      "eval_cost": 0.18899675000000002,
+      "wall": 393.0184750419576
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23476",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1656481,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 51,
+          "prompt_tokens": 1473828,
+          "completion_tokens": 182653
+        }
+      },
+      "sandbox_commands": 24,
+      "sandbox_cost": 0.07352204999999999,
+      "diff_lines": 256,
+      "summary": "(no summary given)",
+      "agent_elapsed": 826.516467917012,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "59/104",
+      "eval": "not resolved",
+      "eval_cost": 0.18702397,
+      "wall": 879.9655917498749
+    },
+    {
+      "instance_id": "sympy__sympy-15017",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1293121,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 1248392,
+          "completion_tokens": 44729
+        }
+      },
+      "sandbox_commands": 16,
+      "sandbox_cost": 0.05919192,
+      "diff_lines": 62,
+      "summary": "Fixed the __len__ method for rank-0 arrays in sympy.tensor.array.NDimArray to return 1 instead of 0.\nChanged the _loop_size computation in dense_ndim_array.py and sparse_ndim_array.py to use functools.reduce with an initializer of 1.\nVerified the fix with small tests and ran the relevant test suites",
+      "agent_elapsed": 300.265897042118,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "14/14",
+      "eval": "resolved",
+      "eval_cost": 0.023048899999999997,
+      "wall": 305.86496050003916
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5809",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 16,
+      "tokens": 218335,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 16,
+          "prompt_tokens": 196992,
+          "completion_tokens": 21343
+        }
+      },
+      "sandbox_commands": 12,
+      "sandbox_cost": 0.02097254,
+      "diff_lines": 13,
+      "summary": "I changed the lexer in src/_pytest/pastebin.py from \"python3\" (or \"python\" for Python 2) to \"text\" as suggested in the issue to avoid HTTP 400 errors. However, the existing test testing/test_pastebin.py::TestPaste::test_create_new_paste expects the lexer to be \"python3\" (or \"python\") and fails becau",
+      "agent_elapsed": 108.24547858396545,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "3/3",
+      "eval": "resolved",
+      "eval_cost": 0.029685529999999998,
+      "wall": 115.81779462494887
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-12585",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 22,
+      "tokens": 203873,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 22,
+          "prompt_tokens": 193947,
+          "completion_tokens": 9926
+        }
+      },
+      "sandbox_commands": 18,
+      "sandbox_cost": 0.12280259000000002,
+      "diff_lines": 13,
+      "summary": "Fixed the clone function in sklearn/base.py to handle estimator types (classes) as parameters. The fix adds a check for isinstance(estimator, type) to the condition that determines whether an object is an estimator. This prevents the clone function from attempting to call get_params on a class, whic",
+      "agent_elapsed": 106.22300129104406,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "22/22",
+      "eval": "resolved",
+      "eval_cost": 0.03076407,
+      "wall": 112.23280633287504
+    },
+    {
+      "instance_id": "psf__requests-5414",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 829505,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 760263,
+          "completion_tokens": 69242
+        }
+      },
+      "sandbox_commands": 30,
+      "sandbox_cost": 0.04949946000000001,
+      "diff_lines": 21,
+      "summary": "(no summary given)",
+      "agent_elapsed": 360.14615225000307,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "122/130",
+      "eval": "not resolved",
+      "eval_cost": 0.020485660000000003,
+      "wall": 365.4218387079891
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 1592154,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 1536925,
+          "completion_tokens": 55229
+        }
+      },
+      "sandbox_commands": 40,
+      "sandbox_cost": 0.12866729,
+      "diff_lines": 13,
+      "summary": "I have fixed the issue with the kbd role producing incorrect HTML when compound-key separators (-, + or ^) are used as keystrokes.\n\nThe problem was in the KeyboardTransform class in sphinx/builders/html/transforms.py. When processing kbd role content, the transform used a regex split on separator ch",
+      "agent_elapsed": 376.64787237509154,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "31/31",
+      "eval": "resolved",
+      "eval_cost": 0.03172064,
+      "wall": 383.30596749996766
+    },
+    {
+      "instance_id": "psf__requests-1142",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 906989,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 849970,
+          "completion_tokens": 57019
+        }
+      },
+      "sandbox_commands": 35,
+      "sandbox_cost": 0.059684079999999994,
+      "diff_lines": 45,
+      "summary": "(no summary given)",
+      "agent_elapsed": 352.36049404204823,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "5/5",
+      "eval": "resolved",
+      "eval_cost": 0.01579844,
+      "wall": 367.8037794579286
+    },
+    {
+      "instance_id": "pydata__xarray-4075",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 22,
+      "tokens": 237265,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 22,
+          "prompt_tokens": 219600,
+          "completion_tokens": 17665
+        }
+      },
+      "sandbox_commands": 15,
+      "sandbox_cost": 0.15894729999999999,
+      "diff_lines": 15,
+      "summary": "Fixed the issue with boolean weights in weighted mean by converting weights to float in the _sum_of_weights method in xarray/core/weighted.py. This ensures proper numeric computation of the sum of weights. Verified with the provided MCVE and the existing test suite for weighted operations and dot pr",
+      "agent_elapsed": 142.35764429112896,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "958/958",
+      "eval": "resolved",
+      "eval_cost": 0.07919981000000001,
+      "wall": 155.05302200000733
+    }
+  ]
+}
