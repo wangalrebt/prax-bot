@@ -141,6 +141,9 @@ def _solve(
     resumed_from: dict[str, Any] | None = None,
     record_task: str | None = None,
     ask_followup: Any = None,
+    auto_next: Any = None,
+    extra: Any = None,
+    goal: bool = False,
 ) -> None:
     """Run the agent on the workspace, show the diff, take follow-up instructions, then offer to apply.
 
@@ -158,11 +161,13 @@ def _solve(
     original_task = task
     followups: list[str] = []
     steps_total = 0
+    round_no = 0
     while True:
+        round_no += 1
         console.print("\n[bold]agent[/]")
         agent = Agent(
             llm, ToolBox(ws, protected=protect), max_steps=settings.max_steps, on_event=on_event,
-            investigate_model=settings.investigate_model, investigate_steps=settings.investigate_steps,
+            investigate_model=settings.investigate_model, investigate_steps=settings.investigate_steps, goal=goal,
         )
         try:
             result = agent.run(task)
@@ -181,45 +186,50 @@ def _solve(
             (run_dir / "diff.patch").write_text(diff, encoding="utf-8")
         except Exception as e:  # noqa: BLE001
             diff_error = f"{type(e).__name__}: {str(e)[:400]}"
-        elapsed = time.monotonic() - started
-        (run_dir / "run.json").write_text(
-            json.dumps(
-                {
-                    "run_id": run_id,
-                    "task": record_task or original_task,
-                    "followups": followups,
-                    "resumed_from": resumed_from,
-                    "repo": str(root),
-                    "model": settings.model,
-                    "investigate_model": settings.investigate_model,
-                    "usage_by_model": llm.usage.by_model,
-                    "backend": backend,
-                    "base_image": settings.base_image if backend == "contree" and not resumed_from else None,
-                    "finished": result.finished,
-                    "reason": result.reason,
-                    "steps": steps_total,
-                    "summary": result.summary,
-                    "model_calls": llm.usage.calls,
-                    "prompt_tokens": llm.usage.prompt_tokens,
-                    "completion_tokens": llm.usage.completion_tokens,
-                    "sandbox_commands": ws.commands,
-                    "sandbox_cost": ws.total_cost,
-                    "baseline_image": ws.checkpoints[0].image,
-                    "final_image": ws.image_id,
-                    "checkpoints": [dataclasses.asdict(c) for c in ws.checkpoints],
-                    "elapsed_s": elapsed,
-                    "diff_error": diff_error,
-                },
-                indent=2,
-            ),
-            encoding="utf-8",
-        )
+        def write_info() -> None:
+            elapsed = time.monotonic() - started
+            (run_dir / "run.json").write_text(
+                json.dumps(
+                    {
+                        "run_id": run_id,
+                        "task": record_task or original_task,
+                        "followups": followups,
+                        "resumed_from": resumed_from,
+                        "repo": str(root),
+                        "model": settings.model,
+                        "investigate_model": settings.investigate_model,
+                        "usage_by_model": llm.usage.by_model,
+                        "backend": backend,
+                        "base_image": settings.base_image if backend == "contree" and not resumed_from else None,
+                        "finished": result.finished,
+                        "reason": result.reason,
+                        "steps": steps_total,
+                        "summary": result.summary,
+                        "model_calls": llm.usage.calls,
+                        "prompt_tokens": llm.usage.prompt_tokens,
+                        "completion_tokens": llm.usage.completion_tokens,
+                        "sandbox_commands": ws.commands,
+                        "sandbox_cost": ws.total_cost,
+                        "baseline_image": ws.checkpoints[0].image,
+                        "final_image": ws.image_id,
+                        "checkpoints": [dataclasses.asdict(c) for c in ws.checkpoints],
+                        "elapsed_s": elapsed,
+                        "diff_error": diff_error,
+                        **(extra() if callable(extra) else (extra or {})),
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+
+        write_info()
         if diff is None:
             events_file.close()
             console.print(f"[red]✗ could not extract the diff: {escape(diff_error or '')}[/]")
             console.print(f"the agent's final state is image {ws.image_id}; the log is in {run_dir}")
             raise typer.Exit(1)
 
+        elapsed = time.monotonic() - started
         console.print()
         table = Table(show_header=False, box=None, padding=(0, 2))
         table.add_row("result", "[green]finished[/]" if result.finished else f"[yellow]stopped: {result.reason}[/]")
@@ -246,13 +256,18 @@ def _solve(
         else:
             console.print("no changes to the repository")
 
-        more = ask_followup()
+        more = auto_next(round_no, result, diff) if auto_next else None
+        if more:
+            console.print(f"\n[bold]next round[/]  {escape(more.splitlines()[0])}")
+        else:
+            more = ask_followup()
         if not more:
             break
         followups.append(more)
         on_event("followup", instruction=more)
         task = continuation_task(original_task, result.summary, diff, more)
 
+    write_info()  # the last round's verdict, e.g. a goal met, is decided after the record above was written
     events_file.close()
     if not diff.strip():
         return
@@ -289,38 +304,37 @@ def run(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
 ) -> None:
     """Solve a task in the current repository. Runs entirely in a sandbox, shows the diff, takes follow-up instructions, then asks before applying."""
-    from contree_sdk.sdk.exceptions import ForbiddenError
-
-    from .sandbox import WorkspaceError, create_workspace, make_client
-
     if backend not in {"contree", "local"}:
         raise typer.BadParameter("backend must be 'contree' or 'local'")
     settings = Settings.from_env(model=model, investigate_model=investigate_model, base_image=base_image, setup=setup, max_steps=max_steps)
     _require_credentials(settings, need_project=backend == "contree")
     root = _repo_root(repo)
 
-    console.print(
-        Panel.fit(
-            f"[bold]Prax Bot[/] {__version__}\n"
-            f"[dim]repo[/]   {root}\n[dim]model[/]  {settings.model}"
-            + (f" (investigation: {settings.investigate_model}, first {settings.investigate_steps} steps)" if settings.investigate_model else "") + "\n"
-            + (f"[dim]image[/]  {settings.base_image}" if backend == "contree" else "[dim]backend[/] local (this machine, no isolation)"),
-            border_style="cyan",
-        )
-    )
+    _header(settings, root, backend)
     console.print(f"[bold]task[/]  {escape(task)}\n")
 
     run_id, run_dir, events_file, on_event = _new_run(settings, verbose)
     started = time.monotonic()
+    ws = _open_workspace(settings, backend, root, run_id, on_event)
+    _solve(
+        settings, ws, root, task, backend=backend, run_id=run_id, run_dir=run_dir, events_file=events_file,
+        on_event=on_event, yes=yes, export=export, protect=protect, started=started,
+    )
+
+
+def _open_workspace(settings: Settings, backend: str, root: Path, run_id: str, on_event: Any) -> Any:
+    from contree_sdk.sdk.exceptions import ForbiddenError
+
+    from .sandbox import WorkspaceError, create_workspace, make_client
+
     console.print("[bold]sandbox[/]" if backend == "contree" else "[bold]local workspace[/]")
     try:
         if backend == "local":
             from .local import create_local_workspace
 
-            ws = create_local_workspace(settings, root, on_event, run_id)
-        else:
-            client = make_client()
-            ws = create_workspace(client, settings, root, on_event)
+            return create_local_workspace(settings, root, on_event, run_id)
+        client = make_client()
+        return create_workspace(client, settings, root, on_event)
     except WorkspaceError as e:
         console.print(f"[red]✗ {escape(str(e))}[/]")
         raise typer.Exit(1) from None
@@ -331,9 +345,64 @@ def run(
         console.print(f"[red]✗ sandbox error: {type(e).__name__}: {escape(str(e))}[/]")
         raise typer.Exit(1) from None
 
+
+def _header(settings: Settings, root: Path, backend: str, extra: str = "") -> None:
+    console.print(
+        Panel.fit(
+            f"[bold]Prax Bot[/] {__version__}\n"
+            f"[dim]repo[/]   {root}\n[dim]model[/]  {settings.model}"
+            + (f" (investigation: {settings.investigate_model}, first {settings.investigate_steps} steps)" if settings.investigate_model else "") + "\n"
+            + (f"[dim]image[/]  {settings.base_image}" if backend == "contree" else "[dim]backend[/] local (this machine, no isolation)")
+            + extra,
+            border_style="cyan",
+        )
+    )
+
+
+@app.command()
+def goal(
+    objective: str = typer.Argument(..., help="What must be true when the run ends, in plain language"),
+    check: Optional[str] = typer.Option(None, "--check", help="Shell command that exits 0 when the goal is met, e.g. 'pytest -q'. Without it the model decides"),
+    rounds: int = typer.Option(5, "--rounds", min=1, max=50, help="Most rounds to run; each round is a fresh transcript on the same workspace"),
+    repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository to work on"),
+    model: Optional[str] = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
+    base_image: Optional[str] = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
+    setup: Optional[str] = typer.Option(None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"),
+    max_steps: Optional[int] = typer.Option(None, min=1, max=200, help="Model turns per round (default 40)"),
+    backend: str = typer.Option("contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Apply the diff without asking"),
+    export: Optional[Path] = typer.Option(None, help="Also write the diff to this file"),
+    protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
+) -> None:
+    """Work toward a goal in rounds until a check command passes or the model reports it met, then show the diff."""
+    from .goal import GoalDriver, goal_task
+
+    if backend not in {"contree", "local"}:
+        raise typer.BadParameter("backend must be 'contree' or 'local'")
+    settings = Settings.from_env(model=model, base_image=base_image, setup=setup, max_steps=max_steps)
+    _require_credentials(settings, need_project=backend == "contree")
+    root = _repo_root(repo)
+    _header(settings, root, backend, f"\n[dim]goal[/]   up to {rounds} rounds" + (f", met when `{escape(check)}` exits 0" if check else ", the model decides when it is met"))
+    console.print(f"[bold]goal[/]  {escape(objective)}\n")
+
+    run_id, run_dir, events_file, on_event = _new_run(settings, verbose)
+    started = time.monotonic()
+    ws = _open_workspace(settings, backend, root, run_id, on_event)
+    driver = GoalDriver(objective, ws, max_rounds=rounds, check=check, check_timeout=settings.command_timeout)
+
+    def after_round(round_no: int, result: Any, diff: str) -> str | None:
+        nxt = driver.next_instruction(round_no, result, diff)
+        on_event("goal.round", round=round_no, met=driver.met, stopped=driver.stopped, check_passed=driver.met if check else None)
+        if nxt is None:
+            console.print(f"\n[bold]{'[green]' if driver.met else '[yellow]'}{escape(driver.status)}[/][/]")
+        return nxt
+
     _solve(
-        settings, ws, root, task, backend=backend, run_id=run_id, run_dir=run_dir, events_file=events_file,
-        on_event=on_event, yes=yes, export=export, protect=protect, started=started,
+        settings, ws, root, goal_task(objective, rounds, check), backend=backend, run_id=run_id, run_dir=run_dir,
+        events_file=events_file, on_event=on_event, yes=yes, export=export, protect=protect, started=started,
+        record_task=objective, goal=True, auto_next=after_round,
+        extra=lambda: {"goal": {"objective": objective, "check": check, "max_rounds": rounds, "rounds": driver.rounds, "met": driver.met, "stopped": driver.stopped}},
     )
 
 

@@ -54,6 +54,7 @@ class AgentResult:
     summary: str
     steps: int
     reason: str
+    goal_met: bool = False  # goal runs only: the model reported the whole objective achieved
 
 
 def assistant_message(msg: Any) -> dict[str, Any]:
@@ -121,6 +122,7 @@ class Agent:
         on_event: EventFn | None = None,
         investigate_model: str | None = None,
         investigate_steps: int = 6,
+        goal: bool = False,
     ) -> None:
         self.llm = llm
         self.toolbox = toolbox
@@ -129,7 +131,7 @@ class Agent:
         self.max_steps = max_steps
         self.max_transcript_chars = max_transcript_chars
         self.on_event = on_event or _noop
-        self.tools = tool_specs()
+        self.tools = tool_specs(goal=goal)
 
     def run(self, task: str) -> AgentResult:
         messages: list[dict[str, Any]] = [
@@ -227,8 +229,9 @@ class Agent:
                         call_names[tc.id] = name
                         continue
                     summary = _finish_summary(raw_args)
-                    self.on_event("finish", step=step, summary=summary)
-                    return AgentResult(True, summary, step, "finish")
+                    goal_met = _finish_flag(raw_args, "goal_met")
+                    self.on_event("finish", step=step, summary=summary, goal_met=goal_met)
+                    return AgentResult(True, summary, step, "finish", goal_met)
                 output = self.toolbox.call(name, raw_args)
                 if name in ("edit_file", "write_file"):
                     edited = True
@@ -272,6 +275,14 @@ def _has_summary(raw_args: str) -> bool:
     except json.JSONDecodeError:
         return False
     return isinstance(args, dict) and bool(args.get("summary"))
+
+
+def _finish_flag(raw_args: str, name: str) -> bool:
+    try:
+        args = json.loads(raw_args)
+    except json.JSONDecodeError:
+        return False
+    return isinstance(args, dict) and args.get(name) is True
 
 
 def _finish_summary(raw_args: str) -> str:

@@ -87,6 +87,10 @@ class Finish(BaseModel):
     summary: str = Field(..., description="What changed, how it was verified, and anything left undone")
 
 
+class GoalFinish(Finish):
+    goal_met: bool = Field(False, description="True only when the whole goal is achieved and verified; false if anything remains")
+
+
 TOOL_MODELS: dict[str, type[BaseModel]] = {
     "list_files": ListFiles,
     "search": Search,
@@ -114,9 +118,11 @@ TOOL_DESCRIPTIONS = {
 }
 
 
-def tool_specs() -> list[dict[str, Any]]:
+def tool_specs(*, goal: bool = False) -> list[dict[str, Any]]:
+    """The tool schemas sent to the model. In goal runs, finish also takes goal_met."""
     specs = []
-    for name, model in TOOL_MODELS.items():
+    models = {**TOOL_MODELS, "finish": GoalFinish} if goal else TOOL_MODELS
+    for name, model in models.items():
         schema = model.model_json_schema()
         schema.pop("title", None)
         specs.append(

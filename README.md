@@ -74,6 +74,15 @@ uv run praxbot resume <run-id> "add a test for the empty case"   # continue with
 uv run praxbot resume <run-id> --from 3       # continue from checkpoint 3 instead of the last one
 ```
 
+A goal keeps the agent working in rounds until something verifiable is true:
+
+```bash
+uv run praxbot goal "all tests pass and mypy is clean" --check "pytest -q && mypy src" --rounds 5 --setup "pip install -e . pytest mypy"
+uv run praxbot goal "the CLI has a --json flag documented in the README"        # no check: the model reports when the goal is met
+```
+
+Each round is a fresh conversation on the same workspace, seeded with the goal, the previous round's summary and the diff so far. After every round the check command runs in the sandbox without creating a checkpoint; when it exits 0 the goal is met and the diff is shown. Without `--check`, the model ends a round with `finish(goal_met=true)` when it judges the goal achieved. The run stops early after the round cap, after two rounds that changed nothing, or on an error, and says which. The record in `run.json` keeps the objective, the rounds used and the verdict.
+
 Every command and edit the agent made is an immutable sandbox image, so any intermediate state can be diffed, restored, or resumed after the fact. `resume` starts a new sandbox from the chosen image, so the installed dependencies and the work so far are already there, and writes a new run that records which run and checkpoint it came from. If the repository has an `AGENTS.md` or `CLAUDE.md`, its contents are given to the model at the start of the run.
 
 ## How the sandbox is used
