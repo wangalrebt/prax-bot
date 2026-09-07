@@ -190,24 +190,24 @@ The four failures were then traced. Two were the harness: leftover reproduction 
 
 The same twelve tasks were then run twice more from scratch, with no retries, to measure the harness rather than the best of several attempts:
 
-| instance | first pass | clean run, round-10 harness | clean run, round-11 harness |
-|---|---|---|---|
-| django__django-11880 | yes, 21 | yes, 46 | yes, 22 |
-| django__django-16899 | yes, 20 | yes, 50 | yes, 46 |
-| matplotlib__matplotlib-23476 | no, 48 | no, 50 | no, 50 |
-| matplotlib__matplotlib-25122 | yes, 50 | yes, 39 | yes, 49 |
-| psf__requests-1142 | yes, 40 | yes, 50 | no, 50 |
-| psf__requests-5414 | yes, 36 | no, 50 | no, 50 (no diff) |
-| pydata__xarray-4075 | yes, 20 | yes, 22 | yes, 18 |
-| pytest-dev__pytest-5809 | yes, 13 | yes, 45 | no, 50 |
-| scikit-learn__scikit-learn-12585 | yes, 22 | yes, 20 | yes, 24 |
-| sphinx-doc__sphinx-8621 | no (no diff), 12 | no, 50 | yes, 24 |
-| sympy__sympy-15017 | no, 37 | yes, 38 | no, 50 (no diff) |
-| sympy__sympy-20916 | no, 28 | no, 50 | no, 50 (no diff) |
-| **resolved** | **8 of 12** | **8 of 12** | **6 of 12** |
-| tokens | 6.1M | 10.0M | 10.1M |
+| instance | first pass | clean run, round-10 harness | clean run, round-11 harness | clean run, round-12 harness |
+|---|---|---|---|---|
+| django__django-11880 | yes, 21 | yes, 46 | yes, 22 | yes, 40 |
+| django__django-16899 | yes, 20 | yes, 50 | yes, 46 | no (no diff), 31 |
+| matplotlib__matplotlib-23476 | no, 48 | no, 50 | no, 50 | no, 50 |
+| matplotlib__matplotlib-25122 | yes, 50 | yes, 39 | yes, 49 | yes, 47 |
+| psf__requests-1142 | yes, 40 | yes, 50 | no, 50 | yes, 50 |
+| psf__requests-5414 | yes, 36 | no, 50 | no, 50 (no diff) | no, 50 |
+| pydata__xarray-4075 | yes, 20 | yes, 22 | yes, 18 | yes, 22 |
+| pytest-dev__pytest-5809 | yes, 13 | yes, 45 | no, 50 | yes, 16 |
+| scikit-learn__scikit-learn-12585 | yes, 22 | yes, 20 | yes, 24 | yes, 22 |
+| sphinx-doc__sphinx-8621 | no (no diff), 12 | no, 50 | yes, 24 | yes, 50 |
+| sympy__sympy-15017 | no, 37 | yes, 38 | no, 50 (no diff) | yes, 50 |
+| sympy__sympy-20916 | no, 28 | no, 50 | no, 50 (no diff) | no (no diff), 50 |
+| **resolved** | **8 of 12** | **8 of 12** | **6 of 12** | **8 of 12** |
+| tokens | 6.1M | 10.0M | 10.1M | 10.3M |
 
-The round-11 changes (files protected only when they already exist, staleness checked by content, a 16k completion cap, a nudge on cut-off replies) did not move the score, and the two-task drop is within the swing of tasks that sit at the edge of the 50-step budget: every miss in both clean runs used all 50 steps. Reading the logs of the round-11 misses shows one harness problem, not a model one. In sympy-15017 the model had the correct two-line fix in place by step 20, was refused twice when it tried to edit a protected test file, then called `restore` back to checkpoint 1 and lost its own work; requests-5414 did the same with a `restore` to the baseline at step 48. Both ended with no diff. sympy-20916 spent its 50 steps on 17 searches and 10 scratch scripts and never edited a repository file. The next harness change is to refuse a `restore` that would discard every edit made so far, and to send the model to `finish` rather than keep investigating once it has used most of the budget without an edit.
+The round-11 changes (files protected only when they already exist, staleness checked by content, a 16k completion cap, a nudge on cut-off replies) did not move the score, and the two-task drop is within the swing of tasks that sit at the edge of the 50-step budget: every miss in both clean runs used all 50 steps. Reading the logs of the round-11 misses shows one harness problem, not a model one. In sympy-15017 the model had the correct two-line fix in place by step 20, was refused twice when it tried to edit a protected test file, then called `restore` back to checkpoint 1 and lost its own work; requests-5414 did the same with a `restore` to the baseline at step 48. Both ended with no diff. sympy-20916 spent its 50 steps on 17 searches and 10 scratch scripts and never edited a repository file. Round 12 made those two changes: a `restore` that would discard every repository edit is refused, and in the last fifth of the budget every tool result says to make the edit or finish. Run again, the same twelve tasks came back to 8 of 12. The refusal fired once, on requests-5414, and the edit it saved was submitted but wrong; sympy-15017 passed without ever calling `restore`. The nudge changed nothing on sympy-20916, which ignored it ten times and kept writing scratch scripts. And django-16899, resolved in both earlier clean runs, ended with no diff after 31 steps: the model made the correct fix, was refused on the protected test file, then reverted its own change so the old assertions would pass. The protection message now says to keep the fix when an existing test asserts the old behaviour. That is the harness as frozen for the larger sample below.
 
 Twelve tasks is a small sample and these are the easier tier of Verified, so this is not comparable to leaderboard numbers on the full 500. It is a genuine measurement on real GitHub issues with hidden tests.
 
