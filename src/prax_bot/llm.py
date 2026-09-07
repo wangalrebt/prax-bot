@@ -30,6 +30,7 @@ class Usage:
 
 
 MAX_COMPLETION_TOKENS = 16384  # room for reasoning plus a tool call; a cut-off reply wastes the whole turn
+XHIGH_COMPLETION_TOKENS = 32768  # NVIDIA's own agent configuration for Nemotron 3 Super
 
 
 class LLM:
@@ -47,16 +48,16 @@ class LLM:
         self.last_finish_reason: str | None = None
         self.temperature = settings.temperature
         self.top_p = settings.top_p
-        self.thinking = settings.thinking
+        self.effort = settings.effort
 
     def request_options(self) -> dict[str, Any]:
-        """Sampling and reasoning options for one request. Thinking 'on' sends nothing extra: the model's default."""
-        options: dict[str, Any] = {}
+        """Sampling and reasoning options for one request. Effort 'high' sends nothing extra: the model's default."""
+        options: dict[str, Any] = {"max_tokens": XHIGH_COMPLETION_TOKENS if self.effort == "xhigh" else MAX_COMPLETION_TOKENS}
         if self.top_p is not None:
             options["top_p"] = self.top_p
-        if self.thinking == "low":
+        if self.effort == "low":
             options["extra_body"] = {"chat_template_kwargs": {"enable_thinking": True, "low_effort": True}}
-        elif self.thinking == "off":
+        elif self.effort == "off":
             options["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
         return options
 
@@ -76,7 +77,6 @@ class LLM:
             tools=tools,
             tool_choice=tool_choice,
             temperature=self.temperature if temperature is None else temperature,
-            max_tokens=MAX_COMPLETION_TOKENS,
             **self.request_options(),
         )
         self.last_finish_reason = getattr(response.choices[0], "finish_reason", None)

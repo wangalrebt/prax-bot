@@ -48,8 +48,8 @@ def _sampling(settings: Settings) -> str:
     parts = [f"temperature {settings.temperature:g}"]
     if settings.top_p is not None:
         parts.append(f"top_p {settings.top_p:g}")
-    if settings.thinking != "on":
-        parts.append(f"thinking {settings.thinking}")
+    if settings.effort != "high":
+        parts.append(f"effort {settings.effort}")
     return " · ".join(parts)
 
 
@@ -216,7 +216,7 @@ def _solve(
                         "model": settings.model,
                         "temperature": settings.temperature,
                         "top_p": settings.top_p,
-                        "thinking": settings.thinking,
+                        "effort": settings.effort,
                         "investigate_model": settings.investigate_model,
                         "usage_by_model": llm.usage.by_model,
                         "backend": backend,
@@ -377,12 +377,12 @@ def run(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
     temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 0.2; NVIDIA recommends 1.0 with --top-p 0.95 for Nemotron 3)"),
     top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling; unset by default"),
-    thinking: Optional[str] = typer.Option(None, help="Model reasoning: on (default), low, or off"),
+    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low, high (default), or xhigh"),
 ) -> None:
     """Solve a task in the current repository. Runs entirely in a sandbox, shows the diff, takes follow-up instructions, then asks before applying."""
     if backend not in {"contree", "local"}:
         raise typer.BadParameter("backend must be 'contree' or 'local'")
-    settings = _settings(model=model, investigate_model=investigate_model, base_image=base_image, setup=setup, max_steps=max_steps, temperature=temperature, top_p=top_p, thinking=thinking)
+    settings = _settings(model=model, investigate_model=investigate_model, base_image=base_image, setup=setup, max_steps=max_steps, temperature=temperature, top_p=top_p, effort=effort)
     _require_credentials(settings, need_project=backend == "contree")
     root = _repo_root(repo)
 
@@ -453,14 +453,14 @@ def goal(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
     temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 0.2; NVIDIA recommends 1.0 with --top-p 0.95 for Nemotron 3)"),
     top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling; unset by default"),
-    thinking: Optional[str] = typer.Option(None, help="Model reasoning: on (default), low, or off"),
+    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low, high (default), or xhigh"),
 ) -> None:
     """Work toward a goal in rounds until a check command passes or the model reports it met, then show the diff."""
     from .goal import GoalDriver, goal_task
 
     if backend not in {"contree", "local"}:
         raise typer.BadParameter("backend must be 'contree' or 'local'")
-    settings = _settings(model=model, base_image=base_image, setup=setup, max_steps=max_steps, temperature=temperature, top_p=top_p, thinking=thinking)
+    settings = _settings(model=model, base_image=base_image, setup=setup, max_steps=max_steps, temperature=temperature, top_p=top_p, effort=effort)
     _require_credentials(settings, need_project=backend == "contree")
     root = _repo_root(repo)
     _header(settings, root, backend, f"\n[dim]goal[/]   up to {rounds} rounds" + (f", met when `{escape(check)}` exits 0" if check else ", the model decides when it is met"))
@@ -499,7 +499,7 @@ def resume(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
     temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 0.2; NVIDIA recommends 1.0 with --top-p 0.95 for Nemotron 3)"),
     top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling; unset by default"),
-    thinking: Optional[str] = typer.Option(None, help="Model reasoning: on (default), low, or off"),
+    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low, high (default), or xhigh"),
 ) -> None:
     """Continue a past run from one of its checkpoints, in a workspace rebuilt from that image."""
     from contree_sdk.sdk.exceptions import ForbiddenError
@@ -507,7 +507,7 @@ def resume(
     from .runs import latest_run_id, load_run, reopen_workspace, continuation_task
     from .sandbox import WorkspaceError
 
-    settings = _settings(model=model, max_steps=max_steps, temperature=temperature, top_p=top_p, thinking=thinking)
+    settings = _settings(model=model, max_steps=max_steps, temperature=temperature, top_p=top_p, effort=effort)
     run_id = run_id or latest_run_id(settings)
     if run_id is None:
         console.print("no runs yet")
