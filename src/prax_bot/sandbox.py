@@ -19,7 +19,15 @@ from typing import Any, Callable
 
 from contree_sdk import ContreeSync
 from contree_sdk.config import ContreeConfig
-from contree_sdk.sdk.exceptions import ContreeError, NotFoundError, OperationTimedOutError, UnprocessableEntityError
+from contree_sdk.sdk.exceptions import (
+    ApiStatusCodeError,
+    ApiTimeoutError,
+    ContreeError,
+    ContreeTransportError,
+    NotFoundError,
+    OperationTimedOutError,
+    UnprocessableEntityError,
+)
 
 from .settings import WORKDIR, Settings
 
@@ -306,6 +314,28 @@ class Workspace:
         return r.stdout
 
 
+CREATE_ATTEMPTS = 3
+
+
+def transient(error: Exception) -> bool:
+    """A sandbox API failure worth retrying: a dropped connection, a timeout, or a 5xx from the gateway."""
+    if isinstance(error, (ContreeTransportError, ApiTimeoutError)):
+        return True
+    return isinstance(error, ApiStatusCodeError) and int(getattr(error, "status", 0) or 0) >= 500
+
+
+def with_retries(action: Callable[[], Any], *, label: str, emit: EventFn, attempts: int = CREATE_ATTEMPTS) -> Any:
+    for attempt in range(attempts):
+        try:
+            return action()
+        except ContreeError as e:
+            if not transient(e) or attempt == attempts - 1:
+                raise
+            emit("sandbox.retry", step=label, attempt=attempt + 1, error=f"{type(e).__name__}: {str(e)[:160]}")
+            time.sleep(5 * (attempt + 1))
+    raise AssertionError("unreachable")
+
+
 def create_workspace(
     client: ContreeSync,
     settings: Settings,
@@ -318,7 +348,7 @@ def create_workspace(
     archive = pack_repo(repo_root)
     emit("sandbox.pack", bytes=len(archive), suspicious=suspicious_files(repo_file_names(repo_root)))
 
-    base = client.images.oci(settings.base_image, timeout=settings.import_timeout)
+    base = with_retries(lambda: client.images.oci(settings.base_image, timeout=settings.import_timeout), label="base image", emit=emit)
     emit("sandbox.base", image=str(base.uuid), tag=base.tag, elapsed=time.monotonic() - started)
 
     wd = WORKDIR
@@ -327,12 +357,16 @@ def create_workspace(
         f" && cd {wd} && git -c init.defaultBranch=main init -q && {git_exclude_command()} && git add -A"
         " && git -c user.email=praxbot@localhost -c user.name=praxbot commit -qm baseline --allow-empty"
     )
-    image = base.run(
-        shell=bootstrap,
-        files={"/tmp/praxbot-repo.tar": archive},
-        disposable=False,
-        timeout=settings.setup_timeout,
-    ).wait()
+    image = with_retries(
+        lambda: base.run(
+            shell=bootstrap,
+            files={"/tmp/praxbot-repo.tar": archive},
+            disposable=False,
+            timeout=settings.setup_timeout,
+        ).wait(),
+        label="upload",
+        emit=emit,
+    )
     if image.exit_code != 0:
         raise WorkspaceError(
             f"sandbox bootstrap failed (exit {image.exit_code}): {str(image.stderr or '')[-2000:]}"

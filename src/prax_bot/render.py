@@ -55,6 +55,8 @@ class Reporter:
             c.print(f"  base image {escape(str(payload.get('tag') or ''))} · {payload['image']} · {payload['elapsed']:.1f}s")
         elif kind == "sandbox.ready":
             c.print(f"  [bold]baseline image[/] {payload['image']} · {payload['elapsed']:.1f}s")
+        elif kind == "sandbox.retry":
+            c.print(f"  [yellow]sandbox {escape(str(payload.get('step')))} failed, retrying (attempt {payload.get('attempt')}):[/] {escape(str(payload.get('error')))}")
         elif kind == "sandbox.setup":
             c.print(f"  setup · exit {payload['exit_code']} · {payload['elapsed']:.1f}s")
         elif kind == "assistant":
