@@ -1,3 +1,5 @@
+"""The command line: every prax / praxbot command, built on the session runtime in session.py."""
+
 from __future__ import annotations
 
 import dataclasses
@@ -6,7 +8,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 import typer
 from rich.console import Console
@@ -34,6 +36,34 @@ from .session import (
     write_record,
 )
 from .settings import Settings, contree_auth_ini
+
+# Options shared by the commands that open a workspace, declared once so their help text cannot drift.
+RepoOpt = Annotated[Path, typer.Option("--repo", "-C", help="A path inside the git repository to work on")]
+ModelOpt = Annotated[str | None, typer.Option(help="Model id on Token Factory. Default: Nemotron 3 Super")]
+BaseImageOpt = Annotated[str | None, typer.Option(help="OCI image for the sandbox. Default: python:3.12")]
+SetupOpt = Annotated[
+    str | None, typer.Option(help="Shell command to run once after upload, e.g. 'pip install -e . pytest'")
+]
+MaxStepsOpt = Annotated[
+    int | None, typer.Option(min=1, max=200, help="Model turns per round before it is stopped (default 40)")
+]
+BackendOpt = Annotated[
+    str, typer.Option(help="contree: a Token Factory Sandbox. local: this machine, for development only")
+]
+YesOpt = Annotated[bool, typer.Option("--yes", "-y", help="Apply the diff without asking")]
+ExportOpt = Annotated[Path | None, typer.Option(help="Also write the diff to this file")]
+ProtectOpt = Annotated[
+    list[str], typer.Option("--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable")
+]
+VerboseOpt = Annotated[bool, typer.Option("--verbose", "-v", help="Show full tool outputs and checkpoints")]
+TemperatureOpt = Annotated[
+    float | None,
+    typer.Option(min=0.0, max=2.0, help="Sampling temperature (default 1.0, NVIDIA's recommendation for Nemotron 3)"),
+]
+TopPOpt = Annotated[float | None, typer.Option("--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)")]
+EffortOpt = Annotated[
+    str | None, typer.Option(help="How much the model reasons per step: off, low (default), high, or xhigh")
+]
 
 app = typer.Typer(
     add_completion=False,
@@ -266,23 +296,17 @@ def _start_session(
 
 @app.command()
 def session(
-    repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository to work on"),
-    model: str | None = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
-    base_image: str | None = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
-    setup: str | None = typer.Option(
-        None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"
-    ),
-    max_steps: int | None = typer.Option(None, min=1, max=200, help="Model turns per instruction (default 40)"),
-    backend: str = typer.Option(
-        "contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"
-    ),
-    protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
-    temperature: float | None = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0)"),
-    top_p: float | None = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
-    effort: str | None = typer.Option(
-        None, help="How much the model reasons per step: off, low (default), high, or xhigh"
-    ),
+    repo: RepoOpt = Path("."),
+    model: ModelOpt = None,
+    base_image: BaseImageOpt = None,
+    setup: SetupOpt = None,
+    max_steps: MaxStepsOpt = None,
+    backend: BackendOpt = "contree",
+    protect: ProtectOpt = (),
+    verbose: VerboseOpt = False,
+    temperature: TemperatureOpt = None,
+    top_p: TopPOpt = None,
+    effort: EffortOpt = None,
 ) -> None:
     """Open one sandbox on this repository and keep giving it instructions. Also what bare `praxbot` does."""
     _start_session(repo, model, base_image, setup, max_steps, backend, protect, verbose, temperature, top_p, effort)
@@ -290,23 +314,17 @@ def session(
 
 @app.command()
 def ui(
-    repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository to work on"),
-    model: str | None = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
-    base_image: str | None = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
-    setup: str | None = typer.Option(
-        None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"
-    ),
-    max_steps: int | None = typer.Option(None, min=1, max=200, help="Model turns per instruction (default 40)"),
-    backend: str = typer.Option(
-        "contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"
-    ),
-    protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
-    temperature: float | None = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0)"),
-    top_p: float | None = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
-    effort: str | None = typer.Option(
-        None, help="How much the model reasons per step: off, low (default), high, or xhigh"
-    ),
+    repo: RepoOpt = Path("."),
+    model: ModelOpt = None,
+    base_image: BaseImageOpt = None,
+    setup: SetupOpt = None,
+    max_steps: MaxStepsOpt = None,
+    backend: BackendOpt = "contree",
+    protect: ProtectOpt = (),
+    verbose: VerboseOpt = False,
+    temperature: TemperatureOpt = None,
+    top_p: TopPOpt = None,
+    effort: EffortOpt = None,
 ) -> None:
     """The full-screen interface: conversation, sidebar, diff pane, one input line. Also what bare `praxbot` does on a terminal."""
     _start_ui(repo, model, base_image, setup, max_steps, backend, protect, verbose, temperature, top_p, effort)
@@ -346,25 +364,19 @@ def _start_ui(
 
 @app.command()
 def web(
-    repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository to work on"),
+    repo: RepoOpt = Path("."),
     port: int = typer.Option(0, "--port", min=0, max=65535, help="Port on localhost; 0 picks a free one"),
     no_browser: bool = typer.Option(False, "--no-browser", help="Print the URL instead of opening a browser"),
-    model: str | None = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
-    base_image: str | None = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
-    setup: str | None = typer.Option(
-        None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"
-    ),
-    max_steps: int | None = typer.Option(None, min=1, max=200, help="Model turns per instruction (default 40)"),
-    backend: str = typer.Option(
-        "contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"
-    ),
-    protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
-    temperature: float | None = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0)"),
-    top_p: float | None = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
-    effort: str | None = typer.Option(
-        None, help="How much the model reasons per step: off, low (default), high, or xhigh"
-    ),
+    model: ModelOpt = None,
+    base_image: BaseImageOpt = None,
+    setup: SetupOpt = None,
+    max_steps: MaxStepsOpt = None,
+    backend: BackendOpt = "contree",
+    protect: ProtectOpt = (),
+    verbose: VerboseOpt = False,
+    temperature: TemperatureOpt = None,
+    top_p: TopPOpt = None,
+    effort: EffortOpt = None,
 ) -> None:
     """The web interface on localhost: chat with tool calls, changes, to-dos and rounds in a sidebar, a slash-command menu."""
 
@@ -493,32 +505,22 @@ def status(
 @app.command()
 def run(
     task: str = typer.Argument(..., help="What to do, in plain language"),
-    repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository to work on"),
-    model: str | None = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
+    repo: RepoOpt = Path("."),
+    model: ModelOpt = None,
     investigate_model: str | None = typer.Option(
         None, help="Model for the first investigation turns, e.g. Nemotron 3 Ultra. Default: same as --model"
     ),
-    base_image: str | None = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
-    setup: str | None = typer.Option(
-        None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"
-    ),
-    max_steps: int | None = typer.Option(
-        None, min=1, max=200, help="Model turns before the run is stopped (default 40)"
-    ),
-    backend: str = typer.Option(
-        "contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"
-    ),
-    yes: bool = typer.Option(False, "--yes", "-y", help="Apply the diff without asking"),
-    export: Path | None = typer.Option(None, help="Also write the diff to this file"),
-    protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
-    temperature: float | None = typer.Option(
-        None, min=0.0, max=2.0, help="Sampling temperature (default 1.0, NVIDIA's recommendation for Nemotron 3)"
-    ),
-    top_p: float | None = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
-    effort: str | None = typer.Option(
-        None, help="How much the model reasons per step: off, low (default), high, or xhigh"
-    ),
+    base_image: BaseImageOpt = None,
+    setup: SetupOpt = None,
+    max_steps: MaxStepsOpt = None,
+    backend: BackendOpt = "contree",
+    yes: YesOpt = False,
+    export: ExportOpt = None,
+    protect: ProtectOpt = (),
+    verbose: VerboseOpt = False,
+    temperature: TemperatureOpt = None,
+    top_p: TopPOpt = None,
+    effort: EffortOpt = None,
 ) -> None:
     """Solve a task in the current repository. Runs entirely in a sandbox, shows the diff, takes follow-up instructions, then asks before applying."""
     if backend not in {"contree", "local"}:
@@ -565,21 +567,15 @@ def run(
 
 @app.command()
 def init(
-    repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository"),
+    repo: RepoOpt = Path("."),
     force: bool = typer.Option(False, "--force", help="Write AGENTS.md even if one exists"),
-    model: str | None = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
-    base_image: str | None = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
-    setup: str | None = typer.Option(
-        None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"
-    ),
-    max_steps: int | None = typer.Option(
-        None, min=1, max=200, help="Model turns before the run is stopped (default 40)"
-    ),
-    backend: str = typer.Option(
-        "contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"
-    ),
+    model: ModelOpt = None,
+    base_image: BaseImageOpt = None,
+    setup: SetupOpt = None,
+    max_steps: MaxStepsOpt = None,
+    backend: BackendOpt = "contree",
     yes: bool = typer.Option(False, "--yes", "-y", help="Write the file without asking"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
+    verbose: VerboseOpt = False,
 ) -> None:
     """Write an AGENTS.md for this repository: how to install, test and lint it, its layout and conventions, from what the agent finds."""
     if backend not in {"contree", "local"}:
@@ -655,27 +651,19 @@ def goal(
     rounds: int = typer.Option(
         5, "--rounds", min=1, max=50, help="Most rounds to run; each round is a fresh transcript on the same workspace"
     ),
-    repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository to work on"),
-    model: str | None = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
-    base_image: str | None = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
-    setup: str | None = typer.Option(
-        None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"
-    ),
-    max_steps: int | None = typer.Option(None, min=1, max=200, help="Model turns per round (default 40)"),
-    backend: str = typer.Option(
-        "contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"
-    ),
-    yes: bool = typer.Option(False, "--yes", "-y", help="Apply the diff without asking"),
-    export: Path | None = typer.Option(None, help="Also write the diff to this file"),
-    protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
-    temperature: float | None = typer.Option(
-        None, min=0.0, max=2.0, help="Sampling temperature (default 1.0, NVIDIA's recommendation for Nemotron 3)"
-    ),
-    top_p: float | None = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
-    effort: str | None = typer.Option(
-        None, help="How much the model reasons per step: off, low (default), high, or xhigh"
-    ),
+    repo: RepoOpt = Path("."),
+    model: ModelOpt = None,
+    base_image: BaseImageOpt = None,
+    setup: SetupOpt = None,
+    max_steps: MaxStepsOpt = None,
+    backend: BackendOpt = "contree",
+    yes: YesOpt = False,
+    export: ExportOpt = None,
+    protect: ProtectOpt = (),
+    verbose: VerboseOpt = False,
+    temperature: TemperatureOpt = None,
+    top_p: TopPOpt = None,
+    effort: EffortOpt = None,
 ) -> None:
     """Work toward a goal in rounds until a check command passes or the model reports it met, then show the diff."""
     from .goal import GoalDriver, goal_task
@@ -762,20 +750,14 @@ def resume(
         None, "--from", min=0, help="Checkpoint to start from (see praxbot inspect --list). Default: the last one"
     ),
     model: str | None = typer.Option(None, help="Model id on Token Factory. Default: the model of the run"),
-    max_steps: int | None = typer.Option(
-        None, min=1, max=200, help="Model turns before the run is stopped (default 40)"
-    ),
-    yes: bool = typer.Option(False, "--yes", "-y", help="Apply the diff without asking"),
-    export: Path | None = typer.Option(None, help="Also write the diff to this file"),
-    protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit. Repeatable"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
-    temperature: float | None = typer.Option(
-        None, min=0.0, max=2.0, help="Sampling temperature (default 1.0, NVIDIA's recommendation for Nemotron 3)"
-    ),
-    top_p: float | None = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
-    effort: str | None = typer.Option(
-        None, help="How much the model reasons per step: off, low (default), high, or xhigh"
-    ),
+    max_steps: MaxStepsOpt = None,
+    yes: YesOpt = False,
+    export: ExportOpt = None,
+    protect: ProtectOpt = (),
+    verbose: VerboseOpt = False,
+    temperature: TemperatureOpt = None,
+    top_p: TopPOpt = None,
+    effort: EffortOpt = None,
 ) -> None:
     """Continue a past run from one of its checkpoints, in a workspace rebuilt from that image."""
     from contree_sdk.sdk.exceptions import ForbiddenError

@@ -1,3 +1,5 @@
+"""Configuration, in one dataclass, from flags, environment variables and the sandbox auth file."""
+
 from __future__ import annotations
 
 import os

@@ -1,3 +1,5 @@
+"""The model client: one place that talks to Token Factory's OpenAI-compatible API and counts tokens."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
