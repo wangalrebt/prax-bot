@@ -289,7 +289,7 @@ def serve(web: WebSession, *, host: str = "127.0.0.1", port: int = 0, open_brows
     server = ThreadingHTTPServer((host, port), make_handler(web, token, page or PAGE))
     server.daemon_threads = True
     url = f"http://{host}:{server.server_address[1]}/?token={token}"
-    print(f"Prax Bot web interface: {url}")
+    print(f"Prax Bot web interface: {url}", flush=True)
     if open_browser:
         webbrowser.open(url)
     try:

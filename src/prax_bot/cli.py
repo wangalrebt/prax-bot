@@ -743,6 +743,12 @@ def web(
     settings = _settings(model=model, base_image=base_image, setup=setup, max_steps=max_steps, temperature=temperature, top_p=top_p, effort=effort)
     _require_credentials(settings, need_project=backend == "contree")
     root = _repo_root(repo)
+    _start_web(settings, root, backend, protect, verbose, port, not no_browser)
+
+
+def _start_web(settings: Settings, root: Path, backend: str, protect: list[str], verbose: bool, port: int, open_browser: bool) -> None:
+    from .web import WebSession, serve
+
     skills, plugins = _extensions(settings)
 
     def make_session(out: Console, hook: Any) -> Session:
@@ -757,17 +763,16 @@ def web(
         return Session(settings, ws, root, backend=backend, run_id=run_id, run_dir=run_dir, events_file=events_file,
                        on_event=on_event_with_hook, protect=protect, skills=skills, plugins=plugins, read_line=lambda: None, out=out)
 
-    serve(WebSession(settings, root, backend, make_session), port=port, open_browser=not no_browser)
+    serve(WebSession(settings, root, backend, make_session), port=port, open_browser=open_browser)
 
 
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context) -> None:
-    """Prax Bot: a coding agent that works in a Nebius Token Factory Sandbox, powered by NVIDIA Nemotron. With no command, opens the interface."""
+    """Prax Bot: a coding agent that works in a Nebius Token Factory Sandbox, powered by NVIDIA Nemotron. With no command, opens the web interface."""
     if ctx.invoked_subcommand is None:
-        if sys.stdout.isatty() and sys.stdin.isatty():
-            _start_ui(Path("."), None, None, None, None, "contree", [], False, None, None, None)
-        else:
-            _start_session(Path("."), None, None, None, None, "contree", [], False, None, None, None)
+        settings = _settings()
+        _require_credentials(settings, need_project=True)
+        _start_web(settings, _repo_root(Path(".")), "contree", [], False, 0, True)
 
 
 @app.command()

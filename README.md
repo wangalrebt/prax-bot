@@ -40,11 +40,11 @@ or give it one task:
 uv run praxbot run "fix the failing test in tests/test_cache.py" --setup "pip install -e . pytest"
 ```
 
-![The interface after one instruction: sidebar, conversation with the diff, status line, input](docs/interface.png)
+![The web interface: sidebar with the session, changed files and rounds; the instruction, its tool calls, the summary and the diff](docs/web-interface.png)
 
-On a terminal, bare `praxbot` opens the full-screen interface: the conversation on the right with every tool call as it happens, a sidebar with the session, the files changed so far and the rounds, a diff pane on F2, and one input line at the bottom. F3 applies the pending changes to your working tree, F4 undoes the last instruction, F1 lists the commands, and ctrl+q leaves, asking about pending changes first. `praxbot session` is the same thing as a plain prompt, for pipes and scripts.
+Bare `praxbot` opens the web interface on localhost and points a browser at it. One page holds the whole session: a Chat view with each instruction, its tool calls grouped and expandable, the model's summary, and a foldable diff; a Trajectory view with the raw log; a sidebar with the session, the files changed so far, the to-dos and the rounds; and a slash-command menu when you type `/`. It binds to localhost with a token in the URL, and `--no-browser` prints the URL instead of opening one. Events stream to the page as they happen; there is nothing to install in the browser.
 
-A session opens one sandbox and keeps taking instructions. Each one continues from the current state, and the diff is shown after every instruction. Inside it, `/diff` shows the pending changes, `/apply` puts them into your working tree and later diffs continue from there, `/undo` returns the sandbox to before the last instruction, `/goal` works in rounds toward an objective, `/resume` swaps in a past run's checkpoint, `/effort` changes how much the model reasons, and `/status` shows steps, tokens and what is not applied yet. `praxbot session --backend local --effort low` opens one with options.
+For a terminal instead of a browser there are two other front ends on the same session: `praxbot ui`, a full-screen terminal interface, and `praxbot session`, a plain prompt for pipes and scripts. A session opens one sandbox and keeps taking instructions. Each one continues from the current state, and the diff is shown after every instruction. Inside it, `/diff` shows the pending changes, `/apply` puts them into your working tree and later diffs continue from there, `/undo` returns the sandbox to before the last instruction, `/goal` works in rounds toward an objective, `/resume` swaps in a past run's checkpoint, `/effort` changes how much the model reasons, and `/status` shows steps, tokens and what is not applied yet. `praxbot session --backend local --effort low` opens one with options.
 
 What happens in a run:
 
