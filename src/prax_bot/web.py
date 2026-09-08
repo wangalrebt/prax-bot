@@ -23,6 +23,7 @@ from urllib.parse import parse_qs, urlparse
 from rich.console import Console
 from rich.text import Text
 
+from .session import json_safe
 from .settings import Settings
 
 HISTORY_LIMIT = 5000
@@ -93,7 +94,7 @@ class WebSession:
 
     def hook(self, kind: str, **payload: Any) -> None:
         """Wrapped around the session's event callback: every agent event reaches the page."""
-        safe = {k: _json_safe(v) for k, v in payload.items()}
+        safe = {k: json_safe(v) for k, v in payload.items()}
         if kind == "tool.call":
             self.current_step = f"step {payload.get('step')} · {payload.get('name')}"
         self.emit({"kind": kind, **safe})
@@ -192,18 +193,6 @@ class WebSession:
             with contextlib.suppress(Exception):  # best effort on the way out
                 self.session.close()
         self.emit(self.state_event())
-
-
-def _json_safe(value: Any) -> Any:
-    if isinstance(value, (str, int, float, bool)) or value is None:
-        return value
-    if isinstance(value, (list, tuple)):
-        return [_json_safe(v) for v in value]
-    if isinstance(value, dict):
-        return {str(k): _json_safe(v) for k, v in value.items()}
-    if hasattr(value, "__dict__"):
-        return {k: _json_safe(v) for k, v in vars(value).items() if not k.startswith("_")}
-    return str(value)
 
 
 def make_handler(web: WebSession, token: str, page: str) -> type[BaseHTTPRequestHandler]:

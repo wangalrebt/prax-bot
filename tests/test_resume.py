@@ -68,6 +68,7 @@ def test_solve_continues_on_the_same_workspace_after_a_followup(
 ) -> None:
     import prax_bot.llm
     from prax_bot import cli
+    from prax_bot.session import new_run
 
     s = settings(tmp_path)
     make_run(tmp_path, "20260901T000000Z-aaa")
@@ -85,7 +86,7 @@ def test_solve_continues_on_the_same_workspace_after_a_followup(
     )
     monkeypatch.setattr(prax_bot.llm, "LLM", lambda settings: llm)
     answers = iter(["also add c", ""])
-    run_id, run_dir, events_file, on_event = cli._new_run(s, verbose=False)
+    run_id, run_dir, events_file, on_event = new_run(s, verbose=False)
     cli._solve(
         s,
         ws,

@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from prax_bot import cli
 from prax_bot.runs import load_run, reopen_workspace
+from prax_bot.session import Session, new_run
 from tests.test_agent import FakeLLM, call, reply
 from tests.test_resume import make_snapshot
 from tests.test_runs import make_run, settings
@@ -60,8 +60,8 @@ def test_session_runs_instructions_undoes_applies_and_records(tmp_path: Path, mo
             "/quit",
         ]
     )
-    run_id, run_dir, events_file, on_event = cli._new_run(s, verbose=False)
-    session = cli.Session(
+    run_id, run_dir, events_file, on_event = new_run(s, verbose=False)
+    session = Session(
         s,
         ws,
         root,
@@ -115,8 +115,8 @@ def test_session_goal_command_parses_check_and_rounds(tmp_path: Path, monkeypatc
     )
     monkeypatch.setattr(prax_bot.llm, "LLM", lambda settings: llm)
     lines = iter(['/goal --rounds 3 "b and c exist"', "/quit"])
-    run_id, run_dir, events_file, on_event = cli._new_run(s, verbose=False)
-    session = cli.Session(
+    run_id, run_dir, events_file, on_event = new_run(s, verbose=False)
+    session = Session(
         s,
         ws,
         tmp_path,

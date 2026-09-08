@@ -9,8 +9,8 @@ from pathlib import Path
 import pytest
 from rich.console import Console
 
-from prax_bot import cli
 from prax_bot.runs import load_run, reopen_workspace
+from prax_bot.session import Session, new_run
 from prax_bot.tui import ConfirmScreen, PraxApp
 from tests.test_agent import FakeLLM, call, reply
 from tests.test_resume import make_snapshot
@@ -29,11 +29,11 @@ def test_interface_runs_an_instruction_and_shows_the_diff(tmp_path: Path, monkey
     monkeypatch.setattr(prax_bot.llm, "LLM", lambda settings: llm)
     holder: dict = {}
 
-    def make_session(out: Console, hook) -> cli.Session:
+    def make_session(out: Console, hook) -> Session:
         ws = reopen_workspace(load_run("20260901T000000Z-aaa", s), 1, s, hook, "20260902T000000Z-ui")
-        run_id, run_dir, events_file, on_event = cli._new_run(s, verbose=False, out=out)
+        run_id, run_dir, events_file, on_event = new_run(s, verbose=False, out=out)
         holder["run_dir"] = run_dir
-        session = cli.Session(
+        session = Session(
             s,
             ws,
             tmp_path,

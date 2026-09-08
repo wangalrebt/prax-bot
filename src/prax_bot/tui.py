@@ -23,6 +23,7 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Header, Input, Label, RichLog, Static
 
+from .session import SESSION_HELP, Session, new_run, open_workspace
 from .settings import Settings
 
 FILE_RE = re.compile(r"^diff --git a/(\S+) b/", re.MULTILINE)
@@ -291,8 +292,6 @@ class PraxApp(App[None]):
             self.start_work("/undo")
 
     def action_help(self) -> None:
-        from .cli import SESSION_HELP
-
         self.out.print(SESSION_HELP.replace("[", "\\["))
         self.out.print("keys: F2 diff pane · F3 apply · F4 undo · ctrl+q quit")
 
@@ -319,17 +318,16 @@ def run_ui(
     settings: Settings, root: Path, backend: str, protect: list[str], skills: Any, plugins: Any, verbose: bool
 ) -> None:
     """Open the interface; the sandbox is created after the screen is up so its progress is visible."""
-    from .cli import Session, _new_run, _open_workspace
 
     def make_session(out: Console, hook: Callable[..., None]) -> Any:
-        run_id, run_dir, events_file, on_event = _new_run(settings, verbose, out=out)
+        run_id, run_dir, events_file, on_event = new_run(settings, verbose, out=out)
 
         def on_event_with_hook(kind: str, **payload: Any) -> None:
             on_event(kind, **payload)
             hook(kind, **payload)
 
         out.print(f"[bold]sandbox[/] {settings.base_image}" if backend == "contree" else "[bold]local workspace[/]")
-        ws = _open_workspace(settings, backend, root, run_id, on_event_with_hook, out=out)
+        ws = open_workspace(settings, backend, root, run_id, on_event_with_hook, out=out)
         return Session(
             settings,
             ws,

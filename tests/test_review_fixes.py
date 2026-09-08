@@ -7,9 +7,9 @@ from pathlib import Path
 from contree_sdk.sdk.exceptions import ContreeError
 
 from prax_bot.agent import REPEAT_NUDGE, Agent
-from prax_bot.cli import _json_safe
 from prax_bot.local import LocalWorkspace
 from prax_bot.sandbox import CommandResult, suspicious_files
+from prax_bot.session import json_safe
 from prax_bot.tools import ToolBox
 from tests.test_agent import FakeLLM, FakeToolBox, call, reply
 from tests.test_local import make_repo
@@ -94,7 +94,7 @@ def test_json_safe_serialises_dataclasses_and_containers() -> None:
         prompt_tokens: int
         completion_tokens: int
 
-    out = _json_safe({"usage": Usage(1, 2), "items": [Usage(3, 4), "x", Path("/p")]})
+    out = json_safe({"usage": Usage(1, 2), "items": [Usage(3, 4), "x", Path("/p")]})
     assert json.loads(json.dumps(out)) == {
         "usage": {"prompt_tokens": 1, "completion_tokens": 2},
         "items": [{"prompt_tokens": 3, "completion_tokens": 4}, "x", "/p"],

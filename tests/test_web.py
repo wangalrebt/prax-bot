@@ -12,8 +12,8 @@ from pathlib import Path
 import pytest
 from rich.console import Console
 
-from prax_bot import cli
 from prax_bot.runs import load_run, reopen_workspace
+from prax_bot.session import Session, new_run
 from prax_bot.web import PAGE, WebSession, make_handler
 from tests.test_agent import FakeLLM, call, reply
 from tests.test_resume import make_snapshot
@@ -33,8 +33,8 @@ def test_web_session_runs_instructions_and_streams_events(tmp_path: Path, monkey
 
     def make_session(out: Console, hook):
         ws = reopen_workspace(load_run("20260901T000000Z-aaa", s), 1, s, hook, "20260902T000000Z-web")
-        run_id, run_dir, events_file, on_event = cli._new_run(s, verbose=False, out=out)
-        return cli.Session(
+        run_id, run_dir, events_file, on_event = new_run(s, verbose=False, out=out)
+        return Session(
             s,
             ws,
             tmp_path,

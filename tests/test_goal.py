@@ -93,6 +93,7 @@ def test_goal_task_states_the_check_and_the_finish_contract() -> None:
 def test_solve_runs_goal_rounds_automatically(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     import prax_bot.llm
     from prax_bot import cli
+    from prax_bot.session import new_run
 
     s = settings(tmp_path)
     make_run(tmp_path, "20260901T000000Z-aaa")
@@ -108,7 +109,7 @@ def test_solve_runs_goal_rounds_automatically(tmp_path: Path, monkeypatch: pytes
     )
     monkeypatch.setattr(prax_bot.llm, "LLM", lambda settings: llm)
     driver = GoalDriver("b and c exist", ws, max_rounds=4)
-    run_id, run_dir, events_file, on_event = cli._new_run(s, verbose=False)
+    run_id, run_dir, events_file, on_event = new_run(s, verbose=False)
     cli._solve(
         s,
         ws,
