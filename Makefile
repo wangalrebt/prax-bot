@@ -1,13 +1,16 @@
 # Prax Bot — common commands. Run `make` to list them.
 
 .DEFAULT_GOAL := help
-.PHONY: help setup doctor web ui session demo test bench
+.PHONY: help setup install doctor web ui session demo test bench
 
 help:  ## List these commands
 	@grep -E '^[a-z]+:.*## ' $(MAKEFILE_LIST) | sed 's/:.*## /\t/' | awk -F'\t' '{printf "  \033[36m%-9s\033[0m %s\n", $$1, $$2}'
 
 setup:  ## Install dependencies into a local .venv
 	uv sync
+
+install:  ## Put a plain `prax` command on your PATH (uv tool install, no shell config edits)
+	uv tool install --editable .
 
 doctor:  ## Check credentials, the model, tool calling and the sandbox
 	uv run prax doctor

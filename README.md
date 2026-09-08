@@ -35,7 +35,7 @@ make web       # open the web interface on this repository
 make demo      # try it with no sandbox: a throwaway repo with a failing test, run on this machine
 ```
 
-`make` alone lists every command. After `make setup`, `prax` also runs directly from `.venv/bin`, without `uv run`. `praxbot` is the same command under its long name.
+`make` alone lists every command. To get a plain `prax` command on your PATH, run `make install` (it uses `uv tool install --editable .`, which puts a `prax` shim in `~/.local/bin` and touches no shell config). `praxbot` is the same command under its long name.
 
 ## Use
 
