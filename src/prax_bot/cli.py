@@ -110,29 +110,30 @@ def _json_safe(value: Any) -> Any:
     return str(value)
 
 
-def _apply_diff(root: Path, diff: str) -> bool:
+def _apply_diff(root: Path, diff: str, out: Console | None = None) -> bool:
+    out = out or console
     with tempfile.NamedTemporaryFile("w", suffix=".patch", delete=False, encoding="utf-8") as f:
         f.write(diff)
         patch_path = f.name
     try:
         check = subprocess.run(["git", "apply", "--check", patch_path], cwd=root, capture_output=True, text=True)
         if check.returncode != 0:
-            console.print(f"[red]the diff does not apply cleanly:[/] {escape(check.stderr.strip())}")
+            out.print(f"[red]the diff does not apply cleanly:[/] {escape(check.stderr.strip())}")
             return False
         applied = subprocess.run(["git", "apply", patch_path], cwd=root, capture_output=True, text=True)
         if applied.returncode != 0:
-            console.print(f"[red]git apply failed:[/] {escape(applied.stderr.strip())}")
+            out.print(f"[red]git apply failed:[/] {escape(applied.stderr.strip())}")
             return False
     finally:
         os.unlink(patch_path)
     status = subprocess.run(["git", "status", "--short"], cwd=root, capture_output=True, text=True).stdout
-    console.print("[green]applied to the working tree[/] (nothing committed)")
+    out.print("[green]applied to the working tree[/] (nothing committed)")
     if status.strip():
-        console.print(escape(status.rstrip()))
+        out.print(escape(status.rstrip()))
     return True
 
 
-def _new_run(settings: Settings, verbose: bool) -> tuple[str, Path, Any, Any]:
+def _new_run(settings: Settings, verbose: bool, out: Console | None = None) -> tuple[str, Path, Any, Any]:
     """A fresh run directory with its event log and the on_event callback that feeds it and the terminal."""
     from .render import Reporter
 
@@ -140,7 +141,7 @@ def _new_run(settings: Settings, verbose: bool) -> tuple[str, Path, Any, Any]:
     run_dir = settings.home / "runs" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     events_file = (run_dir / "events.jsonl").open("a", encoding="utf-8")
-    reporter = Reporter(console, verbose=verbose)
+    reporter = Reporter(out or console, verbose=verbose)
 
     def on_event(kind: str, **payload: Any) -> None:
         record = {"t": time.time(), "kind": kind, **{k: _json_safe(v) for k, v in payload.items()}}
@@ -162,12 +163,13 @@ def _ask_followup() -> str:
         return ""
 
 
-def _agent_round(settings: Settings, ws: Any, task: str, llm: Any, on_event: Any, *, protect: list[str], skills: Any = (), plugins: Any = (), goal: bool = False) -> Any:
+def _agent_round(settings: Settings, ws: Any, task: str, llm: Any, on_event: Any, *, protect: list[str], skills: Any = (), plugins: Any = (), goal: bool = False, out: Console | None = None) -> Any:
     """One agent transcript on the workspace. Interruptions and errors keep the work already in the workspace."""
     from .agent import Agent, AgentResult
     from .tools import ToolBox
 
-    console.print("\n[bold]agent[/]")
+    out = out or console
+    out.print("\n[bold]agent[/]")
     agent = Agent(
         llm, ToolBox(ws, protected=protect, skills=skills, plugins=plugins), max_steps=settings.max_steps, on_event=on_event,
         investigate_model=settings.investigate_model, investigate_steps=settings.investigate_steps, goal=goal,
@@ -175,15 +177,16 @@ def _agent_round(settings: Settings, ws: Any, task: str, llm: Any, on_event: Any
     try:
         return agent.run(task)
     except KeyboardInterrupt:
-        console.print("\n[yellow]interrupted; collecting the diff so far[/]")
+        out.print("\n[yellow]interrupted; collecting the diff so far[/]")
         return AgentResult(False, "interrupted by the user", 0, "interrupted")
     except Exception as e:  # noqa: BLE001 - keep the work that is already in the workspace
-        console.print(f"\n[red]✗ the agent stopped: {type(e).__name__}: {escape(str(e)[:400])}[/]")
+        out.print(f"\n[red]✗ the agent stopped: {type(e).__name__}: {escape(str(e)[:400])}[/]")
         return AgentResult(False, f"stopped by an error: {type(e).__name__}: {str(e)[:200]}", 0, "error")
 
 
-def _print_result(result: Any, llm: Any, ws: Any, run_dir: Path, *, steps_total: int, round_steps: int | None, elapsed: float) -> None:
-    console.print()
+def _print_result(result: Any, llm: Any, ws: Any, run_dir: Path, *, steps_total: int, round_steps: int | None, elapsed: float, out: Console | None = None) -> None:
+    out = out or console
+    out.print()
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_row("result", "[green]finished[/]" if result.finished else f"[yellow]stopped: {result.reason}[/]")
     table.add_row("steps", str(steps_total) if round_steps is None else f"{steps_total} ({round_steps} in this round)")
@@ -192,23 +195,24 @@ def _print_result(result: Any, llm: Any, ws: Any, run_dir: Path, *, steps_total:
     table.add_row("images", f"baseline {ws.checkpoints[0].image} → final {ws.image_id}")
     table.add_row("elapsed", f"{elapsed:.0f}s")
     table.add_row("log", str(run_dir))
-    console.print(table)
-    console.print(Panel(escape(result.summary or "(no summary)"), title="summary", border_style="green" if result.finished else "yellow"))
+    out.print(table)
+    out.print(Panel(escape(result.summary or "(no summary)"), title="summary", border_style="green" if result.finished else "yellow"))
 
 
-def _print_diff(diff: str, ws: Any, run_dir: Path, export: Optional[Path] = None) -> None:
+def _print_diff(diff: str, ws: Any, run_dir: Path, export: Optional[Path] = None, out: Console | None = None) -> None:
+    out = out or console
     if ws.dropped_scratch:
-        console.print(f"[dim]left out of the diff, they look like scratch files: {escape(', '.join(ws.dropped_scratch))}[/]")
+        out.print(f"[dim]left out of the diff, they look like scratch files: {escape(', '.join(ws.dropped_scratch))}[/]")
     if not diff.strip():
-        console.print("no changes to the repository")
+        out.print("no changes to the repository")
         return
     lines = diff.splitlines()
-    console.print(Syntax("\n".join(lines[:MAX_DIFF_LINES_SHOWN]), "diff", theme="ansi_dark", word_wrap=False))
+    out.print(Syntax("\n".join(lines[:MAX_DIFF_LINES_SHOWN]), "diff", theme="ansi_dark", word_wrap=False))
     if len(lines) > MAX_DIFF_LINES_SHOWN:
-        console.print(f"[dim]… {len(lines) - MAX_DIFF_LINES_SHOWN} more lines in {run_dir / 'diff.patch'}[/]")
+        out.print(f"[dim]… {len(lines) - MAX_DIFF_LINES_SHOWN} more lines in {run_dir / 'diff.patch'}[/]")
     if export:
         export.write_text(diff, encoding="utf-8")
-        console.print(f"diff written to {export}")
+        out.print(f"diff written to {export}")
 
 
 def _solve(
@@ -365,9 +369,10 @@ class Session:
     """One sandbox, many instructions: the interactive form of praxbot run."""
 
     def __init__(self, settings: Settings, ws: Any, root: Path, *, backend: str, run_id: str, run_dir: Path, events_file: Any,
-                 on_event: Any, protect: list[str], skills: Any = (), plugins: Any = (), read_line: Any = None) -> None:
+                 on_event: Any, protect: list[str], skills: Any = (), plugins: Any = (), read_line: Any = None, out: Console | None = None) -> None:
         from .llm import LLM
 
+        self.out = out or console
         self.settings, self.ws, self.root, self.backend = settings, ws, root, backend
         self.run_id, self.run_dir, self.events_file, self.on_event = run_id, run_dir, events_file, on_event
         self.protect, self.skills, self.plugins = protect, skills, plugins
@@ -399,7 +404,7 @@ class Session:
             self.last_diff = self.ws.diff()
             (self.run_dir / "diff.patch").write_text(self.last_diff, encoding="utf-8")
         except Exception as e:  # noqa: BLE001
-            console.print(f"[red]✗ could not extract the diff: {type(e).__name__}: {escape(str(e)[:300])}[/]")
+            self.out.print(f"[red]✗ could not extract the diff: {type(e).__name__}: {escape(str(e)[:300])}[/]")
         return self.last_diff
 
     def record(self) -> None:
@@ -444,14 +449,14 @@ class Session:
 
     def run_round(self, task: str, *, goal: bool = False) -> tuple[Any, str]:
         self.round_starts.append(self.ws.current_step)
-        result = _agent_round(self.settings, self.ws, task, self.llm, self.on_event, protect=self.protect, skills=self.skills, plugins=self.plugins, goal=goal)
+        result = _agent_round(self.settings, self.ws, task, self.llm, self.on_event, protect=self.protect, skills=self.skills, plugins=self.plugins, goal=goal, out=self.out)
         self.steps += result.steps
         self.rounds += 1
         self.last_result, self.last_summary = result, result.summary
         diff = self.diff()
         self.record()
-        _print_result(result, self.llm, self.ws, self.run_dir, steps_total=self.steps, round_steps=result.steps if self.rounds > 1 else None, elapsed=time.monotonic() - self.started)
-        _print_diff(diff, self.ws, self.run_dir)
+        _print_result(result, self.llm, self.ws, self.run_dir, steps_total=self.steps, round_steps=result.steps if self.rounds > 1 else None, elapsed=time.monotonic() - self.started, out=self.out)
+        _print_diff(diff, self.ws, self.run_dir, out=self.out)
         return result, diff
 
     def instruct(self, text: str) -> None:
@@ -475,7 +480,7 @@ class Session:
         try:
             words = shlex.split(argument)
         except ValueError as e:
-            console.print(f"[red]could not parse that: {escape(str(e))}[/]")
+            self.out.print(f"[red]could not parse that: {escape(str(e))}[/]")
             return
         check: str | None = None
         rounds = 5
@@ -491,7 +496,7 @@ class Session:
                 i += 1
         objective = " ".join(rest).strip()
         if not objective:
-            console.print("usage: /goal [--check CMD] [--rounds N] OBJECTIVE")
+            self.out.print("usage: /goal [--check CMD] [--rounds N] OBJECTIVE")
             return
         self.on_event("instruction", text=f"/goal {argument}")
         if self.first_task is None:
@@ -507,23 +512,23 @@ class Session:
             nxt = driver.next_instruction(n, result, diff)
             self.on_event("goal.round", round=n, met=driver.met, stopped=driver.stopped)
             if nxt is None:
-                console.print(f"\n[bold]{'[green]' if driver.met else '[yellow]'}{escape(driver.status)}[/][/]")
+                self.out.print(f"\n[bold]{'[green]' if driver.met else '[yellow]'}{escape(driver.status)}[/][/]")
                 return
             task = continuation_task(objective, result.summary, diff, nxt)
 
     def apply(self) -> bool:
         diff = self.diff()
         if not diff.strip():
-            console.print("nothing to apply")
+            self.out.print("nothing to apply")
             return True
-        if not _apply_diff(self.root, diff):
-            console.print(f"the diff is saved at {self.run_dir / 'diff.patch'}")
+        if not _apply_diff(self.root, diff, self.out):
+            self.out.print(f"the diff is saved at {self.run_dir / 'diff.patch'}")
             return False
         r = self.ws.run("git add -A && git -c user.email=praxbot@localhost -c user.name=praxbot commit -qm 'praxbot session: applied to the working tree'", timeout=120, mutate=True)
         if r.exit_code != 0:
-            console.print(f"[yellow]applied, but the sandbox could not record it: {escape((r.stderr or r.stdout)[-300:])}[/]")
+            self.out.print(f"[yellow]applied, but the sandbox could not record it: {escape((r.stderr or r.stdout)[-300:])}[/]")
         else:
-            console.print("[dim]later diffs continue from this state[/]")
+            self.out.print("[dim]later diffs continue from this state[/]")
         self.applied_rounds = self.rounds
         self.round_starts.clear()  # /undo cannot reach behind an apply
         self.record()
@@ -531,7 +536,7 @@ class Session:
 
     def undo(self) -> None:
         if not self.round_starts:
-            console.print("nothing to undo")
+            self.out.print("nothing to undo")
             return
         step = self.round_starts.pop()
         cp = self.ws.restore(step)
@@ -540,8 +545,8 @@ class Session:
             self.instructions.pop()
         elif self.first_task is not None and self.rounds == 0:
             self.first_task = None
-        console.print(f"restored the sandbox to checkpoint {cp.step} ({escape(cp.label)})")
-        _print_diff(self.diff(), self.ws, self.run_dir)
+        self.out.print(f"restored the sandbox to checkpoint {cp.step} ({escape(cp.label)})")
+        _print_diff(self.diff(), self.ws, self.run_dir, out=self.out)
         self.record()
 
     def resume(self, argument: str) -> None:
@@ -549,7 +554,7 @@ class Session:
 
         words = argument.split()
         if not words:
-            console.print("usage: /resume RUN-ID [--from N]")
+            self.out.print("usage: /resume RUN-ID [--from N]")
             return
         run_id = words[0]
         step: int | None = None
@@ -557,7 +562,7 @@ class Session:
             try:
                 step = int(words[words.index("--from") + 1])
             except (IndexError, ValueError):
-                console.print("usage: /resume RUN-ID [--from N]")
+                self.out.print("usage: /resume RUN-ID [--from N]")
                 return
         try:
             past = load_run(run_id, self.settings)
@@ -566,14 +571,14 @@ class Session:
             step = len(past.checkpoints) - 1 if step is None else step
             self.ws = reopen_workspace(past, step, self.settings, self.on_event, f"{self.run_id}-r{self.rounds + 1}")
         except Exception as e:  # noqa: BLE001
-            console.print(f"[red]✗ could not resume: {type(e).__name__}: {escape(str(e)[:300])}[/]")
+            self.out.print(f"[red]✗ could not resume: {type(e).__name__}: {escape(str(e)[:300])}[/]")
             return
         self.first_task = str(past.info.get("task") or "") or self.first_task
         self.last_summary = str(past.info.get("summary") or "")
         self.round_starts.clear()
         self.on_event("instruction", text=f"/resume {argument}")
-        console.print(f"workspace rebuilt from {run_id} checkpoint {step}")
-        _print_diff(self.diff(), self.ws, self.run_dir)
+        self.out.print(f"workspace rebuilt from {run_id} checkpoint {step}")
+        _print_diff(self.diff(), self.ws, self.run_dir, out=self.out)
 
     def status(self) -> None:
         diff = self.diff()
@@ -583,28 +588,33 @@ class Session:
         table.add_row("sandbox", f"{self.ws.commands} commands · {len(self.ws.checkpoints)} checkpoints · cost {self.ws.total_cost:.4f} · now {self.ws.image_id}")
         table.add_row("changes", f"{diff.count('diff --git ')} files not applied" if diff.strip() else "none pending")
         table.add_row("log", str(self.run_dir))
-        console.print(table)
+        self.out.print(table)
 
     def loop(self) -> None:
-        console.print("[dim]type an instruction, or /help[/]")
+        self.out.print("[dim]type an instruction, or /help[/]")
         while True:
             line = self.read_line()
-            if line is None:
+            if line is None or not self.handle_line(line):
                 break
-            line = line.strip()
-            if not line:
-                continue
-            if not line.startswith("/"):
-                self.instruct(line)
-                continue
-            command, _, argument = line.partition(" ")
-            command = command.lower()
-            if command in ("/quit", "/exit", "/q"):
-                break
-            elif command == "/help":
-                console.print(SESSION_HELP)
+        self.close()
+
+    def handle_line(self, line: str) -> bool:
+        """Act on one typed line; False means the session should end."""
+        line = line.strip()
+        if not line:
+            return True
+        if not line.startswith("/"):
+            self.instruct(line)
+            return True
+        command, _, argument = line.partition(" ")
+        command = command.lower()
+        if command in ("/quit", "/exit", "/q"):
+            return False
+        if True:
+            if command == "/help":
+                self.out.print(SESSION_HELP)
             elif command == "/diff":
-                _print_diff(self.diff(), self.ws, self.run_dir)
+                _print_diff(self.diff(), self.ws, self.run_dir, out=self.out)
             elif command == "/apply":
                 self.apply()
             elif command == "/undo":
@@ -618,19 +628,19 @@ class Session:
                     self.settings = _settings(model=self.settings.model, base_image=self.settings.base_image, setup=self.settings.setup, max_steps=self.settings.max_steps,
                                               temperature=self.settings.temperature, top_p=self.settings.top_p, effort=argument.strip() or None)
                 except typer.BadParameter as e:
-                    console.print(f"[red]{escape(str(e))}[/]")
-                    continue
+                    self.out.print(f"[red]{escape(str(e))}[/]")
+                    return True
                 from .llm import LLM
 
                 usage = self.llm.usage
                 self.llm = LLM(self.settings)
                 self.llm.usage = usage
-                console.print(f"effort {self.settings.effort}")
+                self.out.print(f"effort {self.settings.effort}")
             elif command == "/status":
                 self.status()
             else:
-                console.print(f"unknown command {escape(command)}; /help lists them")
-        self.close()
+                self.out.print(f"unknown command {escape(command)}; /help lists them")
+        return True
 
     def close(self) -> None:
         self.record()
@@ -642,7 +652,7 @@ class Session:
             if Confirm.ask("Apply the pending changes to the working tree?", default=False):
                 self.apply()
                 return
-        console.print(f"not applied. The diff is saved at {self.run_dir / 'diff.patch'}")
+        self.out.print(f"not applied. The diff is saved at {self.run_dir / 'diff.patch'}")
 
 
 def _start_session(repo: Path, model: Optional[str], base_image: Optional[str], setup: Optional[str], max_steps: Optional[int],
@@ -678,11 +688,45 @@ def session(
     _start_session(repo, model, base_image, setup, max_steps, backend, protect, verbose, temperature, top_p, effort)
 
 
+@app.command()
+def ui(
+    repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository to work on"),
+    model: Optional[str] = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
+    base_image: Optional[str] = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
+    setup: Optional[str] = typer.Option(None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"),
+    max_steps: Optional[int] = typer.Option(None, min=1, max=200, help="Model turns per instruction (default 40)"),
+    backend: str = typer.Option("contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"),
+    protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
+    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0)"),
+    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
+    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low (default), high, or xhigh"),
+) -> None:
+    """The full-screen interface: conversation, sidebar, diff pane, one input line. Also what bare `praxbot` does on a terminal."""
+    _start_ui(repo, model, base_image, setup, max_steps, backend, protect, verbose, temperature, top_p, effort)
+
+
+def _start_ui(repo: Path, model: Optional[str], base_image: Optional[str], setup: Optional[str], max_steps: Optional[int],
+              backend: str, protect: list[str], verbose: bool, temperature: Optional[float], top_p: Optional[float], effort: Optional[str]) -> None:
+    from .tui import run_ui
+
+    if backend not in {"contree", "local"}:
+        raise typer.BadParameter("backend must be 'contree' or 'local'")
+    settings = _settings(model=model, base_image=base_image, setup=setup, max_steps=max_steps, temperature=temperature, top_p=top_p, effort=effort)
+    _require_credentials(settings, need_project=backend == "contree")
+    root = _repo_root(repo)
+    skills, plugins = _extensions(settings)
+    run_ui(settings, root, backend, protect, skills, plugins, verbose)
+
+
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context) -> None:
-    """Prax Bot: a coding agent that works in a Nebius Token Factory Sandbox, powered by NVIDIA Nemotron. With no command, opens a session."""
+    """Prax Bot: a coding agent that works in a Nebius Token Factory Sandbox, powered by NVIDIA Nemotron. With no command, opens the interface."""
     if ctx.invoked_subcommand is None:
-        _start_session(Path("."), None, None, None, None, "contree", [], False, None, None, None)
+        if sys.stdout.isatty() and sys.stdin.isatty():
+            _start_ui(Path("."), None, None, None, None, "contree", [], False, None, None, None)
+        else:
+            _start_session(Path("."), None, None, None, None, "contree", [], False, None, None, None)
 
 
 @app.command()
@@ -808,12 +852,15 @@ def init(
     )
 
 
-def _open_workspace(settings: Settings, backend: str, root: Path, run_id: str, on_event: Any) -> Any:
+def _open_workspace(settings: Settings, backend: str, root: Path, run_id: str, on_event: Any, out: Console | None = None) -> Any:
     from contree_sdk.sdk.exceptions import ForbiddenError
 
     from .sandbox import WorkspaceError, create_workspace, make_client
 
-    console.print("[bold]sandbox[/]" if backend == "contree" else "[bold]local workspace[/]")
+    interface = out is not None
+    out = out or console
+    if not interface:
+        out.print("[bold]sandbox[/]" if backend == "contree" else "[bold]local workspace[/]")
     try:
         if backend == "local":
             from .local import create_local_workspace
@@ -822,14 +869,14 @@ def _open_workspace(settings: Settings, backend: str, root: Path, run_id: str, o
         client = make_client()
         return create_workspace(client, settings, root, on_event)
     except WorkspaceError as e:
-        console.print(f"[red]✗ {escape(str(e))}[/]")
-        raise typer.Exit(1) from None
+        out.print(f"[red]✗ {escape(str(e))}[/]")
     except ForbiddenError:
-        console.print(f"[red]✗ {escape(NO_SANDBOX_ACCESS)}[/]")
-        raise typer.Exit(1) from None
+        out.print(f"[red]✗ {escape(NO_SANDBOX_ACCESS)}[/]")
     except Exception as e:  # noqa: BLE001 - surface SDK errors with their type
-        console.print(f"[red]✗ sandbox error: {type(e).__name__}: {escape(str(e))}[/]")
-        raise typer.Exit(1) from None
+        out.print(f"[red]✗ sandbox error: {type(e).__name__}: {escape(str(e))}[/]")
+    if interface:
+        raise RuntimeError("the workspace could not be created")
+    raise typer.Exit(1)
 
 
 def _header(settings: Settings, root: Path, backend: str, extra: str = "") -> None:
