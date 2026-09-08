@@ -58,9 +58,9 @@ class Settings:
     home: Path
     investigate_model: str | None = None
     investigate_steps: int = 6
-    temperature: float = 0.2
-    top_p: float | None = None
-    effort: str = "high"  # off: no reasoning; low: short reasoning; high: the model's default; xhigh: default reasoning with a 32k completion cap
+    temperature: float = 1.0
+    top_p: float | None = 0.95
+    effort: str = "low"  # off: no reasoning; low: short reasoning (default, measured); high: the model's default; xhigh: default reasoning with a 32k completion cap
 
     @classmethod
     def from_env(
@@ -77,12 +77,12 @@ class Settings:
     ) -> Settings:
         env = os.environ
         ini = read_auth_ini()
-        effort = (effort or env.get("PRAXBOT_EFFORT") or "high").lower()
+        effort = (effort or env.get("PRAXBOT_EFFORT") or "low").lower()
         if effort not in EFFORT_LEVELS:
             raise ValueError(f"effort must be one of {', '.join(EFFORT_LEVELS)}, not {effort!r}")
-        top_p = top_p if top_p is not None else (float(env["PRAXBOT_TOP_P"]) if env.get("PRAXBOT_TOP_P") else None)
+        top_p = top_p if top_p is not None else (float(env["PRAXBOT_TOP_P"]) if env.get("PRAXBOT_TOP_P") else 0.95)
         return cls(
-            temperature=temperature if temperature is not None else float(env.get("PRAXBOT_TEMPERATURE", "0.2")),
+            temperature=temperature if temperature is not None else float(env.get("PRAXBOT_TEMPERATURE", "1.0")),
             top_p=top_p,
             effort=effort,
             api_key=env.get("NEBIUS_API_KEY") or env.get("CONTREE_TOKEN") or ini.get("token") or None,

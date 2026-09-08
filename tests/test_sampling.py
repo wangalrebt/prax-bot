@@ -27,9 +27,9 @@ def with_sampling(tmp_path, **kw) -> Settings:
     return dataclasses.replace(base_settings(tmp_path), **kw)
 
 
-def test_default_request_matches_the_frozen_harness(tmp_path) -> None:
+def test_frozen_harness_request_is_reproducible(tmp_path) -> None:
     client = FakeClient()
-    LLM(with_sampling(tmp_path), client=client).complete([{"role": "user", "content": "hi"}], [])
+    LLM(with_sampling(tmp_path, temperature=0.2, top_p=None, effort="high"), client=client).complete([{"role": "user", "content": "hi"}], [])
     call = client.calls[0]
     assert call["temperature"] == 0.2 and "top_p" not in call and "extra_body" not in call
     assert call["max_tokens"] == MAX_COMPLETION_TOKENS
@@ -63,4 +63,4 @@ def test_settings_read_sampling_from_env_and_reject_bad_modes(monkeypatch: pytes
     monkeypatch.delenv("PRAXBOT_TOP_P")
     monkeypatch.delenv("PRAXBOT_TEMPERATURE")
     d = Settings.from_env()
-    assert (d.temperature, d.top_p, d.effort) == (0.2, None, "high")
+    assert (d.temperature, d.top_p, d.effort) == (1.0, 0.95, "low"), "the measured defaults"

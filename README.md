@@ -61,8 +61,8 @@ Options:
 | `--max-steps` | 40 | Model turns before the run stops |
 | `--backend` | `contree` | `contree` runs in a Token Factory Sandbox. `local` runs on this machine in a private virtualenv, for development only |
 | `--investigate-model` | none | A second model for the first investigation turns, for example Nemotron 3 Ultra, before switching to `--model` for edits |
-| `--temperature`, `--top-p` | 0.2, unset | Sampling. NVIDIA recommends 1.0 and 0.95 for Nemotron 3 |
-| `--effort` | high | How much the model reasons per step: off, low, high (the model's default), xhigh (a 32k completion cap) |
+| `--temperature`, `--top-p` | 1.0, 0.95 | Sampling, NVIDIA's recommendation for Nemotron 3. Runs 1 to 10 and the frozen-harness SWE-bench runs used 0.2 |
+| `--effort` | low | How much the model reasons per step: off, low, high (the model's default, used by the frozen-harness runs), xhigh (a 32k completion cap) |
 | `--yes` | off | Apply without asking |
 | `--export PATH` | none | Also write the diff to a file |
 | `--verbose` | off | Full tool outputs and checkpoint ids |
@@ -295,6 +295,47 @@ With the harness frozen at that point, every task in the "under 15 minutes" tier
 The original twelve went 9 of 12 inside this run, one better than the re-run because django-16899 kept its fix this time; the nineteen new tasks went 13 of 19. Two evaluations, pylint-7277 and astropy-14309, failed on a transient error from the sandbox API after the agent had finished and its patch was saved; they were graded again from the saved patch without running the agent again, and both resolved.
 
 The nine misses, from their logs, fall into three groups. Four finished early and confident with a plausible fix in the right file that the hidden tests reject (django-12193, matplotlib-20676, sphinx-9591, sphinx-9258): one edit each, tests run, a clear summary, wrong. Three ended with no diff: sympy-20916 never localised the bug in five attempts now, while sympy-17655 and requests-5414 made an edit, judged it wrong, and undid it with `edit_file`; the `restore` refusal fired twice on requests-5414 and held, but nothing stops the model from editing its own change back out, and nothing should. Two used the whole budget on a wrong diff (matplotlib-23476, pylint-4970). None of the nine lost work to the harness.
+
+The 31 tasks were then run once more at the recommended sampling settings with effort low, the harness otherwise unchanged:
+
+| instance | frozen harness (0.2, effort high) | 1.0/0.95, effort low |
+|---|---|---|
+| astropy__astropy-14309 | yes, 17, 327k | yes, 9, 135k |
+| astropy__astropy-14995 | yes, 19, 285k | yes, 9, 82k |
+| astropy__astropy-7166 | yes, 29, 329k | yes, 11, 62k |
+| django__django-11880 | yes, 43, 956k | yes, 31, 463k |
+| django__django-12193 | no, 32, 544k | yes, 39, 512k |
+| django__django-16899 | yes, 38, 944k | yes, 12, 84k |
+| matplotlib__matplotlib-25122 | yes, 50, 1021k | yes, 27, 290k |
+| pallets__flask-5014 | yes, 15, 266k | yes, 12, 103k |
+| psf__requests-1142 | yes, 50, 1084k | yes, 50, 876k |
+| psf__requests-2317 | yes, 50, 974k | yes, 33, 415k |
+| pydata__xarray-4075 | yes, 22, 215k | yes, 14, 135k |
+| pydata__xarray-4094 | yes, 46, 1502k | yes, 30, 418k |
+| pydata__xarray-4629 | yes, 14, 147k | yes, 12, 176k |
+| pylint-dev__pylint-6903 | yes, 50, 1486k | yes, 18, 261k |
+| pylint-dev__pylint-7277 | yes, 19, 286k | yes, 19, 212k |
+| pytest-dev__pytest-5262 | yes, 33, 545k | yes, 28, 429k |
+| pytest-dev__pytest-5809 | yes, 14, 168k | yes, 13, 124k |
+| pytest-dev__pytest-7521 | yes, 23, 342k | yes, 14, 138k |
+| scikit-learn__scikit-learn-12585 | yes, 19, 210k | yes, 18, 168k |
+| scikit-learn__scikit-learn-13328 | yes, 17, 237k | yes, 14, 200k |
+| scikit-learn__scikit-learn-25232 | yes, 31, 542k | yes, 28, 461k |
+| sympy__sympy-15017 | yes, 19, 325k | yes, 26, 434k |
+| sympy__sympy-17655 | no, 50, 943k | yes, 34, 624k |
+| matplotlib__matplotlib-20676 | no, 20, 331k | no, 47, 918k |
+| matplotlib__matplotlib-23476 | no, 50, 1595k | no, 27, 403k |
+| psf__requests-5414 | no, 50, 813k | no, 50, 677k |
+| pylint-dev__pylint-4970 | no, 50, 1119k | no, 50, 1477k |
+| sphinx-doc__sphinx-8621 | yes, 26, 398k | no, 50, 1041k |
+| sphinx-doc__sphinx-9258 | no, 41, 861k | no, 38, 592k |
+| sphinx-doc__sphinx-9591 | no, 18, 264k | no, 44, 1065k |
+| sympy__sympy-20916 | no, 50, 1124k | no, 50, 1215k |
+| **resolved** | **22 of 31** | **23 of 31** |
+| tokens for the run | 20.2M | 14.2M |
+| tokens for the resolved tasks | 12.6M | 6.8M |
+
+One task better, which is inside the swing of a 31-task sample: 2 flipped to resolved (django-12193, sympy-17655) and 1 flipped to a miss (sphinx-8621). The cost is not inside any swing: the run used 30% fewer tokens and the resolved tasks together 46% fewer, with the median resolved task at 18 steps against 24.5 before. Temperature 1.0, top_p 0.95 and effort low are therefore the defaults from here on, and the headline number is 23 of 31. The frozen-harness table above stays as the record of the run that measured the harness itself.
 
 Thirty-one tasks is still a small sample and these are the easier tier of Verified, so this is not comparable to leaderboard numbers on the full 500. It is a genuine measurement on real GitHub issues with hidden tests, run once, with the harness frozen before the run.
 

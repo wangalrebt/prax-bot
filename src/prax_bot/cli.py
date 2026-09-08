@@ -57,8 +57,7 @@ def _sampling(settings: Settings) -> str:
     parts = [f"temperature {settings.temperature:g}"]
     if settings.top_p is not None:
         parts.append(f"top_p {settings.top_p:g}")
-    if settings.effort != "high":
-        parts.append(f"effort {settings.effort}")
+    parts.append(f"effort {settings.effort}")
     return " · ".join(parts)
 
 
@@ -671,9 +670,9 @@ def session(
     backend: str = typer.Option("contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"),
     protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
-    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 0.2)"),
-    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling; unset by default"),
-    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low, high (default), or xhigh"),
+    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0)"),
+    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
+    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low (default), high, or xhigh"),
 ) -> None:
     """Open one sandbox on this repository and keep giving it instructions. Also what bare `praxbot` does."""
     _start_session(repo, model, base_image, setup, max_steps, backend, protect, verbose, temperature, top_p, effort)
@@ -748,9 +747,9 @@ def run(
     export: Optional[Path] = typer.Option(None, help="Also write the diff to this file"),
     protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
-    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 0.2; NVIDIA recommends 1.0 with --top-p 0.95 for Nemotron 3)"),
-    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling; unset by default"),
-    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low, high (default), or xhigh"),
+    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0, NVIDIA's recommendation for Nemotron 3)"),
+    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
+    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low (default), high, or xhigh"),
 ) -> None:
     """Solve a task in the current repository. Runs entirely in a sandbox, shows the diff, takes follow-up instructions, then asks before applying."""
     if backend not in {"contree", "local"}:
@@ -862,9 +861,9 @@ def goal(
     export: Optional[Path] = typer.Option(None, help="Also write the diff to this file"),
     protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
-    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 0.2; NVIDIA recommends 1.0 with --top-p 0.95 for Nemotron 3)"),
-    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling; unset by default"),
-    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low, high (default), or xhigh"),
+    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0, NVIDIA's recommendation for Nemotron 3)"),
+    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
+    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low (default), high, or xhigh"),
 ) -> None:
     """Work toward a goal in rounds until a check command passes or the model reports it met, then show the diff."""
     from .goal import GoalDriver, goal_task
@@ -910,9 +909,9 @@ def resume(
     export: Optional[Path] = typer.Option(None, help="Also write the diff to this file"),
     protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit. Repeatable"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
-    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 0.2; NVIDIA recommends 1.0 with --top-p 0.95 for Nemotron 3)"),
-    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling; unset by default"),
-    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low, high (default), or xhigh"),
+    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0, NVIDIA's recommendation for Nemotron 3)"),
+    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
+    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low (default), high, or xhigh"),
 ) -> None:
     """Continue a past run from one of its checkpoints, in a workspace rebuilt from that image."""
     from contree_sdk.sdk.exceptions import ForbiddenError
