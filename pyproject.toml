@@ -15,6 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
+prax = "prax_bot.cli:app"
 praxbot = "prax_bot.cli:app"
 
 [build-system]

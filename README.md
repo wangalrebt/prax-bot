@@ -17,7 +17,7 @@ Built for the Nebius x NVIDIA Global AI Hackathon, Track 1: agents that write, r
 
 ```bash
 uv sync
-uv run praxbot doctor
+uv run prax doctor
 ```
 
 `doctor` checks the credentials, lists the `nvidia/` models your key can reach, proves a tool-call round trip with the configured model, and runs a command in a sandbox, including a fork-isolation check. Add `--skip-sandbox` to test only the model.
@@ -35,20 +35,20 @@ make web       # open the web interface on this repository
 make demo      # try it with no sandbox: a throwaway repo with a failing test, run on this machine
 ```
 
-`make` alone lists every command. After `make setup`, `praxbot` also runs directly from `.venv/bin`, without `uv run`.
+`make` alone lists every command. After `make setup`, `prax` also runs directly from `.venv/bin`, without `uv run`. `praxbot` is the same command under its long name.
 
 ## Use
 
 Inside any git repository, either open a session:
 
 ```bash
-uv run praxbot
+uv run prax
 ```
 
 or give it one task:
 
 ```bash
-uv run praxbot run "fix the failing test in tests/test_cache.py" --setup "pip install -e . pytest"
+uv run prax run "fix the failing test in tests/test_cache.py" --setup "pip install -e . pytest"
 ```
 
 ![The web interface: sidebar with the session, changed files and rounds; the instruction, its tool calls, the summary and the diff](docs/web-interface.png)
@@ -89,22 +89,22 @@ Every run is logged under `~/.praxbot/runs/<run id>/`: `events.jsonl` (every too
 Past runs are first-class:
 
 ```bash
-uv run praxbot status                         # what is running now, recent runs and their verdicts, setup state
-uv run praxbot inspect --list                 # recent runs
-uv run praxbot inspect <run-id>               # steps and the checkpoint chain
-uv run praxbot inspect <run-id> --diff 3      # the repository as it stood at checkpoint 3, as a diff
-uv run praxbot inspect <run-id> --apply 3     # put that state into your working tree
-uv run praxbot report <run-id> --open         # a self-contained HTML report
-uv run praxbot resume                         # continue the latest run from its last checkpoint
-uv run praxbot resume <run-id> "add a test for the empty case"   # continue with a new instruction
-uv run praxbot resume <run-id> --from 3       # continue from checkpoint 3 instead of the last one
+uv run prax status                         # what is running now, recent runs and their verdicts, setup state
+uv run prax inspect --list                 # recent runs
+uv run prax inspect <run-id>               # steps and the checkpoint chain
+uv run prax inspect <run-id> --diff 3      # the repository as it stood at checkpoint 3, as a diff
+uv run prax inspect <run-id> --apply 3     # put that state into your working tree
+uv run prax report <run-id> --open         # a self-contained HTML report
+uv run prax resume                         # continue the latest run from its last checkpoint
+uv run prax resume <run-id> "add a test for the empty case"   # continue with a new instruction
+uv run prax resume <run-id> --from 3       # continue from checkpoint 3 instead of the last one
 ```
 
 A goal keeps the agent working in rounds until something verifiable is true:
 
 ```bash
-uv run praxbot goal "all tests pass and mypy is clean" --check "pytest -q && mypy src" --rounds 5 --setup "pip install -e . pytest mypy"
-uv run praxbot goal "the CLI has a --json flag documented in the README"        # no check: the model reports when the goal is met
+uv run prax goal "all tests pass and mypy is clean" --check "pytest -q && mypy src" --rounds 5 --setup "pip install -e . pytest mypy"
+uv run prax goal "the CLI has a --json flag documented in the README"        # no check: the model reports when the goal is met
 ```
 
 Each round is a fresh conversation on the same workspace, seeded with the goal, the previous round's summary and the diff so far. After every round the check command runs in the sandbox without creating a checkpoint; when it exits 0 the goal is met and the diff is shown. Without `--check`, the model ends a round with `finish(goal_met=true)` when it judges the goal achieved. The run stops early after the round cap, after two rounds that changed nothing, or on an error, and says which. The record in `run.json` keeps the objective, the rounds used and the verdict.
@@ -121,7 +121,7 @@ Every command and edit the agent made is an immutable sandbox image, so any inte
 
 ```bash
 cp examples/plugins/lint.py ~/.praxbot/plugins/
-uv run praxbot run "fix the unused imports flagged by lint"
+uv run prax run "fix the unused imports flagged by lint"
 ``` If the repository has an `AGENTS.md` or `CLAUDE.md`, its contents are given to the model at the start of the run.
 
 ## How the sandbox is used
