@@ -26,6 +26,17 @@ Credentials can also live in the sandbox SDK's own file, `~/.config/contree/auth
 
 Sandboxes are in beta and access is granted per project. If `doctor` reports a 403, request access at https://tokenfactory.nebius.com/sandboxes/about and use `--backend local` in the meantime.
 
+## Quick start
+
+```bash
+make setup     # install dependencies
+make doctor    # check the key, the project, the model and the sandbox
+make web       # open the web interface on this repository
+make demo      # try it with no sandbox: a throwaway repo with a failing test, run on this machine
+```
+
+`make` alone lists every command. After `make setup`, `praxbot` also runs directly from `.venv/bin`, without `uv run`.
+
 ## Use
 
 Inside any git repository, either open a session:
