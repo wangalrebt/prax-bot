@@ -67,7 +67,7 @@ class GoalDriver:
         if round_no >= self.max_rounds:
             self.stopped = f"round cap of {self.max_rounds} reached"
             return None
-        self._last_diffs = (self._last_diffs + [diff])[-STALL_ROUNDS:]
+        self._last_diffs = [*self._last_diffs, diff][-STALL_ROUNDS:]
         if len(self._last_diffs) == STALL_ROUNDS and len(set(self._last_diffs)) == 1:
             self.stopped = f"no change to the repository in {STALL_ROUNDS} rounds in a row"
             return None

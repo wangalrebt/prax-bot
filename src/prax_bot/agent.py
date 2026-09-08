@@ -278,7 +278,7 @@ class Agent:
                 self.on_event("tool.result", step=step, name=name, output=output)
                 messages.append({"role": "tool", "tool_call_id": tc.id, "content": output})
                 call_names[tc.id] = name
-                recent_calls = (recent_calls + [call_signature(name, raw_args)])[-REPEAT_WINDOW:]
+                recent_calls = [*recent_calls, call_signature(name, raw_args)][-REPEAT_WINDOW:]
 
             repeated = recent_calls and recent_calls.count(recent_calls[-1]) >= REPEAT_LIMIT
             if repeated:

@@ -124,17 +124,19 @@ def _apply_diff(root: Path, diff: str, out: Console | None = None) -> bool:
         f.write(diff)
         patch_path = f.name
     try:
-        check = subprocess.run(["git", "apply", "--check", patch_path], cwd=root, capture_output=True, text=True)
+        check = subprocess.run(
+            ["git", "apply", "--check", patch_path], cwd=root, capture_output=True, text=True, check=False
+        )
         if check.returncode != 0:
             out.print(f"[red]the diff does not apply cleanly:[/] {escape(check.stderr.strip())}")
             return False
-        applied = subprocess.run(["git", "apply", patch_path], cwd=root, capture_output=True, text=True)
+        applied = subprocess.run(["git", "apply", patch_path], cwd=root, capture_output=True, text=True, check=False)
         if applied.returncode != 0:
             out.print(f"[red]git apply failed:[/] {escape(applied.stderr.strip())}")
             return False
     finally:
         os.unlink(patch_path)
-    status = subprocess.run(["git", "status", "--short"], cwd=root, capture_output=True, text=True).stdout
+    status = subprocess.run(["git", "status", "--short"], cwd=root, capture_output=True, text=True, check=False).stdout
     out.print("[green]applied to the working tree[/] (nothing committed)")
     if status.strip():
         out.print(escape(status.rstrip()))

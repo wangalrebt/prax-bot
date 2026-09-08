@@ -37,41 +37,46 @@ class ExtraTool:
         }
 
 
+def _load_one(path: Path, taken: set[str]) -> list[ExtraTool]:
+    """Import one plugin file and collect the tools it registers. Raises on any problem."""
+    added: list[ExtraTool] = []
+
+    def add(name: str, description: str, model: type[BaseModel], handler: Callable[[Any, BaseModel], str]) -> None:
+        if not NAME_RE.match(name):
+            raise ValueError(f"tool name {name!r} must be lowercase letters, digits and underscores")
+        if name in taken or any(t.name == name for t in added):
+            raise ValueError(f"tool name {name!r} is already taken")
+        if not (isinstance(model, type) and issubclass(model, BaseModel)):
+            raise TypeError(f"tool {name!r}: model must be a pydantic BaseModel class")
+        if not callable(handler):
+            raise TypeError(f"tool {name!r}: handler must be callable")
+        added.append(ExtraTool(name, str(description).strip(), model, handler, source=str(path)))
+
+    spec = importlib.util.spec_from_file_location(f"praxbot_plugin_{path.stem}", path)
+    if spec is None or spec.loader is None:
+        raise ImportError("cannot load")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    register = getattr(module, "register", None)
+    if not callable(register):
+        raise TypeError("no register(add) function")
+    register(add)
+    return added
+
+
 def load_plugins(home: Path, reserved: set[str], warn: Callable[[str], None]) -> list[ExtraTool]:
+    """Tools from every plugin file under home/plugins. A broken plugin is reported and skipped, never fatal."""
     base = home / "plugins"
     if not base.is_dir():
         return []
     tools: list[ExtraTool] = []
     names = set(reserved)
     for path in sorted(base.glob("*.py")):
-        added: list[ExtraTool] = []
-
-        def add(name: str, description: str, model: type[BaseModel], handler: Callable[[Any, BaseModel], str]) -> None:
-            if not NAME_RE.match(name):
-                raise ValueError(f"tool name {name!r} must be lowercase letters, digits and underscores")
-            if name in names:
-                raise ValueError(f"tool name {name!r} is already taken")
-            if not (isinstance(model, type) and issubclass(model, BaseModel)):
-                raise ValueError(f"tool {name!r}: model must be a pydantic BaseModel class")
-            if not callable(handler):
-                raise ValueError(f"tool {name!r}: handler must be callable")
-            names.add(name)
-            added.append(ExtraTool(name, str(description).strip(), model, handler, source=str(path)))
-
         try:
-            spec = importlib.util.spec_from_file_location(f"praxbot_plugin_{path.stem}", path)
-            if spec is None or spec.loader is None:
-                raise ImportError("cannot load")
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            register = getattr(module, "register", None)
-            if not callable(register):
-                raise ValueError("no register(add) function")
-            register(add)
+            added = _load_one(path, names)
         except Exception as e:
             warn(f"plugin {path.name} skipped: {type(e).__name__}: {str(e)[:200]}")
-            for t in added:
-                names.discard(t.name)
             continue
+        names.update(t.name for t in added)
         tools.extend(added)
     return tools

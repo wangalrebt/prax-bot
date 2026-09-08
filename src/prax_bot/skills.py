@@ -49,7 +49,7 @@ def parse_skill(text: str, fallback_name: str) -> tuple[str, str, str]:
                 description = value
         body = m.group(2)
     if not description:
-        first = next((l.strip().lstrip("#").strip() for l in body.splitlines() if l.strip()), "")
+        first = next((line.strip().lstrip("#").strip() for line in body.splitlines() if line.strip()), "")
         description = first[:200]
     return name, description, body.strip()
 

@@ -30,7 +30,7 @@ TASKS = json.loads((ROOT / "bench" / "tasks.json").read_text())
 
 
 def git(*args: str, cwd: Path, **kw) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, **kw)
+    return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=kw.pop("check", False), **kw)
 
 
 def prepare_repo(task: dict, src: Path, work: Path, *, bugged: bool) -> Path:
@@ -74,7 +74,7 @@ def ensure_venv(path: Path) -> Path:
 
 def local_run(cmd: str, cwd: Path, venv: Path, timeout: int = 900) -> subprocess.CompletedProcess:
     return subprocess.run(
-        ["bash", "-c", cmd], cwd=cwd, env=venv_env(venv), capture_output=True, text=True, timeout=timeout
+        ["bash", "-c", cmd], cwd=cwd, env=venv_env(venv), capture_output=True, text=True, timeout=timeout, check=False
     )
 
 
@@ -119,7 +119,9 @@ def touched_tests(diff: str) -> list[str]:
 
 def evaluate(task: dict, src: Path, diff: str, args: argparse.Namespace, out: Path) -> dict:
     work = prepare_repo(task, src, out / "eval" / task["name"], bugged=True)
-    check = subprocess.run(["git", "apply", "--check", "-"], cwd=work, input=diff, capture_output=True, text=True)
+    check = subprocess.run(
+        ["git", "apply", "--check", "-"], cwd=work, input=diff, capture_output=True, text=True, check=False
+    )
     if check.returncode != 0:
         return {"passed": False, "eval": f"diff does not apply: {check.stderr.strip()[:200]}"}
     subprocess.run(["git", "apply", "-"], cwd=work, input=diff, check=True, capture_output=True, text=True)
@@ -183,7 +185,14 @@ def run_task(task: dict, src: Path, args: argparse.Namespace, out: Path) -> dict
     env = {**os.environ, "PRAXBOT_HOME": str(home), "COLUMNS": "120", "TERM": "dumb"}
     started = time.monotonic()
     p = subprocess.run(
-        cmd, cwd=ROOT, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=args.timeout
+        cmd,
+        cwd=ROOT,
+        env=env,
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        timeout=args.timeout,
+        check=False,
     )
     wall = time.monotonic() - started
     (out / "logs").mkdir(exist_ok=True)

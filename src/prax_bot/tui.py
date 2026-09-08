@@ -10,7 +10,7 @@ import re
 import threading
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 from rich.console import Console
 from rich.markup import escape
@@ -92,7 +92,7 @@ class PraxApp(App[None]):
     #status { height: 1; padding: 0 1; background: $panel; color: $text-muted; }
     Input { border: tall $accent 50%; }
     """
-    BINDINGS = [
+    BINDINGS: ClassVar[list[Binding]] = [
         Binding("f1", "help", "Help"),
         Binding("f2", "toggle_diff", "Diff"),
         Binding("f3", "apply", "Apply"),
@@ -257,7 +257,7 @@ class PraxApp(App[None]):
         self.query_one("#input", Input).disabled = True
         self.set_status("working…")
         label = line if not line.startswith("/") else line.split(" ", 1)[0]
-        self.out.print(f"\n[bold cyan]›[/] {escape(line)}")
+        self.out.print(f"\n[bold cyan]›[/] {escape(line)}")  # noqa: RUF001 - the prompt glyph is deliberate
         self.run_line(line, label)
 
     @work(thread=True, exclusive=True, group="round")

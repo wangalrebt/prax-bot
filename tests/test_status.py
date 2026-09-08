@@ -46,7 +46,7 @@ def test_status_summary_classifies_runs(tmp_path: Path) -> None:
 
     summary = status_summary(s, limit=10)
     by_id = {r.run_id: r for r in summary["runs"]}
-    assert summary["total_runs"] == 6 and [r.run_id for r in summary["runs"]][0] == "20260905T000000Z-fff"
+    assert summary["total_runs"] == 6 and next(r.run_id for r in summary["runs"]) == "20260905T000000Z-fff"
     assert by_id["20260905T000000Z-fff"].kind == "session"
     assert by_id["20260901T000000Z-aaa"].kind == "run" and by_id["20260901T000000Z-aaa"].state == "finished"
     assert by_id["20260901T000000Z-aaa"].tokens == 120 and by_id["20260901T000000Z-aaa"].files_changed == 1

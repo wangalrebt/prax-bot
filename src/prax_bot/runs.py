@@ -91,7 +91,7 @@ def checkpoint_diff(run: Run, step: int, settings: Settings | None = None) -> st
         snap = settings.home / "local" / run.run_id / "snapshots" / image.split(":", 1)[1]
         if not snap.is_dir():
             raise FileNotFoundError(f"local snapshot {snap} no longer exists")
-        r = subprocess.run(["bash", "-c", command], cwd=snap, capture_output=True, text=True)
+        r = subprocess.run(["bash", "-c", command], cwd=snap, capture_output=True, text=True, check=False)
         if r.returncode != 0:
             raise RuntimeError(r.stderr.strip())
         return r.stdout
@@ -237,7 +237,7 @@ def local_workspaces(settings: Settings) -> tuple[int, int]:
     if not base.is_dir():
         return 0, 0
     dirs = [d for d in base.iterdir() if d.is_dir()]
-    r = subprocess.run(["du", "-sk", *map(str, dirs)], capture_output=True, text=True) if dirs else None
+    r = subprocess.run(["du", "-sk", *map(str, dirs)], capture_output=True, text=True, check=False) if dirs else None
     size = 0
     if r is not None and r.returncode == 0:
         size = sum(int(line.split()[0]) * 1024 for line in r.stdout.splitlines() if line.split())

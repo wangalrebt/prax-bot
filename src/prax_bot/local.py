@@ -40,7 +40,7 @@ DEFAULT_TRUNCATE = 65_535
 def clone_dir(src: Path, dst: Path) -> None:
     """Copy a directory tree. On macOS this uses APFS clonefile, which is instant."""
     if sys.platform == "darwin":
-        r = subprocess.run(["cp", "-c", "-R", str(src), str(dst)], capture_output=True)
+        r = subprocess.run(["cp", "-c", "-R", str(src), str(dst)], capture_output=True, check=False)
         if r.returncode == 0:
             return
     shutil.copytree(src, dst, symlinks=True)
@@ -215,7 +215,12 @@ def create_local_workspace(
 
     git_env = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1"}
     r = subprocess.run(
-        ["git", "-c", "init.defaultBranch=main", "init", "-q"], cwd=current, capture_output=True, text=True, env=git_env
+        ["git", "-c", "init.defaultBranch=main", "init", "-q"],
+        cwd=current,
+        capture_output=True,
+        text=True,
+        env=git_env,
+        check=False,
     )
     if r.returncode != 0:
         raise WorkspaceError(f"local baseline failed: git init: {r.stderr.strip()}")
@@ -237,14 +242,16 @@ def create_local_workspace(
             "--allow-empty",
         ],
     ):
-        r = subprocess.run(args, cwd=current, capture_output=True, text=True, env=git_env)
+        r = subprocess.run(args, cwd=current, capture_output=True, text=True, env=git_env, check=False)
         if r.returncode != 0:
             raise WorkspaceError(f"local baseline failed: {' '.join(args)}: {r.stderr.strip()}")
 
     uv = shutil.which("uv")
     if uv is None:
         raise WorkspaceError("the local backend needs uv on PATH to create a private virtualenv")
-    r = subprocess.run([uv, "venv", "--seed", "--python", "3.12", str(root / "venv")], capture_output=True, text=True)
+    r = subprocess.run(
+        [uv, "venv", "--seed", "--python", "3.12", str(root / "venv")], capture_output=True, text=True, check=False
+    )
     if r.returncode != 0:
         raise WorkspaceError(f"creating the virtualenv failed: {r.stderr.strip()[-500:]}")
     emit("sandbox.base", image="local:venv", tag="python 3.12 virtualenv", elapsed=time.monotonic() - started)

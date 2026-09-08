@@ -94,7 +94,7 @@ def test_session_runs_instructions_undoes_applies_and_records(tmp_path: Path, mo
         if m["role"] == "user" and m["content"].startswith("You are continuing")
     )
     assert "Original task:\nadd b" in second_round_task and second_round_task.endswith("Now do this:\nadd c")
-    kinds = [json.loads(l)["kind"] for l in (run_dir / "events.jsonl").read_text().splitlines()]
+    kinds = [json.loads(line)["kind"] for line in (run_dir / "events.jsonl").read_text().splitlines()]
     assert kinds.count("instruction") == 3
 
 

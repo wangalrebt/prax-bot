@@ -172,8 +172,8 @@ def _indent(line: str) -> int:
 def _strip_line_numbers(old: str) -> str:
     """If every line carries a read_file-style 'NNN| ' prefix, remove it."""
     lines = old.split("\n")
-    if lines and all(_LINE_PREFIX.match(l) for l in lines if l.strip()):
-        return "\n".join(_LINE_PREFIX.sub("", l) for l in lines)
+    if lines and all(_LINE_PREFIX.match(line) for line in lines if line.strip()):
+        return "\n".join(_LINE_PREFIX.sub("", line) for line in lines)
     return old
 
 
@@ -186,8 +186,8 @@ def _reindent(block: list[str], old_lines: list[str], new_lines: list[str]) -> l
     changed region borrows the offset of the nearest old line the model did send, which
     is the most reliable local estimate of how far off it was.
     """
-    stripped_old = [l.strip() for l in old_lines]
-    stripped_new = [l.strip() for l in new_lines]
+    stripped_old = [line.strip() for line in old_lines]
+    stripped_new = [line.strip() for line in new_lines]
 
     def offset_at(k: int) -> int:
         """File indent minus model indent for old line k, or the nearest non-blank line before it."""
@@ -205,7 +205,7 @@ def _reindent(block: list[str], old_lines: list[str], new_lines: list[str]) -> l
     out: list[str] = []
     for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, stripped_old, stripped_new, autojunk=False).get_opcodes():
         if tag == "equal":
-            for k, j in zip(range(i1, i2), range(j1, j2)):
+            for k, j in zip(range(i1, i2), range(j1, j2), strict=True):
                 # same text; if the model also changed its indentation, it moved the line into or
                 # out of a block, and the file's copy must follow
                 if _indent(old_lines[k]) == _indent(new_lines[j]):
@@ -222,7 +222,7 @@ def _reindent(block: list[str], old_lines: list[str], new_lines: list[str]) -> l
 def closest_region(text: str, old: str, context: int = 2) -> str:
     """Lines of the file around the best match for the first non-empty line of `old`."""
     file_lines = text.split("\n")
-    probe = next((l.strip() for l in old.split("\n") if l.strip()), "")
+    probe = next((line.strip() for line in old.split("\n") if line.strip()), "")
     if not probe:
         return ""
     best, best_i = 0.0, -1
@@ -268,8 +268,8 @@ def apply_edit(text: str, old: str, new: str, *, replace_all: bool = False) -> t
     n = len(old_lines)
 
     def find(norm):
-        target = [norm(l) for l in old_lines]
-        return [i for i in range(len(file_lines) - n + 1) if [norm(l) for l in file_lines[i : i + n]] == target]
+        target = [norm(line) for line in old_lines]
+        return [i for i in range(len(file_lines) - n + 1) if [norm(line) for line in file_lines[i : i + n]] == target]
 
     for label, norm in (("trailing whitespace", str.rstrip), ("indentation", str.strip)):
         hits = find(norm)
@@ -365,16 +365,16 @@ def compact_tool_output(name: str, output: str, defs_for: Callable[[str], list[t
         return summary + ". Read it again if you need the text."
     if name == "run":
         head = lines[0] if lines else ""
-        tail = [l for l in lines[1:] if l.strip()][-3:]
+        tail = [line for line in lines[1:] if line.strip()][-3:]
         return f"[compacted] {head}" + (" | " + " | ".join(t.strip()[:100] for t in tail) if tail else "")
     if name == "search":
-        refs = [l.split(":", 2)[:2] for l in lines if re.match(r"[^:]+:\d+:", l)]
+        refs = [line.split(":", 2)[:2] for line in lines if re.match(r"[^:]+:\d+:", line)]
         shown = ", ".join(":".join(r) for r in refs[:8])
         return f"[compacted] search: {len(refs)} matches" + (
             f" at {shown}" if shown else f"; {lines[0][:80] if lines else ''}"
         )
     if name == "list_files":
-        return f"[compacted] list_files: {len(lines)} entries, first: " + ", ".join(l.strip() for l in lines[:12])
+        return f"[compacted] list_files: {len(lines)} entries, first: " + ", ".join(line.strip() for line in lines[:12])
     if name == "outline":
         return "\n".join(lines[:25]) + (
             f"\n[compacted] … {len(lines) - 25} more definitions" if len(lines) > 25 else ""
@@ -563,9 +563,9 @@ class ToolBox:
         try:
             args = json.loads(raw_args) if isinstance(raw_args, str) else (raw_args or {})
             if not isinstance(args, dict):
-                raise ValueError("arguments must be a JSON object")
+                raise TypeError("arguments must be a JSON object")
             parsed = model.model_validate(args)
-        except (json.JSONDecodeError, ValueError, ValidationError) as e:
+        except (json.JSONDecodeError, TypeError, ValueError, ValidationError) as e:
             return f"error: invalid arguments for {name}: {e}"
         if extra:
             handler: Callable[[Any], str] = lambda a: str(extra.handler(self.ws, a))  # noqa: E731

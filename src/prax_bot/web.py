@@ -6,6 +6,7 @@ the page renders instructions, tool calls, results, summaries and diffs, and off
 
 from __future__ import annotations
 
+import contextlib
 import json
 import queue
 import secrets
@@ -188,10 +189,8 @@ class WebSession:
             return
         self.closed = True
         if self.session is not None:
-            try:
+            with contextlib.suppress(Exception):  # best effort on the way out
                 self.session.close()
-            except Exception:
-                pass
         self.emit(self.state_event())
 
 
