@@ -50,9 +50,13 @@ class Reporter:
         if kind == "sandbox.pack":
             c.print(f"  packed repository · {payload['bytes'] / 1e6:.1f} MB")
             for name in payload.get("suspicious") or []:
-                c.print(f"  [yellow]warning:[/] {escape(name)} looks like a credential and is being uploaded; add it to .gitignore to keep it out")
+                c.print(
+                    f"  [yellow]warning:[/] {escape(name)} looks like a credential and is being uploaded; add it to .gitignore to keep it out"
+                )
         elif kind == "sandbox.base":
-            c.print(f"  base image {escape(str(payload.get('tag') or ''))} · {payload['image']} · {payload['elapsed']:.1f}s")
+            c.print(
+                f"  base image {escape(str(payload.get('tag') or ''))} · {payload['image']} · {payload['elapsed']:.1f}s"
+            )
         elif kind == "sandbox.ready":
             c.print(f"  [bold]baseline image[/] {payload['image']} · {payload['elapsed']:.1f}s")
         elif kind == "skills":
@@ -61,20 +65,26 @@ class Reporter:
             else:
                 c.print(f"  skills · {payload.get('count')} available")
         elif kind == "sandbox.retry":
-            c.print(f"  [yellow]sandbox {escape(str(payload.get('step')))} failed, retrying (attempt {payload.get('attempt')}):[/] {escape(str(payload.get('error')))}")
+            c.print(
+                f"  [yellow]sandbox {escape(str(payload.get('step')))} failed, retrying (attempt {payload.get('attempt')}):[/] {escape(str(payload.get('error')))}"
+            )
         elif kind == "sandbox.setup":
             c.print(f"  setup · exit {payload['exit_code']} · {payload['elapsed']:.1f}s")
         elif kind == "assistant":
             c.print(f"  [dim]{escape(_one_line(payload['text'], 300))}[/]")
         elif kind == "tool.call":
-            c.print(f"[cyan]▸ {payload['step']:>3}[/]  [bold]{payload['name']}[/]  {escape(describe_call(payload['name'], payload['args']))}")
+            c.print(
+                f"[cyan]▸ {payload['step']:>3}[/]  [bold]{payload['name']}[/]  {escape(describe_call(payload['name'], payload['args']))}"
+            )
         elif kind == "tool.result":
             output = payload["output"]
             style = "red" if output.startswith("error:") else "dim"
             if self.verbose:
                 c.print(f"       [{style}]{escape(output)}[/]")
             else:
-                c.print(f"       [{style}]{escape(_one_line(output.splitlines()[0] if output else '', MAX_RESULT_PREVIEW))}[/]")
+                c.print(
+                    f"       [{style}]{escape(_one_line(output.splitlines()[0] if output else '', MAX_RESULT_PREVIEW))}[/]"
+                )
         elif kind == "todo":
             done = sum(1 for t in payload["todos"] if t.get("status") == "completed")
             c.print(f"       [dim]todo list: {done}/{len(payload['todos'])} done[/]")

@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import importlib.util
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -30,7 +31,10 @@ class ExtraTool:
     def spec(self) -> dict[str, Any]:
         schema = self.model.model_json_schema()
         schema.pop("title", None)
-        return {"type": "function", "function": {"name": self.name, "description": self.description, "parameters": schema}}
+        return {
+            "type": "function",
+            "function": {"name": self.name, "description": self.description, "parameters": schema},
+        }
 
 
 def load_plugins(home: Path, reserved: set[str], warn: Callable[[str], None]) -> list[ExtraTool]:
@@ -64,7 +68,7 @@ def load_plugins(home: Path, reserved: set[str], warn: Callable[[str], None]) ->
             if not callable(register):
                 raise ValueError("no register(add) function")
             register(add)
-        except Exception as e:  # noqa: BLE001 - a broken plugin must not stop the run
+        except Exception as e:
             warn(f"plugin {path.name} skipped: {type(e).__name__}: {str(e)[:200]}")
             for t in added:
                 names.discard(t.name)

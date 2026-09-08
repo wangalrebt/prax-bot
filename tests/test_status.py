@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -52,17 +52,20 @@ def test_status_summary_classifies_runs(tmp_path: Path) -> None:
     assert by_id["20260901T000000Z-aaa"].tokens == 120 and by_id["20260901T000000Z-aaa"].files_changed == 1
     assert by_id["20260902T000000Z-bbb"].kind == "goal" and by_id["20260902T000000Z-bbb"].applied is True
     assert by_id["20260903T000000Z-ccc"].kind == "resume" and by_id["20260903T000000Z-ccc"].state == "stopped: budget"
-    assert by_id["20260904T000000Z-ddd"].state == "in progress" and by_id["20260904T000000Z-ddd"].last_tool == "run (step 7)"
+    assert (
+        by_id["20260904T000000Z-ddd"].state == "in progress"
+        and by_id["20260904T000000Z-ddd"].last_tool == "run (step 7)"
+    )
     assert by_id["20260904T000100Z-eee"].state == "abandoned"
-    assert run_started("20260904T000000Z-ddd") == datetime(2026, 9, 4, tzinfo=timezone.utc)
+    assert run_started("20260904T000000Z-ddd") == datetime(2026, 9, 4, tzinfo=UTC)
 
 
 def test_ago_formats_durations() -> None:
-    now = datetime(2026, 9, 7, 12, 0, tzinfo=timezone.utc)
-    assert ago(datetime(2026, 9, 7, 11, 59, 30, tzinfo=timezone.utc), now) == "30s ago"
-    assert ago(datetime(2026, 9, 7, 11, 30, tzinfo=timezone.utc), now) == "30m ago"
-    assert ago(datetime(2026, 9, 7, 9, 0, tzinfo=timezone.utc), now) == "3h ago"
-    assert ago(datetime(2026, 9, 1, 12, 0, tzinfo=timezone.utc), now) == "6d ago" and ago(None) == "?"
+    now = datetime(2026, 9, 7, 12, 0, tzinfo=UTC)
+    assert ago(datetime(2026, 9, 7, 11, 59, 30, tzinfo=UTC), now) == "30s ago"
+    assert ago(datetime(2026, 9, 7, 11, 30, tzinfo=UTC), now) == "30m ago"
+    assert ago(datetime(2026, 9, 7, 9, 0, tzinfo=UTC), now) == "3h ago"
+    assert ago(datetime(2026, 9, 1, 12, 0, tzinfo=UTC), now) == "6d ago" and ago(None) == "?"
 
 
 def test_status_command_renders(tmp_path: Path) -> None:
@@ -71,7 +74,9 @@ def test_status_command_renders(tmp_path: Path) -> None:
     env = {"PRAXBOT_HOME": str(tmp_path), "NEBIUS_API_KEY": "k", "NEBIUS_PROJECT_ID": "p", "COLUMNS": "200"}
     result = CliRunner().invoke(app, ["status"], env=env)
     assert result.exit_code == 0, result.output
-    assert "in progress" in result.output and "20260904T000000Z-ddd" in result.output and "run (step 7)" in result.output
+    assert (
+        "in progress" in result.output and "20260904T000000Z-ddd" in result.output and "run (step 7)" in result.output
+    )
     assert "fix <it>" in result.output and "finished" in result.output and "2 under" in result.output
     empty = CliRunner().invoke(app, ["status"], env={**env, "PRAXBOT_HOME": str(tmp_path / "none")})
     assert empty.exit_code == 0 and "no runs yet" in empty.output

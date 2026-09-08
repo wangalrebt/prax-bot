@@ -12,7 +12,9 @@ class RunFake(FakeWorkspace):
 
     def run(self, command, *, timeout=None, mutate=True, truncate_output_at=None):
         out = self.outputs.pop(0) if self.outputs else ""
-        return CommandResult(command, 1 if "FAILED" in out else 0, out, "", 0.1, False, False, "img" if mutate else None, 0.0)
+        return CommandResult(
+            command, 1 if "FAILED" in out else 0, out, "", 0.1, False, False, "img" if mutate else None, 0.0
+        )
 
 
 def test_pytest_failures_parses_ids() -> None:

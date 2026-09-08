@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from types import SimpleNamespace
 
 from contree_sdk.sdk.exceptions import ContreeError
 
@@ -50,13 +49,15 @@ def test_reading_a_directory_is_reported_as_such(tmp_path: Path) -> None:
 
 
 def test_list_and_search_handle_empty_paths_errors_and_limits() -> None:
-    ws = ShellFakeWorkspace(results=[
-        (0, "a.py\nb.py\nc.py\n", "", False),
-        (2, "", "grep: Unmatched ( or \\(", False),  # -E attempt
-        (2, "", "grep: Unmatched ( or \\(", False),  # literal -F fallback also fails
-        (1, "", "", False),
-        (0, "a.py:1:x\na.py:2:x\n", "", True),
-    ])
+    ws = ShellFakeWorkspace(
+        results=[
+            (0, "a.py\nb.py\nc.py\n", "", False),
+            (2, "", "grep: Unmatched ( or \\(", False),  # -E attempt
+            (2, "", "grep: Unmatched ( or \\(", False),  # literal -F fallback also fails
+            (1, "", "", False),
+            (0, "a.py:1:x\na.py:2:x\n", "", True),
+        ]
+    )
     box = ToolBox(ws)
     out = box.call("list_files", {"path": "  ", "max_entries": 2})
     assert out == "a.py\nb.py\n... 1 more entries; narrow the path or raise max_entries"
@@ -71,7 +72,15 @@ def test_list_and_search_handle_empty_paths_errors_and_limits() -> None:
 
 def test_repeated_identical_calls_trigger_a_nudge() -> None:
     same = lambda: reply(None, call("run", command="pytest"))  # noqa: E731
-    llm = FakeLLM([same(), same(), same(), reply(None, call("finish", summary="stuck")), reply(None, call("finish", summary="stuck"))])
+    llm = FakeLLM(
+        [
+            same(),
+            same(),
+            same(),
+            reply(None, call("finish", summary="stuck")),
+            reply(None, call("finish", summary="stuck")),
+        ]
+    )
     events: list[tuple[str, dict]] = []
     result = Agent(llm, FakeToolBox(), max_steps=10, on_event=lambda k, **p: events.append((k, p))).run("t")
     assert result.finished

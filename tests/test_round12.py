@@ -15,8 +15,12 @@ def test_restore_refuses_to_discard_every_repository_edit() -> None:
     box = ToolBox(ws)
     assert box.repo_edited is False
     box.call("read_file", json.dumps({"path": "a.py"}))
-    assert box.call("edit_file", json.dumps({"path": "a.py", "old": "x", "new": "z"})).startswith("edited")  # checkpoint 1
-    box.call("write_file", json.dumps({"path": "/tmp/praxbot/scratch/t.py", "content": "print(1)\n"}))  # checkpoint 2, scratch
+    assert box.call("edit_file", json.dumps({"path": "a.py", "old": "x", "new": "z"})).startswith(
+        "edited"
+    )  # checkpoint 1
+    box.call(
+        "write_file", json.dumps({"path": "/tmp/praxbot/scratch/t.py", "content": "print(1)\n"})
+    )  # checkpoint 2, scratch
     assert box.repo_edited is True
 
     refused = box.call("restore", json.dumps({"step": 0}))
@@ -25,18 +29,22 @@ def test_restore_refuses_to_discard_every_repository_edit() -> None:
 
     assert box.call("restore", json.dumps({"step": 1})).startswith("restored")  # keeps the edit; checkpoint 3
     box.call("read_file", json.dumps({"path": "b.py"}))
-    assert box.call("edit_file", json.dumps({"path": "b.py", "old": "y", "new": "w"})).startswith("edited")  # checkpoint 4
+    assert box.call("edit_file", json.dumps({"path": "b.py", "old": "y", "new": "w"})).startswith(
+        "edited"
+    )  # checkpoint 4
     assert box.call("restore", json.dumps({"step": 2})).startswith("restored"), "one edit survives, so this is allowed"
     assert "discard every change" in box.call("restore", json.dumps({"step": 0})), "the surviving edit is still tracked"
 
 
 def test_late_budget_nudge_tells_the_model_to_wrap_up() -> None:
-    llm = FakeLLM([
-        reply(None, call("read_file", path="a.py")),
-        reply(None, call("read_file", path="b.py")),
-        reply(None, call("edit_file", path="a.py", old="x", new="y")),
-        reply(None, call("finish", summary="done")),
-    ])
+    llm = FakeLLM(
+        [
+            reply(None, call("read_file", path="a.py")),
+            reply(None, call("read_file", path="b.py")),
+            reply(None, call("edit_file", path="a.py", old="x", new="y")),
+            reply(None, call("finish", summary="done")),
+        ]
+    )
     result = Agent(llm, FakeToolBox(), max_steps=5).run("fix it")
     assert result.finished and result.steps == 4
     tool_results = [m["content"] for m in llm.requests[-1][0] if m["role"] == "tool"]

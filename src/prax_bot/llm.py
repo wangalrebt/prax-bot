@@ -52,7 +52,9 @@ class LLM:
 
     def request_options(self) -> dict[str, Any]:
         """Sampling and reasoning options for one request. Effort 'high' sends nothing extra: the model's default."""
-        options: dict[str, Any] = {"max_tokens": XHIGH_COMPLETION_TOKENS if self.effort == "xhigh" else MAX_COMPLETION_TOKENS}
+        options: dict[str, Any] = {
+            "max_tokens": XHIGH_COMPLETION_TOKENS if self.effort == "xhigh" else MAX_COMPLETION_TOKENS
+        }
         if self.top_p is not None:
             options["top_p"] = self.top_p
         if self.effort == "low":

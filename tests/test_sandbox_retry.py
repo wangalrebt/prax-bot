@@ -20,6 +20,7 @@ def test_transient_classifies_gateway_failures() -> None:
 
 def flaky_client(log: list, failures: list[Exception]):
     """A client whose first bootstrap runs raise the given errors before one succeeds."""
+
     def oci(ref, timeout=None):
         img = base(log)
         real_run = img.run
@@ -32,7 +33,9 @@ def flaky_client(log: list, failures: list[Exception]):
         img.run = run
         return img
 
-    return SimpleNamespace(images=SimpleNamespace(oci=oci, use=lambda ref: FakeImage(ref, FakeImage.registry[ref], log)))
+    return SimpleNamespace(
+        images=SimpleNamespace(oci=oci, use=lambda ref: FakeImage(ref, FakeImage.registry[ref], log))
+    )
 
 
 def test_create_workspace_retries_transient_errors(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -43,7 +46,9 @@ def test_create_workspace_retries_transient_errors(tmp_path: Path, monkeypatch: 
     ws = create_workspace(client, settings(tmp_path), make_repo(tmp_path), lambda k, **p: events.append((k, p)))
     assert ws.image_id.startswith("img-")
     retries = [p for k, p in events if k == "sandbox.retry"]
-    assert [r["attempt"] for r in retries] == [1, 2] and retries[0]["step"] == "upload" and "504" in retries[0]["error"] or "ApiStatusCodeError" in retries[0]["error"]
+    assert (
+        [r["attempt"] for r in retries] == [1, 2] and retries[0]["step"] == "upload" and "504" in retries[0]["error"]
+    ) or "ApiStatusCodeError" in retries[0]["error"]
 
 
 def test_create_workspace_does_not_retry_permanent_errors(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

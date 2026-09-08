@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from .tools import TOOL_MODELS, ToolBox, tool_specs
 
@@ -30,9 +31,13 @@ Respond only with tool calls."""
 NUDGE = "Continue by calling a tool. Call finish when the task is complete or if you are stuck."
 MAX_NUDGES = 3  # consecutive turns without a tool call before finish is forced
 LATE_FRACTION = 5  # the last fifth of the budget counts as late; the model is told to wrap up
-LATE_NO_EDIT = ("Only {left} steps remain and no repository file has been changed. Stop investigating: "
-                "make the most likely fix now, then call finish.")
-LATE_EDITED = "Only {left} steps remain. Wrap up: run the relevant tests once if you have not, then call finish with a summary."
+LATE_NO_EDIT = (
+    "Only {left} steps remain and no repository file has been changed. Stop investigating: "
+    "make the most likely fix now, then call finish."
+)
+LATE_EDITED = (
+    "Only {left} steps remain. Wrap up: run the relevant tests once if you have not, then call finish with a summary."
+)
 BLANK_RETRIES = 2  # a reply with no text and no tool call is retried before it counts as a stall
 BLANK_NUDGE = "Your last reply was cut off before it contained a tool call. Decide now and call one tool; keep any reasoning short."
 REPEAT_NUDGE = (
@@ -147,7 +152,7 @@ class Agent:
         if instructions is not None:
             try:
                 text = instructions()
-            except Exception:  # noqa: BLE001
+            except Exception:
                 text = ""
             if text:
                 messages.append({"role": "user", "content": text})
@@ -156,21 +161,23 @@ class Agent:
         if repo_map is not None:
             try:
                 overview = repo_map(task)
-            except Exception as e:  # noqa: BLE001 - the map is a convenience, never a blocker
+            except Exception as e:
                 overview = ""
                 self.on_event("repo.map", chars=0, error=f"{type(e).__name__}: {str(e)[:120]}")
             if overview:
-                messages.append({
-                    "role": "user",
-                    "content": "Repository map, definitions with line numbers. Use it to decide what to read; "
-                    "read regions with start_line and end_line, and call outline for files not shown.\n" + overview,
-                })
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": "Repository map, definitions with line numbers. Use it to decide what to read; "
+                        "read regions with start_line and end_line, and call outline for files not shown.\n" + overview,
+                    }
+                )
                 self.on_event("repo.map", chars=len(overview))
         skills_overview = getattr(self.toolbox, "skills_overview", None)
         if skills_overview is not None:
             try:
                 skills_text = skills_overview()
-            except Exception as e:  # noqa: BLE001 - skills are a convenience, never a blocker
+            except Exception as e:
                 skills_text = ""
                 self.on_event("skills", count=0, error=f"{type(e).__name__}: {str(e)[:120]}")
             if skills_text:
@@ -196,10 +203,18 @@ class Agent:
             if compacted:
                 self.on_event("context.elided", count=compacted)
 
-            msg = self.llm.complete(messages, self.tools, tool_choice=FORCE_FINISH if force_finish else "auto", model=model)
+            msg = self.llm.complete(
+                messages, self.tools, tool_choice=FORCE_FINISH if force_finish else "auto", model=model
+            )
             calls = getattr(msg, "tool_calls", None) or []
             finish_reason = getattr(self.llm, "last_finish_reason", None)
-            self.on_event("llm.call", step=step + 1, usage=self.llm.usage, model=model or getattr(self.llm, "model", ""), finish_reason=finish_reason)
+            self.on_event(
+                "llm.call",
+                step=step + 1,
+                usage=self.llm.usage,
+                model=model or getattr(self.llm, "model", ""),
+                finish_reason=finish_reason,
+            )
 
             if not calls and not (msg.content or "").strip() and blank_retries < BLANK_RETRIES:
                 # nothing came back at all: a cut-off or dropped reply, not a decision; ask again
@@ -238,8 +253,10 @@ class Agent:
                         continue
                     if not edited and not empty_finish_refused and not force_finish:
                         empty_finish_refused = True
-                        output = ("error: no changes have been made to the repository. If the task cannot be done, call finish "
-                                  "again and explain why in the summary; otherwise keep working.")
+                        output = (
+                            "error: no changes have been made to the repository. If the task cannot be done, call finish "
+                            "again and explain why in the summary; otherwise keep working."
+                        )
                         self.on_event("tool.result", step=step, name=name, output=output)
                         messages.append({"role": "tool", "tool_call_id": tc.id, "content": output})
                         call_names[tc.id] = name
@@ -281,7 +298,7 @@ def call_signature(name: str, raw_args: str) -> str:
         if model is not None and isinstance(args, dict):
             args = model.model_validate(args).model_dump()
         return f"{name}:{json.dumps(args, sort_keys=True)}"
-    except Exception:  # noqa: BLE001 - invalid arguments are their own kind of repeat
+    except Exception:
         return f"{name}:{raw_args}"
 
 

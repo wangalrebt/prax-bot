@@ -44,10 +44,17 @@ def test_goal_finish_schema_only_in_goal_mode() -> None:
 
 
 def test_agent_reports_goal_met_from_finish() -> None:
-    llm = FakeLLM([reply(None, call("edit_file", path="a", old="x", new="y")), reply(None, call("finish", summary="all done", goal_met=True))])
+    llm = FakeLLM(
+        [
+            reply(None, call("edit_file", path="a", old="x", new="y")),
+            reply(None, call("finish", summary="all done", goal_met=True)),
+        ]
+    )
     result = Agent(llm, FakeToolBox(), max_steps=5, goal=True).run("go")
     assert result.finished and result.goal_met is True
-    llm = FakeLLM([reply(None, call("edit_file", path="a", old="x", new="y")), reply(None, call("finish", summary="partly"))])
+    llm = FakeLLM(
+        [reply(None, call("edit_file", path="a", old="x", new="y")), reply(None, call("finish", summary="partly"))]
+    )
     assert Agent(llm, FakeToolBox(), max_steps=5).run("go").goal_met is False
 
 
@@ -91,19 +98,35 @@ def test_solve_runs_goal_rounds_automatically(tmp_path: Path, monkeypatch: pytes
     make_run(tmp_path, "20260901T000000Z-aaa")
     make_snapshot(tmp_path, "20260901T000000Z-aaa", 1, changed=False)
     ws = reopen_workspace(load_run("20260901T000000Z-aaa", s), 1, s, None, "20260902T000000Z-goal")
-    llm = FakeLLM([
-        reply(None, call("write_file", path="b.py", content="1\n")),
-        reply(None, call("finish", summary="wrote b", goal_met=False)),
-        reply(None, call("write_file", path="c.py", content="2\n")),
-        reply(None, call("finish", summary="wrote c", goal_met=True)),
-    ])
+    llm = FakeLLM(
+        [
+            reply(None, call("write_file", path="b.py", content="1\n")),
+            reply(None, call("finish", summary="wrote b", goal_met=False)),
+            reply(None, call("write_file", path="c.py", content="2\n")),
+            reply(None, call("finish", summary="wrote c", goal_met=True)),
+        ]
+    )
     monkeypatch.setattr(prax_bot.llm, "LLM", lambda settings: llm)
     driver = GoalDriver("b and c exist", ws, max_rounds=4)
     run_id, run_dir, events_file, on_event = cli._new_run(s, verbose=False)
     cli._solve(
-        s, ws, tmp_path, goal_task("b and c exist", 4, None), backend="local", run_id=run_id, run_dir=run_dir,
-        events_file=events_file, on_event=on_event, yes=False, export=None, protect=[], started=time.monotonic(),
-        record_task="b and c exist", goal=True, auto_next=driver.next_instruction, ask_followup=lambda: "",
+        s,
+        ws,
+        tmp_path,
+        goal_task("b and c exist", 4, None),
+        backend="local",
+        run_id=run_id,
+        run_dir=run_dir,
+        events_file=events_file,
+        on_event=on_event,
+        yes=False,
+        export=None,
+        protect=[],
+        started=time.monotonic(),
+        record_task="b and c exist",
+        goal=True,
+        auto_next=driver.next_instruction,
+        ask_followup=lambda: "",
         extra=lambda: {"goal": {"rounds": driver.rounds, "met": driver.met}},
     )
     info = json.loads((run_dir / "run.json").read_text())

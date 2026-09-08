@@ -7,7 +7,7 @@ import json
 import shutil
 import subprocess
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -98,9 +98,12 @@ def checkpoint_diff(run: Run, step: int, settings: Settings | None = None) -> st
     from .sandbox import make_client
     from .settings import WORKDIR
 
-    result = make_client().images.use(image).run(
-        shell=command, cwd=WORKDIR, disposable=True, timeout=120, truncate_output_at=DIFF_OUTPUT_LIMIT
-    ).wait()
+    result = (
+        make_client()
+        .images.use(image)
+        .run(shell=command, cwd=WORKDIR, disposable=True, timeout=120, truncate_output_at=DIFF_OUTPUT_LIMIT)
+        .wait()
+    )
     if result.exit_code != 0:
         raise RuntimeError(str(result.stderr or "").strip())
     return str(result.stdout or "")
@@ -177,20 +180,28 @@ class RunStatus:
 
 def run_started(run_id: str) -> datetime | None:
     try:
-        return datetime.strptime(run_id[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+        return datetime.strptime(run_id[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC)
     except ValueError:
         return None
 
 
 def run_status(run: Run, now: datetime | None = None) -> RunStatus:
     """What one run is, what it did, and whether it is still going."""
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     info = run.info
     events_path = run.directory / "events.jsonl"
     last_activity = None
     if events_path.exists():
-        last_activity = datetime.fromtimestamp(events_path.stat().st_mtime, tz=timezone.utc)
-    kind = "session" if info.get("session") else "goal" if info.get("goal") else "resume" if info.get("resumed_from") else "run"
+        last_activity = datetime.fromtimestamp(events_path.stat().st_mtime, tz=UTC)
+    kind = (
+        "session"
+        if info.get("session")
+        else "goal"
+        if info.get("goal")
+        else "resume"
+        if info.get("resumed_from")
+        else "run"
+    )
     calls = [e for e in run.events if e.get("kind") == "tool.call"]
     last_tool = f"{calls[-1].get('name')} (step {calls[-1].get('step')})" if calls else None
     if "finished" in info:
@@ -244,7 +255,7 @@ def status_summary(settings: Settings, limit: int = 10) -> dict[str, Any]:
 def ago(when: datetime | None, now: datetime | None = None) -> str:
     if when is None:
         return "?"
-    seconds = max(0, int(((now or datetime.now(timezone.utc)) - when).total_seconds()))
+    seconds = max(0, int(((now or datetime.now(UTC)) - when).total_seconds()))
     if seconds < 60:
         return f"{seconds}s ago"
     if seconds < 3600:
@@ -271,7 +282,8 @@ def render_html(run: Run) -> str:
         for c in run.tool_calls
     )
     cps = "".join(
-        f"<tr><td>{c['step']}</td><td><code>{e(str(c['image']))}</code></td><td>{e(str(c['label']))}</td></tr>" for c in run.checkpoints
+        f"<tr><td>{c['step']}</td><td><code>{e(str(c['image']))}</code></td><td>{e(str(c['label']))}</td></tr>"
+        for c in run.checkpoints
     )
     by_model = "".join(
         f"<tr><td><code>{e(m)}</code></td><td>{u.get('calls', 0)}</td><td>{u.get('prompt_tokens', 0):,}</td><td>{u.get('completion_tokens', 0):,}</td></tr>"
@@ -289,28 +301,28 @@ pre{{background:#17211e;color:#dfe6e2;padding:14px;overflow:auto;border-radius:4
 .summary{{background:#fff;border-left:3px solid #0f6a86;padding:10px 14px;white-space:pre-wrap}}
 </style></head><body>
 <h1>Prax Bot run {e(run.run_id)}</h1>
-<div>{e(str(info.get('task', '')))}</div>
+<div>{e(str(info.get("task", "")))}</div>
 <h2>Run</h2>
 <table class="kv">
 <tr><td>result</td><td>{e(status)}</td></tr>
-<tr><td>repository</td><td><code>{e(str(info.get('repo', '')))}</code></td></tr>
-<tr><td>backend</td><td>{e(str(info.get('backend', '')))}{(' · image ' + e(str(info.get('base_image')))) if info.get('base_image') else ''}</td></tr>
-<tr><td>model</td><td><code>{e(str(info.get('model', '')))}</code>{(' · investigation ' + e(str(info.get('investigate_model')))) if info.get('investigate_model') else ''}</td></tr>
-<tr><td>steps</td><td>{info.get('steps', '')}</td></tr>
-<tr><td>tokens</td><td>{(info.get('prompt_tokens') or 0) + (info.get('completion_tokens') or 0):,} in {info.get('model_calls', '')} calls</td></tr>
-<tr><td>sandbox</td><td>{info.get('sandbox_commands', '')} commands · {len(run.checkpoints)} checkpoints · cost {info.get('sandbox_cost', 0):.4f}</td></tr>
-<tr><td>images</td><td><code>{e(str(info.get('baseline_image', '')))}</code> → <code>{e(str(info.get('final_image', '')))}</code></td></tr>
-<tr><td>elapsed</td><td>{int(info.get('elapsed_s') or 0)} s</td></tr>
+<tr><td>repository</td><td><code>{e(str(info.get("repo", "")))}</code></td></tr>
+<tr><td>backend</td><td>{e(str(info.get("backend", "")))}{(" · image " + e(str(info.get("base_image")))) if info.get("base_image") else ""}</td></tr>
+<tr><td>model</td><td><code>{e(str(info.get("model", "")))}</code>{(" · investigation " + e(str(info.get("investigate_model")))) if info.get("investigate_model") else ""}</td></tr>
+<tr><td>steps</td><td>{info.get("steps", "")}</td></tr>
+<tr><td>tokens</td><td>{(info.get("prompt_tokens") or 0) + (info.get("completion_tokens") or 0):,} in {info.get("model_calls", "")} calls</td></tr>
+<tr><td>sandbox</td><td>{info.get("sandbox_commands", "")} commands · {len(run.checkpoints)} checkpoints · cost {info.get("sandbox_cost", 0):.4f}</td></tr>
+<tr><td>images</td><td><code>{e(str(info.get("baseline_image", "")))}</code> → <code>{e(str(info.get("final_image", "")))}</code></td></tr>
+<tr><td>elapsed</td><td>{int(info.get("elapsed_s") or 0)} s</td></tr>
 </table>
-{('<h2>Usage by model</h2><table><tr><th>model</th><th>calls</th><th>prompt</th><th>completion</th></tr>' + by_model + '</table>') if by_model else ''}
+{("<h2>Usage by model</h2><table><tr><th>model</th><th>calls</th><th>prompt</th><th>completion</th></tr>" + by_model + "</table>") if by_model else ""}
 <h2>Summary</h2>
-<div class="summary">{e(str(info.get('summary', '')))}</div>
+<div class="summary">{e(str(info.get("summary", "")))}</div>
 <h2>Steps</h2>
 <table><tr><th>step</th><th>tool</th><th>arguments</th><th>result</th></tr>{rows}</table>
 <h2>Checkpoints</h2>
 <p>Every command and edit produced an immutable state. Any of them can be diffed or restored with <code>praxbot inspect {e(run.run_id)} --diff N</code>.</p>
 <table><tr><th>step</th><th>image</th><th>label</th></tr>{cps}</table>
 <h2>Diff</h2>
-<pre>{e(diff) if diff.strip() else '(no changes)'}</pre>
+<pre>{e(diff) if diff.strip() else "(no changes)"}</pre>
 </body></html>
 """

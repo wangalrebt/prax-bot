@@ -7,13 +7,15 @@ from tests.test_review_fixes import ShellFakeWorkspace
 
 
 def test_turns_without_tool_calls_do_not_consume_the_budget() -> None:
-    llm = FakeLLM([
-        reply("thinking"),
-        reply(None, call("run", command="pytest")),
-        reply("still thinking"),
-        reply(None, call("read_file", path="a.py")),
-        reply(None, call("finish", summary="done")),
-    ])
+    llm = FakeLLM(
+        [
+            reply("thinking"),
+            reply(None, call("run", command="pytest")),
+            reply("still thinking"),
+            reply(None, call("read_file", path="a.py")),
+            reply(None, call("finish", summary="done")),
+        ]
+    )
     events: list[tuple[str, dict]] = []
     result = Agent(llm, FakeToolBox(), max_steps=3, on_event=lambda k, **p: events.append((k, p))).run("t")
     assert result.finished and result.steps == 3 and len(llm.requests) == 5
@@ -28,10 +30,12 @@ def test_budget_still_ends_runs_that_keep_calling_tools() -> None:
 
 
 def test_invalid_regex_falls_back_to_a_literal_search() -> None:
-    ws = ShellFakeWorkspace(results=[
-        (2, "", "grep: Unmatched ( or \\(", False),
-        (0, "tabulate/__init__.py:1207:def _align_column(\n", "", False),
-    ])
+    ws = ShellFakeWorkspace(
+        results=[
+            (2, "", "grep: Unmatched ( or \\(", False),
+            (0, "tabulate/__init__.py:1207:def _align_column(\n", "", False),
+        ]
+    )
     out = ToolBox(ws).call("search", {"pattern": "_align_column("})
     assert out.startswith("tabulate/__init__.py:1207:def _align_column(")
     assert out.endswith("(the pattern was not a valid regular expression, so it was searched for literally)")

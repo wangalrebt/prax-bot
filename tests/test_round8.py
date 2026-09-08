@@ -13,16 +13,25 @@ class CaptureRun(FakeWorkspace):
 
     def run(self, command, *, timeout=None, mutate=True, truncate_output_at=None):
         self.commands.append(command)
-        return CommandResult(command, self.exit_code, self.stdout, "", 0.1, False, False, "img" if mutate else None, 0.0)
+        return CommandResult(
+            command, self.exit_code, self.stdout, "", 0.1, False, False, "img" if mutate else None, 0.0
+        )
 
 
 def test_run_spills_full_output_and_reports_the_tail() -> None:
     ws = CaptureRun(stdout="last lines of a long run\n__praxbot_bytes=123456\n")
     out = ToolBox(ws).call("run", {"command": "pytest -q", "workdir": "src"})
     cmd = ws.commands[0]
-    assert "cd src && { pytest -q" in cmd and "> ${TMPDIR:-/tmp}/praxbot/out-1.log 2>&1" in cmd and f"tail -c {OUTPUT_TAIL_BYTES}" in cmd
+    assert (
+        "cd src && { pytest -q" in cmd
+        and "> ${TMPDIR:-/tmp}/praxbot/out-1.log 2>&1" in cmd
+        and f"tail -c {OUTPUT_TAIL_BYTES}" in cmd
+    )
     assert "last lines of a long run" in out and "__praxbot_bytes" not in out
-    assert f"showing the last {OUTPUT_TAIL_BYTES:,} of 123,456 bytes; the full output is in ${{TMPDIR:-/tmp}}/praxbot/out-1.log" in out
+    assert (
+        f"showing the last {OUTPUT_TAIL_BYTES:,} of 123,456 bytes; the full output is in ${{TMPDIR:-/tmp}}/praxbot/out-1.log"
+        in out
+    )
     assert ToolBox(ws).call("run", {"command": "ls", "workdir": "../x"}).startswith("error: path")
 
 
@@ -36,7 +45,9 @@ def test_edits_require_a_fresh_read_after_commands_or_restores() -> None:
     box.call("run", {"command": "pytest"})  # a command that changes nothing leaves the file fresh
     assert box.call("edit_file", {"path": "a.py", "old": "x = 3", "new": "x = 4"}).startswith("edited a.py")
     ws.files["a.py"] = b"x = 4  # formatted\n"  # something else changed the file
-    assert "It has changed since you last read it" in box.call("edit_file", {"path": "a.py", "old": "x = 4", "new": "x = 5"})
+    assert "It has changed since you last read it" in box.call(
+        "edit_file", {"path": "a.py", "old": "x = 4", "new": "x = 5"}
+    )
     box.call("read_file", {"path": "a.py"})
     assert box.call("edit_file", {"path": "a.py", "old": "x = 4", "new": "x = 5"}).startswith("edited a.py")
 
@@ -55,7 +66,18 @@ def test_replace_all() -> None:
 
 def test_todo_write_records_and_summarises() -> None:
     box = ToolBox(CaptureRun({}))
-    out = box.call("todo_write", {"todos": [{"content": "read tests", "status": "completed"}, {"content": "fix bug", "status": "in_progress"}, {"content": "run suite", "status": "pending"}]})
+    out = box.call(
+        "todo_write",
+        {
+            "todos": [
+                {"content": "read tests", "status": "completed"},
+                {"content": "fix bug", "status": "in_progress"},
+                {"content": "run suite", "status": "pending"},
+            ]
+        },
+    )
     assert out.startswith("todo list recorded: 1 done, 1 in progress, 1 pending")
     assert "[x] read tests" in out and "[>] fix bug" in out and "[ ] run suite" in out and len(box.todos) == 3
-    assert box.call("todo_write", {"todos": [{"content": "x", "status": "later"}]}).startswith("error: invalid arguments")
+    assert box.call("todo_write", {"todos": [{"content": "x", "status": "later"}]}).startswith(
+        "error: invalid arguments"
+    )

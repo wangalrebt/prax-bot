@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from prax_bot.llm import MAX_COMPLETION_TOKENS, XHIGH_COMPLETION_TOKENS, LLM
+from prax_bot.llm import LLM, MAX_COMPLETION_TOKENS, XHIGH_COMPLETION_TOKENS
 from prax_bot.settings import Settings
 from tests.test_runs import settings as base_settings
 
@@ -18,18 +18,23 @@ class FakeClient:
 
     def _create(self, **kw):
         self.calls.append(kw)
-        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="ok", tool_calls=None), finish_reason="stop")],
-                               usage=SimpleNamespace(prompt_tokens=3, completion_tokens=1))
+        return SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content="ok", tool_calls=None), finish_reason="stop")],
+            usage=SimpleNamespace(prompt_tokens=3, completion_tokens=1),
+        )
 
 
 def with_sampling(tmp_path, **kw) -> Settings:
     import dataclasses
+
     return dataclasses.replace(base_settings(tmp_path), **kw)
 
 
 def test_frozen_harness_request_is_reproducible(tmp_path) -> None:
     client = FakeClient()
-    LLM(with_sampling(tmp_path, temperature=0.2, top_p=None, effort="high"), client=client).complete([{"role": "user", "content": "hi"}], [])
+    LLM(with_sampling(tmp_path, temperature=0.2, top_p=None, effort="high"), client=client).complete(
+        [{"role": "user", "content": "hi"}], []
+    )
     call = client.calls[0]
     assert call["temperature"] == 0.2 and "top_p" not in call and "extra_body" not in call
     assert call["max_tokens"] == MAX_COMPLETION_TOKENS
@@ -44,7 +49,11 @@ def test_effort_levels_and_top_p_are_sent_as_nemotron_expects(tmp_path) -> None:
     LLM(with_sampling(tmp_path, effort="off"), client=client).complete([], [])
     assert client.calls[1]["extra_body"] == {"chat_template_kwargs": {"enable_thinking": False}}
     LLM(with_sampling(tmp_path, effort="high"), client=client).complete([], [], temperature=0.7)
-    assert client.calls[2]["temperature"] == 0.7 and "extra_body" not in client.calls[2] and client.calls[2]["max_tokens"] == MAX_COMPLETION_TOKENS
+    assert (
+        client.calls[2]["temperature"] == 0.7
+        and "extra_body" not in client.calls[2]
+        and client.calls[2]["max_tokens"] == MAX_COMPLETION_TOKENS
+    )
     LLM(with_sampling(tmp_path, effort="xhigh"), client=client).complete([], [])
     assert "extra_body" not in client.calls[3] and client.calls[3]["max_tokens"] == XHIGH_COMPLETION_TOKENS
 

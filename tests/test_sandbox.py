@@ -56,7 +56,14 @@ class FakeImage:
     def run(self, *, shell, cwd=None, timeout=None, disposable=True, truncate_output_at=None, files=None):
         child = FakeImage(None, self.fs, self.log)
         child.fail_bootstrap = self.fail_bootstrap
-        child._pending = {"shell": shell, "cwd": cwd, "timeout": timeout, "disposable": disposable, "files": dict(files or {}), "truncate_output_at": truncate_output_at}
+        child._pending = {
+            "shell": shell,
+            "cwd": cwd,
+            "timeout": timeout,
+            "disposable": disposable,
+            "files": dict(files or {}),
+            "truncate_output_at": truncate_output_at,
+        }
         return child
 
     def wait(self):
@@ -181,20 +188,40 @@ def test_paths_cannot_escape_the_workdir() -> None:
 
 def settings(tmp_path: Path, setup: str | None = None) -> Settings:
     return Settings(
-        api_key="k", project_id="p", model="m", llm_base_url="u", base_image="python:3.12", setup=setup,
-        max_steps=5, command_timeout=10, setup_timeout=20, import_timeout=30, home=tmp_path,
+        api_key="k",
+        project_id="p",
+        model="m",
+        llm_base_url="u",
+        base_image="python:3.12",
+        setup=setup,
+        max_steps=5,
+        command_timeout=10,
+        setup_timeout=20,
+        import_timeout=30,
+        home=tmp_path,
     )
 
 
 def test_create_workspace_bootstraps_and_runs_setup(tmp_path: Path) -> None:
     log: list = []
     events: list[str] = []
-    ws = create_workspace(fake_client(log), settings(tmp_path, setup="pip install -e ."), make_repo(tmp_path), lambda k, **p: events.append(k))
+    ws = create_workspace(
+        fake_client(log),
+        settings(tmp_path, setup="pip install -e ."),
+        make_repo(tmp_path),
+        lambda k, **p: events.append(k),
+    )
     bootstrap = log[0]
     assert bootstrap["shell"].startswith("mkdir -p /work && tar -xf /tmp/praxbot-repo.tar -C /work")
-    assert "git -c init.defaultBranch=main init -q" in bootstrap["shell"] and "commit -qm baseline" in bootstrap["shell"]
+    assert (
+        "git -c init.defaultBranch=main init -q" in bootstrap["shell"] and "commit -qm baseline" in bootstrap["shell"]
+    )
     assert ".git/info/exclude" in bootstrap["shell"] and "*.egg-info/" in bootstrap["shell"]
-    assert set(bootstrap["files"]) == {"/tmp/praxbot-repo.tar"} and bootstrap["disposable"] is False and bootstrap["timeout"] == 20
+    assert (
+        set(bootstrap["files"]) == {"/tmp/praxbot-repo.tar"}
+        and bootstrap["disposable"] is False
+        and bootstrap["timeout"] == 20
+    )
     assert log[1]["shell"] == "pip install -e ." and log[1]["timeout"] == 20
     assert events[:4] == ["sandbox.pack", "sandbox.base", "checkpoint", "sandbox.ready"] and "sandbox.setup" in events
     assert ws.checkpoints[0].label == "baseline" and ws.checkpoints[1].label == "run: pip install -e ."

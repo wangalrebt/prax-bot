@@ -113,5 +113,7 @@ class Settings:
         if not self.api_key:
             problems.append("NEBIUS_API_KEY is not set (Token Factory API key; also authenticates Sandboxes)." + hint)
         if not self.project_id:
-            problems.append("NEBIUS_PROJECT_ID is not set (Nebius project id, sent to Sandboxes as the Project header)." + hint)
+            problems.append(
+                "NEBIUS_PROJECT_ID is not set (Nebius project id, sent to Sandboxes as the Project header)." + hint
+            )
         return problems

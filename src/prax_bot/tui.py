@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import re
 import threading
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from rich.console import Console
 from rich.markup import escape
@@ -24,13 +25,13 @@ from textual.widgets import Button, Footer, Header, Input, Label, RichLog, Stati
 
 from .settings import Settings
 
-FILE_RE = re.compile(r"^diff --git a/(\S+) b/", re.M)
+FILE_RE = re.compile(r"^diff --git a/(\S+) b/", re.MULTILINE)
 
 
 class PaneFile:
     """A file-like object for a Rich console: lines are forwarded to a RichLog from any thread."""
 
-    def __init__(self, app: "PraxApp") -> None:
+    def __init__(self, app: PraxApp) -> None:
         self.app = app
         self.buffer = ""
         self.lock = threading.Lock()
@@ -99,7 +100,9 @@ class PraxApp(App[None]):
         Binding("ctrl+q", "quit_app", "Quit", priority=True),
     ]
 
-    def __init__(self, settings: Settings, root: Path, backend: str, make_session: Callable[[Console, Any], Any]) -> None:
+    def __init__(
+        self, settings: Settings, root: Path, backend: str, make_session: Callable[[Console, Any], Any]
+    ) -> None:
         super().__init__()
         self.settings, self.root, self.backend = settings, root, backend
         self.make_session = make_session
@@ -143,7 +146,7 @@ class PraxApp(App[None]):
         try:
             log = self.query_one("#log", RichLog)
             width = log.scrollable_content_region.width or log.content_size.width
-        except Exception:  # noqa: BLE001
+        except Exception:
             return
         if width > 20:
             self.out.width = width - 1
@@ -163,7 +166,7 @@ class PraxApp(App[None]):
         try:
             self.query_one("#log", RichLog)
             return True
-        except Exception:  # noqa: BLE001
+        except Exception:
             return False
 
     def _write_line(self, line: str) -> None:
@@ -185,7 +188,7 @@ class PraxApp(App[None]):
     def open_session(self) -> None:
         try:
             self.session = self.make_session(self.out, self.session_event)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.out.print(f"[red]✗ could not start: {type(e).__name__}: {escape(str(e)[:300])}[/]")
             self.call_from_thread(self.set_status, "failed to start · ctrl+q to quit")
             return
@@ -211,7 +214,12 @@ class PraxApp(App[None]):
 
     def render_sidebar(self) -> None:
         s = self.settings
-        info = Text.assemble(("session\n", "bold"), f"{self.root.name}\n", (f"{s.model}\n", "dim"), f"{self.backend} · effort {self.session.settings.effort if self.session else s.effort}")
+        info = Text.assemble(
+            ("session\n", "bold"),
+            f"{self.root.name}\n",
+            (f"{s.model}\n", "dim"),
+            f"{self.backend} · effort {self.session.settings.effort if self.session else s.effort}",
+        )
         self.query_one("#info", Static).update(info)
         files = FILE_RE.findall(self.session.last_diff) if self.session else []
         changes = Text.assemble(("changes\n", "bold"), "\n".join(files) if files else ("none pending", "dim"))
@@ -259,7 +267,7 @@ class PraxApp(App[None]):
         keep_going = True
         try:
             keep_going = self.session.handle_line(line)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.out.print(f"[red]✗ {type(e).__name__}: {escape(str(e)[:300])}[/]")
         if self.session.rounds > before:
             self.rounds.append((label, self.session.steps - steps_before))
@@ -307,7 +315,9 @@ class PraxApp(App[None]):
         self.push_screen(ConfirmScreen("Apply the pending changes to the working tree before leaving?"), done)
 
 
-def run_ui(settings: Settings, root: Path, backend: str, protect: list[str], skills: Any, plugins: Any, verbose: bool) -> None:
+def run_ui(
+    settings: Settings, root: Path, backend: str, protect: list[str], skills: Any, plugins: Any, verbose: bool
+) -> None:
     """Open the interface; the sandbox is created after the screen is up so its progress is visible."""
     from .cli import Session, _new_run, _open_workspace
 
@@ -320,7 +330,20 @@ def run_ui(settings: Settings, root: Path, backend: str, protect: list[str], ski
 
         out.print(f"[bold]sandbox[/] {settings.base_image}" if backend == "contree" else "[bold]local workspace[/]")
         ws = _open_workspace(settings, backend, root, run_id, on_event_with_hook, out=out)
-        return Session(settings, ws, root, backend=backend, run_id=run_id, run_dir=run_dir, events_file=events_file,
-                       on_event=on_event_with_hook, protect=protect, skills=skills, plugins=plugins, read_line=lambda: None, out=out)
+        return Session(
+            settings,
+            ws,
+            root,
+            backend=backend,
+            run_id=run_id,
+            run_dir=run_dir,
+            events_file=events_file,
+            on_event=on_event_with_hook,
+            protect=protect,
+            skills=skills,
+            plugins=plugins,
+            read_line=lambda: None,
+            out=out,
+        )
 
     PraxApp(settings, root, backend, make_session).run()

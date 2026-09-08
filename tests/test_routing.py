@@ -22,19 +22,25 @@ class RoutingFakeLLM:
 
 
 def test_investigation_model_is_used_until_the_first_edit_or_step_limit() -> None:
-    llm = RoutingFakeLLM([
-        reply(None, call("read_file", path="a.py")),
-        reply(None, call("search", pattern="x")),
-        reply(None, call("edit_file", path="a.py", old="a", new="b")),
-        reply(None, call("run", command="pytest")),
-        reply(None, call("finish", summary="done")),
-    ])
+    llm = RoutingFakeLLM(
+        [
+            reply(None, call("read_file", path="a.py")),
+            reply(None, call("search", pattern="x")),
+            reply(None, call("edit_file", path="a.py", old="a", new="b")),
+            reply(None, call("run", command="pytest")),
+            reply(None, call("finish", summary="done")),
+        ]
+    )
     Agent(llm, FakeToolBox(), max_steps=10, investigate_model="ultra", investigate_steps=6).run("t")
     assert llm.models == ["ultra", "ultra", "ultra", None, None]
-    assert llm.usage.by_model == {"ultra": {"calls": 3, "prompt_tokens": 30, "completion_tokens": 3},
-                                  "super": {"calls": 2, "prompt_tokens": 20, "completion_tokens": 2}}
+    assert llm.usage.by_model == {
+        "ultra": {"calls": 3, "prompt_tokens": 30, "completion_tokens": 3},
+        "super": {"calls": 2, "prompt_tokens": 20, "completion_tokens": 2},
+    }
 
-    llm2 = RoutingFakeLLM([reply(None, call("read_file", path="a.py")) for _ in range(3)] + [reply(None, call("finish", summary="s"))] * 2)
+    llm2 = RoutingFakeLLM(
+        [reply(None, call("read_file", path="a.py")) for _ in range(3)] + [reply(None, call("finish", summary="s"))] * 2
+    )
     Agent(llm2, FakeToolBox(), max_steps=10, investigate_model="ultra", investigate_steps=2).run("t")
     assert llm2.models == ["ultra", "ultra", None, None, None]
 
@@ -67,20 +73,35 @@ def test_references_in_output_finds_repo_lines_and_skips_site_packages() -> None
 def test_compact_tool_output_keeps_the_gist() -> None:
     defs = lambda p: [(10, "def a():"), (300, "def b():"), (900, "class C:")]  # noqa: E731
     read = "pkg/mod.py lines 1-400 of 1200\n  1| import os\n  2| ...\n"
-    assert compact_tool_output("read_file", read, defs) == "[compacted] pkg/mod.py lines 1-400 of 1200; definitions in that range: 10:def a():, 300:def b():. Read it again if you need the text."
+    assert (
+        compact_tool_output("read_file", read, defs)
+        == "[compacted] pkg/mod.py lines 1-400 of 1200; definitions in that range: 10:def a():, 300:def b():. Read it again if you need the text."
+    )
     run = "exit code 1 · 0.3s · checkpoint 4\nstdout:\n....F\nFAILED tests/test_a.py::test_x - assert 1 == 2\n1 failed, 4 passed in 0.1s"
-    assert compact_tool_output("run", run) == "[compacted] exit code 1 · 0.3s · checkpoint 4 | ....F | FAILED tests/test_a.py::test_x - assert 1 == 2 | 1 failed, 4 passed in 0.1s"
+    assert (
+        compact_tool_output("run", run)
+        == "[compacted] exit code 1 · 0.3s · checkpoint 4 | ....F | FAILED tests/test_a.py::test_x - assert 1 == 2 | 1 failed, 4 passed in 0.1s"
+    )
     search = "a.py:3:x = 1\nb.py:9:x = 2\n"
     assert compact_tool_output("search", search) == "[compacted] search: 2 matches at a.py:3, b.py:9"
     assert compact_tool_output("edit_file", "edited a.py") == "edited a.py"
 
 
 def test_repo_map_is_budgeted_and_ranked() -> None:
-    ws = ShellFakeWorkspace(results=[
-        (0, "README.md\ntabulate/__init__.py\ntests/test_output.py\n", "", False),
-        (0, "tabulate/__init__.py:10:def _padright(width, s):\ntabulate/__init__.py:40:class Foo:\ntests/test_output.py:5:def test_simple():\n", "", False),
-    ])
+    ws = ShellFakeWorkspace(
+        results=[
+            (0, "README.md\ntabulate/__init__.py\ntests/test_output.py\n", "", False),
+            (
+                0,
+                "tabulate/__init__.py:10:def _padright(width, s):\ntabulate/__init__.py:40:class Foo:\ntests/test_output.py:5:def test_simple():\n",
+                "",
+                False,
+            ),
+        ]
+    )
     box = ToolBox(ws)
     out = box.repo_map("columns in tabulate are too narrow", budget=10_000)
-    assert out.startswith("tabulate/__init__.py (2 definitions)\n  10: def _padright(width, s):\n  40: class Foo:\ntests/test_output.py (1 definitions)")
+    assert out.startswith(
+        "tabulate/__init__.py (2 definitions)\n  10: def _padright(width, s):\n  40: class Foo:\ntests/test_output.py (1 definitions)"
+    )
     assert "grep -nHE" in ws.commands[1] and "README.md" not in ws.commands[1]

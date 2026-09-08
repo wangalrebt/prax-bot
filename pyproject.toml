@@ -27,8 +27,22 @@ dev = [
     "huggingface-hub>=1.30.0",
     "pyarrow>=25.0.1",
     "pytest>=8",
+    "ruff>=0.16.6",
     "swebench>=5.0.2",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "PIE", "PLW", "TRY004", "FURB"]
+# B008: typer.Option(...) defaults are the library's idiom. E501: the formatter wraps what it can; long strings stay.
+ignore = ["B008", "E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["RUF012"]

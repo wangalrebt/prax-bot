@@ -16,8 +16,11 @@ STALL_ROUNDS = 2  # rounds in a row with an unchanged diff before the goal is de
 
 def goal_task(objective: str, max_rounds: int, check: str | None) -> str:
     """The first round's task text."""
-    how = (f"The goal is met when this command exits 0 in the repository: {check}" if check
-           else "You decide when the goal is met; verify it before saying so.")
+    how = (
+        f"The goal is met when this command exits 0 in the repository: {check}"
+        if check
+        else "You decide when the goal is met; verify it before saying so."
+    )
     return (
         f"Goal: {objective.strip()}\n\n"
         f"This is a goal run of up to {max_rounds} rounds; each round is a fresh conversation on the same workspace, "
@@ -71,8 +74,11 @@ class GoalDriver:
         if result.reason == "error":
             self.stopped = "the agent stopped with an error"
             return None
-        why = (f"The check command still fails. Command: {self.check}\nOutput (tail):\n{self.check_output}"
-               if self.check else "You reported the goal is not met yet.")
+        why = (
+            f"The check command still fails. Command: {self.check}\nOutput (tail):\n{self.check_output}"
+            if self.check
+            else "You reported the goal is not met yet."
+        )
         return (
             f"Round {round_no + 1} of {self.max_rounds}. {why}\n"
             "Continue toward the goal. When it is fully achieved and verified, call finish with goal_met=true."

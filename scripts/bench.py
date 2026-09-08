@@ -22,7 +22,7 @@ import shutil
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -42,7 +42,17 @@ def prepare_repo(task: dict, src: Path, work: Path, *, bugged: bool) -> Path:
     git("checkout", "-q", task["commit"], cwd=work, check=True)
     if bugged:
         git("apply", str(ROOT / task["bug_patch"]), cwd=work, check=True)
-        git("-c", "user.email=bench@local", "-c", "user.name=bench", "commit", "-qam", "seed regression", cwd=work, check=True)
+        git(
+            "-c",
+            "user.email=bench@local",
+            "-c",
+            "user.name=bench",
+            "commit",
+            "-qam",
+            "seed regression",
+            cwd=work,
+            check=True,
+        )
     return work
 
 
@@ -63,7 +73,9 @@ def ensure_venv(path: Path) -> Path:
 
 
 def local_run(cmd: str, cwd: Path, venv: Path, timeout: int = 900) -> subprocess.CompletedProcess:
-    return subprocess.run(["bash", "-c", cmd], cwd=cwd, env=venv_env(venv), capture_output=True, text=True, timeout=timeout)
+    return subprocess.run(
+        ["bash", "-c", cmd], cwd=cwd, env=venv_env(venv), capture_output=True, text=True, timeout=timeout
+    )
 
 
 def validate(tasks: list[dict], src: Path, out: Path) -> int:
@@ -86,7 +98,9 @@ def validate(tasks: list[dict], src: Path, out: Path) -> int:
         ok = head_test and head_eval and not bug_test and not bug_eval
         bad += not ok
         mark = lambda b: "pass" if b else "fail"  # noqa: E731
-        print(f"{t['name']:<26} {mark(head_test):>9} {mark(head_eval):>9} {mark(bug_test):>8} {mark(bug_eval):>8}  {'ok' if ok else 'PROBLEM'}")
+        print(
+            f"{t['name']:<26} {mark(head_test):>9} {mark(head_eval):>9} {mark(bug_test):>8} {mark(bug_eval):>8}  {'ok' if ok else 'PROBLEM'}"
+        )
     return bad
 
 
@@ -99,7 +113,7 @@ def last_line(output: str) -> str:
 
 
 def touched_tests(diff: str) -> list[str]:
-    paths = re.findall(r"^\+\+\+ b/(.*)$", diff, re.M)
+    paths = re.findall(r"^\+\+\+ b/(.*)$", diff, re.MULTILINE)
     return [p for p in paths if re.search(r"(^|/)tests?(/|_)|_test\.py$|(^|/)test_", p)]
 
 
@@ -130,8 +144,11 @@ def evaluate(task: dict, src: Path, diff: str, args: argparse.Namespace, out: Pa
             ws = create_workspace(make_client(), settings, work)
             r = ws.run(task["eval_cmd"], timeout=900)
             return {
-                "passed": r.exit_code == 0, "eval": last_line(r.stdout + r.stderr),
-                "eval_where": f"sandbox {ws.image_id}", "eval_cost": ws.total_cost, "eval_attempts": attempt + 1,
+                "passed": r.exit_code == 0,
+                "eval": last_line(r.stdout + r.stderr),
+                "eval_where": f"sandbox {ws.image_id}",
+                "eval_cost": ws.total_cost,
+                "eval_attempts": attempt + 1,
             }
         except ContreeError as e:
             last_error = e
@@ -147,13 +164,27 @@ def run_task(task: dict, src: Path, args: argparse.Namespace, out: Path) -> dict
     diff_path.parent.mkdir(parents=True, exist_ok=True)
     diff_path.unlink(missing_ok=True)
     cmd = [
-        "uv", "run", "praxbot", "run", task["task"],
-        "--repo", str(work), "--backend", args.backend, "--setup", task["setup"],
-        "--export", str(diff_path), "--max-steps", str(args.max_steps),
+        "uv",
+        "run",
+        "praxbot",
+        "run",
+        task["task"],
+        "--repo",
+        str(work),
+        "--backend",
+        args.backend,
+        "--setup",
+        task["setup"],
+        "--export",
+        str(diff_path),
+        "--max-steps",
+        str(args.max_steps),
     ]
     env = {**os.environ, "PRAXBOT_HOME": str(home), "COLUMNS": "120", "TERM": "dumb"}
     started = time.monotonic()
-    p = subprocess.run(cmd, cwd=ROOT, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=args.timeout)
+    p = subprocess.run(
+        cmd, cwd=ROOT, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=args.timeout
+    )
     wall = time.monotonic() - started
     (out / "logs").mkdir(exist_ok=True)
     (out / "logs" / f"{task['name']}.log").write_text(p.stdout + p.stderr)
@@ -183,7 +214,7 @@ def run_task(task: dict, src: Path, args: argparse.Namespace, out: Path) -> dict
     else:
         try:
             result.update(evaluate(task, src, diff, args, out))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             result.update({"passed": False, "eval": f"evaluation error: {type(e).__name__}: {str(e)[:200]}"})
     if result["touched_tests"]:
         result["passed"] = False
@@ -192,7 +223,10 @@ def run_task(task: dict, src: Path, args: argparse.Namespace, out: Path) -> dict
 
 
 def markdown(results: list[dict], args: argparse.Namespace) -> str:
-    rows = ["| task | passed | steps | tokens | agent time | diff lines | evaluation |", "|---|---|---|---|---|---|---|"]
+    rows = [
+        "| task | passed | steps | tokens | agent time | diff lines | evaluation |",
+        "|---|---|---|---|---|---|---|",
+    ]
     for r in results:
         rows.append(
             f"| {r['name']} | {'yes' if r.get('passed') else 'no'} | {r.get('steps') or '-'} | "
@@ -217,7 +251,9 @@ def main() -> int:
     ap.add_argument("--max-steps", type=int, default=40)
     ap.add_argument("--timeout", type=int, default=1800, help="seconds per task for the agent run")
     ap.add_argument("--validate", action="store_true", help="only check that HEAD passes and the bug fails, locally")
-    ap.add_argument("--reeval", action="store_true", help="re-judge the diffs saved by a previous run instead of running the agent")
+    ap.add_argument(
+        "--reeval", action="store_true", help="re-judge the diffs saved by a previous run instead of running the agent"
+    )
     args = ap.parse_args()
 
     tasks = TASKS
@@ -247,7 +283,7 @@ def main() -> int:
             else:
                 try:
                     r.update(evaluate(t, args.src, diff, args, scratch))
-                except Exception as e:  # noqa: BLE001
+                except Exception as e:
                     r.update({"passed": False, "eval": f"evaluation error: {type(e).__name__}: {str(e)[:200]}"})
             if r["touched_tests"]:
                 r["passed"] = False
@@ -257,11 +293,20 @@ def main() -> int:
             continue
         r = run_task(t, args.src, args, scratch)
         results.append(r)
-        print(f"   passed={r.get('passed')} steps={r.get('steps')} tokens={r.get('tokens'):,} eval={r.get('eval')}", flush=True)
+        print(
+            f"   passed={r.get('passed')} steps={r.get('steps')} tokens={r.get('tokens'):,} eval={r.get('eval')}",
+            flush=True,
+        )
 
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     suffix = f"{args.backend}-reeval" if args.reeval else args.backend
-    (args.out / f"{stamp}-{suffix}.json").write_text(json.dumps({"args": vars(args) | {"src": str(args.src), "out": str(args.out)}, "results": results}, indent=2, default=str))
+    (args.out / f"{stamp}-{suffix}.json").write_text(
+        json.dumps(
+            {"args": vars(args) | {"src": str(args.src), "out": str(args.out)}, "results": results},
+            indent=2,
+            default=str,
+        )
+    )
     md = markdown(results, args)
     (args.out / f"{stamp}-{suffix}.md").write_text(md)
     print("\n" + md)

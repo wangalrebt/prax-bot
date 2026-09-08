@@ -23,7 +23,9 @@ def test_interface_runs_an_instruction_and_shows_the_diff(tmp_path: Path, monkey
     s = settings(tmp_path)
     make_run(tmp_path, "20260901T000000Z-aaa")
     make_snapshot(tmp_path, "20260901T000000Z-aaa", 1, changed=False)
-    llm = FakeLLM([reply(None, call("write_file", path="b.py", content="1\n")), reply(None, call("finish", summary="wrote b"))])
+    llm = FakeLLM(
+        [reply(None, call("write_file", path="b.py", content="1\n")), reply(None, call("finish", summary="wrote b"))]
+    )
     monkeypatch.setattr(prax_bot.llm, "LLM", lambda settings: llm)
     holder: dict = {}
 
@@ -31,8 +33,19 @@ def test_interface_runs_an_instruction_and_shows_the_diff(tmp_path: Path, monkey
         ws = reopen_workspace(load_run("20260901T000000Z-aaa", s), 1, s, hook, "20260902T000000Z-ui")
         run_id, run_dir, events_file, on_event = cli._new_run(s, verbose=False, out=out)
         holder["run_dir"] = run_dir
-        session = cli.Session(s, ws, tmp_path, backend="local", run_id=run_id, run_dir=run_dir, events_file=events_file,
-                              on_event=lambda kind, **p: (on_event(kind, **p), hook(kind, **p)), protect=[], read_line=lambda: None, out=out)
+        session = cli.Session(
+            s,
+            ws,
+            tmp_path,
+            backend="local",
+            run_id=run_id,
+            run_dir=run_dir,
+            events_file=events_file,
+            on_event=lambda kind, **p: (on_event(kind, **p), hook(kind, **p)),
+            protect=[],
+            read_line=lambda: None,
+            out=out,
+        )
         return session
 
     app = PraxApp(s, tmp_path, "local", make_session)

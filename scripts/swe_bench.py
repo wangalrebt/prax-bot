@@ -20,11 +20,9 @@ import json
 import random
 import shlex
 import sys
-import tempfile
 import time
-import uuid
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,8 +45,8 @@ def load_dataset(cache: Path):
 
     if cache.exists():
         return pd.read_pickle(cache)
-    from huggingface_hub import HfApi, hf_hub_download
     import pyarrow.parquet as pq
+    from huggingface_hub import HfApi, hf_hub_download
 
     files = [f for f in HfApi().list_repo_files(DATASET, repo_type="dataset") if f.endswith(".parquet")]
     path = hf_hub_download(DATASET, repo_type="dataset", filename=files[0])
@@ -113,7 +111,12 @@ def grade(client, image, row, diff: str, scratch: Path, timeout: int = 1800) -> 
     log_path.write_text(log)
     applied = "PRAXBOT_PATCH_APPLIED" in log
     if not applied:
-        return {"resolved": False, "patch_applied": False, "eval": "patch did not apply", "eval_cost": result.result.cost}
+        return {
+            "resolved": False,
+            "patch_applied": False,
+            "eval": "patch did not apply",
+            "eval_cost": result.result.cost,
+        }
     prediction = {"instance_id": row["instance_id"], "model_name_or_path": "praxbot", "model_patch": diff}
     report = get_eval_report(spec, prediction, str(log_path), include_tests_status=True)[row["instance_id"]]
     status = report.get("tests_status", {})
@@ -148,27 +151,51 @@ def run_instance(row, args, scratch: Path) -> dict:
     try:
         client = make_client()
         image, baseline = prepare_baseline(client, row, settings)
-        ws = TestbedWorkspace(client, baseline, workdir=TESTBED, command_timeout=settings.command_timeout, on_event=on_event)
+        ws = TestbedWorkspace(
+            client, baseline, workdir=TESTBED, command_timeout=settings.command_timeout, on_event=on_event
+        )
         llm = LLM(settings)
-        protected = ("tests/*", "*/tests/*", "*/test_*.py", "test_*.py", "*_test.py", "*/conftest.py", "conftest.py", "testing/*", "*/testing/*")
+        protected = (
+            "tests/*",
+            "*/tests/*",
+            "*/test_*.py",
+            "test_*.py",
+            "*_test.py",
+            "*/conftest.py",
+            "conftest.py",
+            "testing/*",
+            "*/testing/*",
+        )
         agent = Agent(
-            llm, ToolBox(ws, protected=protected), max_steps=settings.max_steps, on_event=on_event,
-            investigate_model=settings.investigate_model, investigate_steps=settings.investigate_steps,
+            llm,
+            ToolBox(ws, protected=protected),
+            max_steps=settings.max_steps,
+            on_event=on_event,
+            investigate_model=settings.investigate_model,
+            investigate_steps=settings.investigate_steps,
         )
         agent_result = agent.run(task_text(row))
         diff = ws.diff()
         (out / "patch.diff").write_text(diff)
-        result.update({
-            "finished": agent_result.finished, "reason": agent_result.reason, "steps": agent_result.steps,
-            "tokens": llm.usage.total_tokens, "usage_by_model": llm.usage.by_model,
-            "sandbox_commands": ws.commands, "sandbox_cost": ws.total_cost, "diff_lines": len(diff.splitlines()),
-            "summary": agent_result.summary[:300], "agent_elapsed": time.monotonic() - started,
-        })
+        result.update(
+            {
+                "finished": agent_result.finished,
+                "reason": agent_result.reason,
+                "steps": agent_result.steps,
+                "tokens": llm.usage.total_tokens,
+                "usage_by_model": llm.usage.by_model,
+                "sandbox_commands": ws.commands,
+                "sandbox_cost": ws.total_cost,
+                "diff_lines": len(diff.splitlines()),
+                "summary": agent_result.summary[:300],
+                "agent_elapsed": time.monotonic() - started,
+            }
+        )
         if not diff.strip():
             result.update({"resolved": False, "patch_applied": False, "eval": "no diff produced"})
         else:
             result.update(grade(client, image, row, diff, out))
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         result.update({"resolved": False, "eval": f"error: {type(e).__name__}: {str(e)[:200]}"})
     finally:
         events.close()
@@ -191,22 +218,27 @@ def reeval_instance(row, args, scratch: Path) -> dict:
         settings = Settings.from_env()
         image = client.images.oci(f"docker://docker.io/{row['image']}", timeout=settings.import_timeout)
         result.update(grade(client, image, row, patch.read_text(), out))
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         result.update({"resolved": False, "eval": f"error: {type(e).__name__}: {str(e)[:200]}"})
     return result
 
 
 def markdown(results: list[dict], args) -> str:
-    rows = ["| instance | repo | difficulty | resolved | F2P | P2P | steps | tokens | evaluation |", "|---|---|---|---|---|---|---|---|---|"]
+    rows = [
+        "| instance | repo | difficulty | resolved | F2P | P2P | steps | tokens | evaluation |",
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
     for r in results:
         rows.append(
             f"| {r['instance_id']} | {r['repo']} | {r.get('difficulty', '')} | {'yes' if r.get('resolved') else 'no'} | "
             f"{r.get('f2p', '-')} | {r.get('p2p', '-')} | {r.get('steps') or '-'} | {(r.get('tokens') or 0):,} | {r.get('eval', '')} |"
         )
     n, ok = len(results), sum(1 for r in results if r.get("resolved"))
-    head = (f"SWE-bench Verified subset: {ok} of {n} resolved. Model {Settings.from_env().model}"
-            + (f", investigation model {args.investigate_model}" if getattr(args, 'investigate_model', None) else "")
-            + f", max steps {getattr(args, 'max_steps', '-')}. Graded with the official swebench harness in a fresh sandbox per task.")
+    head = (
+        f"SWE-bench Verified subset: {ok} of {n} resolved. Model {Settings.from_env().model}"
+        + (f", investigation model {args.investigate_model}" if getattr(args, "investigate_model", None) else "")
+        + f", max steps {getattr(args, 'max_steps', '-')}. Graded with the official swebench harness in a fresh sandbox per task."
+    )
     return head + "\n\n" + "\n".join(rows) + "\n"
 
 
@@ -267,16 +299,24 @@ def main() -> int:
         with ThreadPoolExecutor(max_workers=args.parallel) as pool:
             for r in pool.map(lambda row: worker(row, args, scratch), rows):
                 results.append(r)
-                print(f"== {r['instance_id']}: resolved={r.get('resolved')} steps={r.get('steps')} tokens={r.get('tokens')} eval={r.get('eval')}", flush=True)
+                print(
+                    f"== {r['instance_id']}: resolved={r.get('resolved')} steps={r.get('steps')} tokens={r.get('tokens')} eval={r.get('eval')}",
+                    flush=True,
+                )
     else:
         for row in rows:
             print(f"== {row['instance_id']}", flush=True)
             r = worker(row, args, scratch)
             results.append(r)
-            print(f"   resolved={r.get('resolved')} steps={r.get('steps')} tokens={r.get('tokens')} eval={r.get('eval')}", flush=True)
+            print(
+                f"   resolved={r.get('resolved')} steps={r.get('steps')} tokens={r.get('tokens')} eval={r.get('eval')}",
+                flush=True,
+            )
 
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    (args.out / f"{stamp}-{args.cmd}.json").write_text(json.dumps({"args": {k: str(v) for k, v in vars(args).items()}, "results": results}, indent=2, default=str))
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    (args.out / f"{stamp}-{args.cmd}.json").write_text(
+        json.dumps({"args": {k: str(v) for k, v in vars(args).items()}, "results": results}, indent=2, default=str)
+    )
     md = markdown(results, args)
     (args.out / f"{stamp}-{args.cmd}.md").write_text(md)
     print("\n" + md)

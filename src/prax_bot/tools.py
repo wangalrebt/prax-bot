@@ -6,8 +6,8 @@ import difflib
 import json
 import re
 import shlex
-from collections.abc import Sequence
-from typing import Any, Callable
+from collections.abc import Callable, Sequence
+from typing import Any
 
 from contree_sdk.sdk.exceptions import ContreeError
 from pydantic import BaseModel, Field, ValidationError
@@ -16,13 +16,28 @@ from .sandbox import SCRATCH_DIR, Workspace, WorkspaceError, resolve_in_workdir
 
 SEARCH_EXCLUDED_DIRS = (".git", "node_modules", ".venv", "venv", "__pycache__", ".pytest_cache")
 DEFINITION_RE = r"^\s*(async def|def|class|function|func|fn|struct|impl|trait|interface|type|module)\s+[A-Za-z_]"
-SOURCE_SUFFIXES = (".py", ".js", ".ts", ".tsx", ".go", ".rs", ".java", ".rb", ".c", ".h", ".cpp", ".cs", ".kt", ".swift")
+SOURCE_SUFFIXES = (
+    ".py",
+    ".js",
+    ".ts",
+    ".tsx",
+    ".go",
+    ".rs",
+    ".java",
+    ".rb",
+    ".c",
+    ".h",
+    ".cpp",
+    ".cs",
+    ".kt",
+    ".swift",
+)
 TEST_PATH_RE = re.compile(r"(^|/)tests?(/|_)|_test\.py$|(^|/)test_|(^|/)conftest\.py$")
 REPO_MAP_BUDGET = 8_000
 MAX_RESTORES = 3
 OUTPUT_DIR = "${TMPDIR:-/tmp}/praxbot"
 OUTPUT_TAIL_BYTES = 20_000
-PYTEST_FAILED_RE = re.compile(r"^(?:FAILED|ERROR) (\S+?)(?: - .*)?$", re.M)
+PYTEST_FAILED_RE = re.compile(r"^(?:FAILED|ERROR) (\S+?)(?: - .*)?$", re.MULTILINE)
 REPO_MAP_MAX_FILES = 60
 OUTPUT_REF_RE = re.compile(r'File "(?:/work/)?([\w./-]+\.py)", line (\d+)|(?<![\w/])([\w./-]+\.py):(\d+)')
 
@@ -54,7 +69,9 @@ class ReadFile(BaseModel):
 
 class EditFile(BaseModel):
     path: str = Field(..., description="Existing file relative to the repository root")
-    old: str = Field(..., description="Exact text to replace. It must occur exactly once in the file unless replace_all is true.")
+    old: str = Field(
+        ..., description="Exact text to replace. It must occur exactly once in the file unless replace_all is true."
+    )
     new: str = Field(..., description="Replacement text")
     replace_all: bool = Field(False, description="Replace every exact occurrence instead of requiring a unique one")
 
@@ -67,12 +84,17 @@ class WriteFile(BaseModel):
 class Run(BaseModel):
     command: str = Field(..., description="Shell command, run in the repository root (or workdir)")
     timeout: int = Field(0, ge=0, le=3600, description="Seconds; 0 means the default of 300")
-    workdir: str = Field(".", description="Directory to run in, relative to the repository root. State such as cwd does not persist between calls, so use this instead of cd.")
+    workdir: str = Field(
+        ".",
+        description="Directory to run in, relative to the repository root. State such as cwd does not persist between calls, so use this instead of cd.",
+    )
 
 
 class TodoItem(BaseModel):
     content: str = Field(..., description="A short imperative line")
-    status: str = Field(..., pattern="^(pending|in_progress|completed)$", description="pending, in_progress, or completed")
+    status: str = Field(
+        ..., pattern="^(pending|in_progress|completed)$", description="pending, in_progress, or completed"
+    )
 
 
 class TodoWrite(BaseModel):
@@ -92,7 +114,9 @@ class Finish(BaseModel):
 
 
 class GoalFinish(Finish):
-    goal_met: bool = Field(False, description="True only when the whole goal is achieved and verified; false if anything remains")
+    goal_met: bool = Field(
+        False, description="True only when the whole goal is achieved and verified; false if anything remains"
+    )
 
 
 TOOL_MODELS: dict[str, type[BaseModel]] = {
@@ -229,7 +253,10 @@ def apply_edit(text: str, old: str, new: str, *, replace_all: bool = False) -> t
     if count == 1:
         return text.replace(old, new, 1), None
     if count > 1:
-        return text, f"old text occurs {count} times; include more surrounding context so it matches exactly once, or set replace_all."
+        return (
+            text,
+            f"old text occurs {count} times; include more surrounding context so it matches exactly once, or set replace_all.",
+        )
 
     file_lines = text.split("\n")
     old_lines = old.split("\n")
@@ -343,11 +370,15 @@ def compact_tool_output(name: str, output: str, defs_for: Callable[[str], list[t
     if name == "search":
         refs = [l.split(":", 2)[:2] for l in lines if re.match(r"[^:]+:\d+:", l)]
         shown = ", ".join(":".join(r) for r in refs[:8])
-        return f"[compacted] search: {len(refs)} matches" + (f" at {shown}" if shown else f"; {lines[0][:80] if lines else ''}")
+        return f"[compacted] search: {len(refs)} matches" + (
+            f" at {shown}" if shown else f"; {lines[0][:80] if lines else ''}"
+        )
     if name == "list_files":
         return f"[compacted] list_files: {len(lines)} entries, first: " + ", ".join(l.strip() for l in lines[:12])
     if name == "outline":
-        return "\n".join(lines[:25]) + (f"\n[compacted] … {len(lines) - 25} more definitions" if len(lines) > 25 else "")
+        return "\n".join(lines[:25]) + (
+            f"\n[compacted] … {len(lines) - 25} more definitions" if len(lines) > 25 else ""
+        )
     return output if len(output) <= 300 else "[compacted] " + output[:280]
 
 
@@ -393,7 +424,12 @@ class ToolBox:
             for p in wanted:
                 self._defs[p] = []
             quoted = " ".join(shlex.quote(p) for p in wanted)
-            r = self.ws.run(f"grep -nHE {shlex.quote(DEFINITION_RE)} -- {quoted}", timeout=60, mutate=False, truncate_output_at=2 * 1024 * 1024)
+            r = self.ws.run(
+                f"grep -nHE {shlex.quote(DEFINITION_RE)} -- {quoted}",
+                timeout=60,
+                mutate=False,
+                truncate_output_at=2 * 1024 * 1024,
+            )
             for line in r.stdout.splitlines():
                 m = re.match(r"(.+?):(\d+):(.*)$", line)
                 if m and m.group(1) in self._defs:
@@ -414,7 +450,9 @@ class ToolBox:
 
         specs = tool_specs(goal=goal)
         if self._skills and "load_skill" not in self._extra:
-            self._extra["load_skill"] = ExtraTool("load_skill", self.LOAD_SKILL_DESCRIPTION, LoadSkill, self._load_skill)
+            self._extra["load_skill"] = ExtraTool(
+                "load_skill", self.LOAD_SKILL_DESCRIPTION, LoadSkill, self._load_skill
+            )
         return specs + [t.spec() for t in self._extra.values()]
 
     def skills_overview(self) -> str:
@@ -422,7 +460,9 @@ class ToolBox:
         from .skills import overview, repo_skills
 
         if not self._paths and getattr(self.ws, "run", None):
-            r = self.ws.run("git ls-files -co --exclude-standard", timeout=60, mutate=False, truncate_output_at=2 * 1024 * 1024)
+            r = self.ws.run(
+                "git ls-files -co --exclude-standard", timeout=60, mutate=False, truncate_output_at=2 * 1024 * 1024
+            )
             self._paths = r.stdout.splitlines()
         for sk in repo_skills(self.ws, self._paths):
             self._skills.setdefault(sk.name, sk)
@@ -436,7 +476,7 @@ class ToolBox:
 
     def nested_instructions(self, path: str, limit: int = 3_000) -> str:
         """The nearest AGENTS.md above a path, below the repository root, the first time that directory is touched."""
-        rel = resolve_in_workdir(path, self.ws.workdir)[len(self.ws.workdir):].strip("/")
+        rel = resolve_in_workdir(path, self.ws.workdir)[len(self.ws.workdir) :].strip("/")
         parts = rel.split("/")[:-1]
         for depth in range(len(parts), 0, -1):
             directory = "/".join(parts[:depth])
@@ -471,7 +511,9 @@ class ToolBox:
 
     def repo_map(self, task: str, budget: int = REPO_MAP_BUDGET) -> str:
         """Definitions with line numbers for the most relevant source files, within a character budget."""
-        r = self.ws.run("git ls-files -co --exclude-standard", timeout=60, mutate=False, truncate_output_at=2 * 1024 * 1024)
+        r = self.ws.run(
+            "git ls-files -co --exclude-standard", timeout=60, mutate=False, truncate_output_at=2 * 1024 * 1024
+        )
         self._paths = r.stdout.splitlines()
         files = rank_files(self._paths, task)[:REPO_MAP_MAX_FILES]
         if not files:
@@ -564,10 +606,16 @@ class ToolBox:
         excludes = " ".join(f"--exclude-dir={d}" for d in SEARCH_EXCLUDED_DIRS)
         flags = "-rnI" + ("i" if a.ignore_case else "")
         note = ""
-        r = self.ws.run(f"grep {flags} -E {excludes} -e {shlex.quote(a.pattern)} -- {shlex.quote(path)}", timeout=60, mutate=False)
+        r = self.ws.run(
+            f"grep {flags} -E {excludes} -e {shlex.quote(a.pattern)} -- {shlex.quote(path)}", timeout=60, mutate=False
+        )
         if r.exit_code > 1 and not r.stdout.strip():
             # not a valid extended regex (unbalanced parentheses and the like): search for it literally
-            r = self.ws.run(f"grep {flags} -F {excludes} -e {shlex.quote(a.pattern)} -- {shlex.quote(path)}", timeout=60, mutate=False)
+            r = self.ws.run(
+                f"grep {flags} -F {excludes} -e {shlex.quote(a.pattern)} -- {shlex.quote(path)}",
+                timeout=60,
+                mutate=False,
+            )
             note = "\n(the pattern was not a valid regular expression, so it was searched for literally)"
         lines = r.stdout.splitlines()
         if not lines:
@@ -590,9 +638,12 @@ class ToolBox:
         """The model has seen exactly this content, from a read or from its own last edit."""
         return self._observed.get(path) == _digest(text)
 
-    PROTECTED_MSG = ("is protected and must not be modified. Add a new test file or put reproduction scripts under "
-                     + SCRATCH_DIR + " instead. If an existing test asserts the old behaviour, leave it: keep your fix "
-                     "and say so in finish. Do not revert a correct change to satisfy a stale test.")
+    PROTECTED_MSG = (
+        "is protected and must not be modified. Add a new test file or put reproduction scripts under "
+        + SCRATCH_DIR
+        + " instead. If an existing test asserts the old behaviour, leave it: keep your fix "
+        "and say so in finish. Do not revert a correct change to satisfy a stale test."
+    )
 
     def _protected(self, path: str) -> bool:
         """True for an existing repository file matching a protected glob. New files and the scratch dir are free."""
@@ -638,8 +689,11 @@ class ToolBox:
             return f"error: {a.path} {self.PROTECTED_MSG}"
         text = self.ws.read(a.path).decode("utf-8", "replace")
         if not self._fresh(a.path, text):
-            return (f"error: read {a.path} before editing it. "
-                    + ("It has changed since you last read it." if a.path in self._observed else "You have not read it in this session."))
+            return f"error: read {a.path} before editing it. " + (
+                "It has changed since you last read it."
+                if a.path in self._observed
+                else "You have not read it in this session."
+            )
         new_text, error = apply_edit(text, a.old, a.new, replace_all=a.replace_all)
         if error:
             return f"error: {error}"
@@ -678,7 +732,7 @@ class ToolBox:
         inner = f"cd {shlex.quote(workdir)} && {{ {a.command}\n}}"
         wrapped = (
             f"mkdir -p {OUTPUT_DIR}; {{ {inner}; }} > {log} 2>&1; rc=$?; "
-            f"tail -c {OUTPUT_TAIL_BYTES} {log}; echo; echo \"__praxbot_bytes=$(wc -c < {log})\"; exit $rc"
+            f'tail -c {OUTPUT_TAIL_BYTES} {log}; echo; echo "__praxbot_bytes=$(wc -c < {log})"; exit $rc'
         )
         r = self.ws.run(wrapped, timeout=a.timeout or None, mutate=True)
         self._defs.clear()  # the command may have changed any file
@@ -697,7 +751,9 @@ class ToolBox:
         if r.stderr.strip():
             parts.append("stderr:\n" + clip(r.stderr.rstrip(), MAX_TOOL_OUTPUT // 2))
         if size is not None and size > OUTPUT_TAIL_BYTES:
-            parts.append(f"(showing the last {OUTPUT_TAIL_BYTES:,} of {size:,} bytes; the full output is in {log}, grep or sed it with run)")
+            parts.append(
+                f"(showing the last {OUTPUT_TAIL_BYTES:,} of {size:,} bytes; the full output is in {log}, grep or sed it with run)"
+            )
         elif size is not None:
             parts.append(f"(full output saved in {log})")
         if r.truncated:
@@ -718,8 +774,10 @@ class ToolBox:
         counts = {s: sum(1 for t in self.todos if t["status"] == s) for s in ("pending", "in_progress", "completed")}
         marks = {"pending": "[ ]", "in_progress": "[>]", "completed": "[x]"}
         lines = [f"{marks[t['status']]} {t['content']}" for t in self.todos]
-        return (f"todo list recorded: {counts['completed']} done, {counts['in_progress']} in progress, {counts['pending']} pending\n"
-                + "\n".join(lines))
+        return (
+            f"todo list recorded: {counts['completed']} done, {counts['in_progress']} in progress, {counts['pending']} pending\n"
+            + "\n".join(lines)
+        )
 
     def _note_preexisting_failures(self, output: str) -> str:
         """Remember which tests failed before any edit; later, point out failures that are not new."""
@@ -730,18 +788,29 @@ class ToolBox:
             if self._edited:
                 return ""
             self._first_failures = failures
-            return (f"note: {len(failures)} tests fail before any edit; failures in this list later are not caused by your changes: "
-                    + ", ".join(failures[:12]) + (" …" if len(failures) > 12 else "")) if failures else ""
+            return (
+                (
+                    f"note: {len(failures)} tests fail before any edit; failures in this list later are not caused by your changes: "
+                    + ", ".join(failures[:12])
+                    + (" …" if len(failures) > 12 else "")
+                )
+                if failures
+                else ""
+            )
         old = [f for f in failures if f in self._first_failures]
         new = [f for f in failures if f not in self._first_failures]
         fixed = [f for f in self._first_failures if f not in failures]
         bits = []
         if old:
-            bits.append(f"{len(old)} of these failures were already failing before your edits: " + ", ".join(old[:8]) + (" …" if len(old) > 8 else ""))
+            bits.append(
+                f"{len(old)} of these failures were already failing before your edits: "
+                + ", ".join(old[:8])
+                + (" …" if len(old) > 8 else "")
+            )
         if new:
-            bits.append(f"new failures since the baseline: " + ", ".join(new[:8]))
+            bits.append("new failures since the baseline: " + ", ".join(new[:8]))
         if fixed:
-            bits.append(f"now passing that failed before: " + ", ".join(fixed[:8]))
+            bits.append("now passing that failed before: " + ", ".join(fixed[:8]))
         return ("note: " + "; ".join(bits)) if bits else ""
 
     def _note_repo_edit(self, path: str) -> None:
@@ -755,13 +824,17 @@ class ToolBox:
 
     def _restore(self, a: Restore) -> str:
         if self._restores >= MAX_RESTORES:
-            return (f"error: restore limit of {MAX_RESTORES} reached for this run. Keep the current state; "
-                    "if tests fail for reasons unrelated to your change, say so in finish.")
+            return (
+                f"error: restore limit of {MAX_RESTORES} reached for this run. Keep the current state; "
+                "if tests fail for reasons unrelated to your change, say so in finish."
+            )
         if self._edit_steps and all(s > a.step for s in self._edit_steps):
             kept = ", ".join(str(s) for s in self._edit_steps)
-            return (f"error: restoring to checkpoint {a.step} would discard every change you have made to the repository "
-                    f"(your edits are checkpoints {kept}). Keep them: restore to a later checkpoint, or undo the one change "
-                    "that is wrong with edit_file. Unrelated test failures are not a reason to start over.")
+            return (
+                f"error: restoring to checkpoint {a.step} would discard every change you have made to the repository "
+                f"(your edits are checkpoints {kept}). Keep them: restore to a later checkpoint, or undo the one change "
+                "that is wrong with edit_file. Unrelated test failures are not a reason to start over."
+            )
         self._restores += 1
         target = self.ws.restore(a.step)
         self._edit_steps = [s for s in self._edit_steps if s <= target.step]

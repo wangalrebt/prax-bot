@@ -30,7 +30,12 @@ def test_home_and_repo_skills_are_discovered(tmp_path: Path) -> None:
     (tmp_path / "skills" / "bad name!" / "SKILL.md").write_text("---\nname: Bad Name!\n---\nx")
     personal = home_skills(tmp_path)
     assert [s.name for s in personal] == ["pytest-failures"] and personal[0].body.startswith("# Reading")
-    ws = FakeWorkspace({".praxbot/skills/release/SKILL.md": "---\nname: release\ndescription: Cut a release\n---\nrun make release\n", "a.py": "x\n"})
+    ws = FakeWorkspace(
+        {
+            ".praxbot/skills/release/SKILL.md": "---\nname: release\ndescription: Cut a release\n---\nrun make release\n",
+            "a.py": "x\n",
+        }
+    )
     found = repo_skills(ws, [".praxbot/skills/release/SKILL.md", "a.py", ".praxbot/skills/nested/too/deep/SKILL.md"])
     assert [s.name for s in found] == ["release"] and found[0].text() == "run make release"
     assert overview(found).startswith("Skills available") and "- release: Cut a release" in overview(found)
@@ -38,7 +43,12 @@ def test_home_and_repo_skills_are_discovered(tmp_path: Path) -> None:
 
 
 def test_toolbox_advertises_skills_and_loads_them_on_demand() -> None:
-    ws = FakeWorkspace({".praxbot/skills/release/SKILL.md": "---\nname: release\ndescription: Cut a release\n---\nrun make release\n", "a.py": "x\n"})
+    ws = FakeWorkspace(
+        {
+            ".praxbot/skills/release/SKILL.md": "---\nname: release\ndescription: Cut a release\n---\nrun make release\n",
+            "a.py": "x\n",
+        }
+    )
     plain = ToolBox(FakeWorkspace({"a.py": "x\n"}))
     assert "load_skill" not in {s["function"]["name"] for s in plain.specs()} and plain.skills_overview() == ""
     box = ToolBox(ws, skills=[Skill("deploy", "Ship it", "~/.praxbot/skills/deploy", body="1. tag\n2. push")])
@@ -47,19 +57,34 @@ def test_toolbox_advertises_skills_and_loads_them_on_demand() -> None:
     assert "- deploy: Ship it" in text and "- release: Cut a release" in text
     names = {s["function"]["name"] for s in box.specs()}
     assert "load_skill" in names and "finish" in names
-    assert box.call("load_skill", json.dumps({"name": "deploy"})) == "Skill deploy (~/.praxbot/skills/deploy):\n1. tag\n2. push"
+    assert (
+        box.call("load_skill", json.dumps({"name": "deploy"}))
+        == "Skill deploy (~/.praxbot/skills/deploy):\n1. tag\n2. push"
+    )
     assert box.call("load_skill", json.dumps({"name": "release"})).endswith("run make release")
-    assert box.call("load_skill", json.dumps({"name": "nope"})).startswith("error: no skill named 'nope'. Available: deploy, release")
+    assert box.call("load_skill", json.dumps({"name": "nope"})).startswith(
+        "error: no skill named 'nope'. Available: deploy, release"
+    )
 
 
 def test_nested_instructions_are_shown_once_per_directory() -> None:
-    ws = FakeWorkspace({"pkg/AGENTS.md": "Use tabs here.\n", "pkg/a.py": "x\n", "pkg/b.py": "y\n", "AGENTS.md": "root rules\n", "top.py": "z\n"})
+    ws = FakeWorkspace(
+        {
+            "pkg/AGENTS.md": "Use tabs here.\n",
+            "pkg/a.py": "x\n",
+            "pkg/b.py": "y\n",
+            "AGENTS.md": "root rules\n",
+            "top.py": "z\n",
+        }
+    )
     box = ToolBox(ws)
     first = box.call("read_file", json.dumps({"path": "pkg/a.py"}))
     assert "Instructions from pkg/AGENTS.md apply here:\nUse tabs here." in first
     second = box.call("read_file", json.dumps({"path": "pkg/b.py"}))
     assert "Instructions from" not in second, "shown once per directory"
-    assert "Instructions from" not in box.call("read_file", json.dumps({"path": "top.py"})), "the root file is handled at the start, not here"
+    assert "Instructions from" not in box.call("read_file", json.dumps({"path": "top.py"})), (
+        "the root file is handled at the start, not here"
+    )
 
 
 def test_plugins_load_from_home_and_broken_ones_are_skipped(tmp_path: Path) -> None:
@@ -71,7 +96,11 @@ def test_plugins_load_from_home_and_broken_ones_are_skipped(tmp_path: Path) -> N
     warnings: list[str] = []
     tools = load_plugins(tmp_path, {"read_file"}, warnings.append)
     assert [t.name for t in tools] == ["lint"] and tools[0].spec()["function"]["name"] == "lint"
-    assert len(warnings) == 2 and any("broken.py" in w and "already taken" in w for w in warnings) and any("syntax.py" in w for w in warnings)
+    assert (
+        len(warnings) == 2
+        and any("broken.py" in w and "already taken" in w for w in warnings)
+        and any("syntax.py" in w for w in warnings)
+    )
 
     class WS(FakeWorkspace):
         def run(self, command, *, timeout=None, mutate=True, truncate_output_at=None):
@@ -86,12 +115,25 @@ def test_plugins_load_from_home_and_broken_ones_are_skipped(tmp_path: Path) -> N
 
 
 def test_agent_uses_toolbox_specs_and_advertises_skills() -> None:
-    ws = FakeWorkspace({".praxbot/skills/release/SKILL.md": "---\nname: release\ndescription: Cut a release\n---\nbody\n", "a.py": "x\n"})
+    ws = FakeWorkspace(
+        {
+            ".praxbot/skills/release/SKILL.md": "---\nname: release\ndescription: Cut a release\n---\nbody\n",
+            "a.py": "x\n",
+        }
+    )
     box = ToolBox(ws)
     box._paths = list(ws.files)
-    load = SimpleNamespace(id="call-load_skill", function=SimpleNamespace(name="load_skill", arguments=json.dumps({"name": "release"})))
+    load = SimpleNamespace(
+        id="call-load_skill", function=SimpleNamespace(name="load_skill", arguments=json.dumps({"name": "release"}))
+    )
     # the first finish without an edit is refused once, so the model finishes twice
-    llm = FakeLLM([reply(None, load), reply(None, call("finish", summary="done")), reply(None, call("finish", summary="done, nothing to change"))])
+    llm = FakeLLM(
+        [
+            reply(None, load),
+            reply(None, call("finish", summary="done")),
+            reply(None, call("finish", summary="done, nothing to change")),
+        ]
+    )
     agent = Agent(llm, box, max_steps=5)
     result = agent.run("release it")
     assert result.finished

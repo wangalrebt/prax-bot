@@ -66,7 +66,18 @@ def test_resolve_in_workdir_rejects_escapes(path: str) -> None:
 def test_tool_specs_are_openai_function_schemas() -> None:
     specs = tool_specs()
     names = {s["function"]["name"] for s in specs}
-    assert names == {"list_files", "search", "read_file", "outline", "edit_file", "write_file", "run", "todo_write", "restore", "finish"}
+    assert names == {
+        "list_files",
+        "search",
+        "read_file",
+        "outline",
+        "edit_file",
+        "write_file",
+        "run",
+        "todo_write",
+        "restore",
+        "finish",
+    }
     for s in specs:
         assert s["type"] == "function"
         assert s["function"]["parameters"]["type"] == "object"
@@ -88,12 +99,16 @@ def test_read_file_pages_and_numbers_lines() -> None:
 def test_edit_and_write_go_through_the_workspace() -> None:
     ws = FakeWorkspace({"app.py": "def f():\n    return 1\n"})
     box = ToolBox(ws)
-    assert box.call("edit_file", {"path": "app.py", "old": "return 1", "new": "return 2"}).startswith("error: read app.py before editing")
+    assert box.call("edit_file", {"path": "app.py", "old": "return 1", "new": "return 2"}).startswith(
+        "error: read app.py before editing"
+    )
     box.call("read_file", {"path": "app.py"})
     out = box.call("edit_file", {"path": "app.py", "old": "return 1", "new": "return 2"})
     assert out.startswith("edited app.py") and "checkpoint 1" in out
     assert ws.files["app.py"] == b"def f():\n    return 2\n"
-    assert box.call("edit_file", {"path": "app.py", "old": "nope", "new": "x"}).startswith("error: old text was not found")
+    assert box.call("edit_file", {"path": "app.py", "old": "nope", "new": "x"}).startswith(
+        "error: old text was not found"
+    )
     assert box.call("write_file", {"path": "app.py", "content": "x"}).startswith("error: app.py already exists")
     assert box.call("write_file", {"path": "new/mod.py", "content": "print(1)\n"}).startswith("wrote new/mod.py")
     assert ws.files["new/mod.py"] == b"print(1)\n"

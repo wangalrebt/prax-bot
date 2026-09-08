@@ -12,10 +12,11 @@ import secrets
 import threading
 import time
 import webbrowser
+from collections.abc import Callable
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from rich.console import Console
@@ -59,7 +60,9 @@ class LineSink:
 class WebSession:
     """Owns the session, a worker that runs typed lines one at a time, and the event stream."""
 
-    def __init__(self, settings: Settings, root: Path, backend: str, make_session: Callable[[Console, Callable[..., None]], Any]) -> None:
+    def __init__(
+        self, settings: Settings, root: Path, backend: str, make_session: Callable[[Console, Callable[..., None]], Any]
+    ) -> None:
         self.settings, self.root, self.backend = settings, root, backend
         self.make_session = make_session
         self.session: Any = None
@@ -100,7 +103,15 @@ class WebSession:
         s = self.session
         diff = (s.last_diff if s else "") or ""
         files = [line.split(" b/", 1)[-1] for line in diff.splitlines() if line.startswith("diff --git ")]
-        status = "starting" if s is None and not self.error else "failed" if self.error else "working" if self.busy else "idle"
+        status = (
+            "starting"
+            if s is None and not self.error
+            else "failed"
+            if self.error
+            else "working"
+            if self.busy
+            else "idle"
+        )
         return {
             "status": status,
             "step": self.current_step if self.busy else "",
@@ -145,12 +156,12 @@ class WebSession:
         line = line.strip()
         if line and not self.closed:
             self.pending.put(line)
-            self.emit({"kind": "queued", "text": line, **{"queued": self.pending.qsize()}})
+            self.emit({"kind": "queued", "text": line, "queued": self.pending.qsize()})
 
     def _worker(self) -> None:
         try:
             self.session = self.make_session(self.out, self.hook)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.error = f"{type(e).__name__}: {str(e)[:300]}"
             self.emit({"kind": "log", "text": f"could not start: {self.error}"})
             self.emit(self.state_event())
@@ -164,7 +175,7 @@ class WebSession:
             keep_going = True
             try:
                 keep_going = self.session.handle_line(line)
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 self.emit({"kind": "log", "text": f"✗ {type(e).__name__}: {str(e)[:300]}"})
             self.busy = False
             self.emit({"kind": "instruction.done", "text": line})
@@ -179,7 +190,7 @@ class WebSession:
         if self.session is not None:
             try:
                 self.session.close()
-            except Exception:  # noqa: BLE001
+            except Exception:
                 pass
         self.emit(self.state_event())
 
@@ -198,11 +209,14 @@ def _json_safe(value: Any) -> Any:
 
 def make_handler(web: WebSession, token: str, page: str) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
-        def log_message(self, format: str, *args: Any) -> None:  # noqa: A002 - quiet by design
+        def log_message(self, format: str, *args: Any) -> None:
             pass
 
         def _authorized(self) -> bool:
-            return self.headers.get("X-Prax-Token") == token or parse_qs(urlparse(self.path).query).get("token", [""])[0] == token
+            return (
+                self.headers.get("X-Prax-Token") == token
+                or parse_qs(urlparse(self.path).query).get("token", [""])[0] == token
+            )
 
         def _json(self, status: int, body: Any) -> None:
             data = json.dumps(body).encode("utf-8")
@@ -212,7 +226,7 @@ def make_handler(web: WebSession, token: str, page: str) -> type[BaseHTTPRequest
             self.end_headers()
             self.wfile.write(data)
 
-        def do_GET(self) -> None:  # noqa: N802
+        def do_GET(self) -> None:
             path = urlparse(self.path).path
             if path == "/":
                 data = page.replace("__TOKEN__", token).encode("utf-8")
@@ -252,10 +266,10 @@ def make_handler(web: WebSession, token: str, page: str) -> type[BaseHTTPRequest
                 self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
 
         def _send_event(self, event: dict[str, Any]) -> None:
-            self.wfile.write(f"data: {json.dumps(event)}\n\n".encode("utf-8"))
+            self.wfile.write(f"data: {json.dumps(event)}\n\n".encode())
             self.wfile.flush()
 
-        def do_POST(self) -> None:  # noqa: N802
+        def do_POST(self) -> None:
             if not self._authorized():
                 self._json(HTTPStatus.FORBIDDEN, {"error": "bad token"})
                 return
@@ -283,7 +297,9 @@ def make_handler(web: WebSession, token: str, page: str) -> type[BaseHTTPRequest
     return Handler
 
 
-def serve(web: WebSession, *, host: str = "127.0.0.1", port: int = 0, open_browser: bool = True, page: str | None = None) -> None:
+def serve(
+    web: WebSession, *, host: str = "127.0.0.1", port: int = 0, open_browser: bool = True, page: str | None = None
+) -> None:
     """Serve the page until /quit or an interrupt. Port 0 picks a free port."""
     token = secrets.token_urlsafe(16)
     server = ThreadingHTTPServer((host, port), make_handler(web, token, page or PAGE))

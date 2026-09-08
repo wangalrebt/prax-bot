@@ -8,9 +8,9 @@ import sys
 import tempfile
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import typer
 from rich.console import Console
@@ -68,11 +68,19 @@ def _extensions(settings: Settings) -> tuple[list[Any], list[Any]]:
     from .tools import TOOL_MODELS
 
     skills = home_skills(settings.home)
-    plugins = load_plugins(settings.home, set(TOOL_MODELS) | {"load_skill"}, lambda msg: console.print(f"[yellow]warning:[/] {escape(msg)}"))
+    plugins = load_plugins(
+        settings.home,
+        set(TOOL_MODELS) | {"load_skill"},
+        lambda msg: console.print(f"[yellow]warning:[/] {escape(msg)}"),
+    )
     if skills:
-        console.print(f"[dim]skills[/]   {escape(', '.join(sk.name for sk in skills))} (from {settings.home / 'skills'})")
+        console.print(
+            f"[dim]skills[/]   {escape(', '.join(sk.name for sk in skills))} (from {settings.home / 'skills'})"
+        )
     if plugins:
-        console.print(f"[dim]plugins[/]  {escape(', '.join(t.name for t in plugins))} (from {settings.home / 'plugins'})")
+        console.print(
+            f"[dim]plugins[/]  {escape(', '.join(t.name for t in plugins))} (from {settings.home / 'plugins'})"
+        )
     return skills, plugins
 
 
@@ -137,7 +145,7 @@ def _new_run(settings: Settings, verbose: bool, out: Console | None = None) -> t
     """A fresh run directory with its event log and the on_event callback that feeds it and the terminal."""
     from .render import Reporter
 
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:6]
+    run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:6]
     run_dir = settings.home / "runs" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     events_file = (run_dir / "events.jsonl").open("a", encoding="utf-8")
@@ -163,7 +171,19 @@ def _ask_followup() -> str:
         return ""
 
 
-def _agent_round(settings: Settings, ws: Any, task: str, llm: Any, on_event: Any, *, protect: list[str], skills: Any = (), plugins: Any = (), goal: bool = False, out: Console | None = None) -> Any:
+def _agent_round(
+    settings: Settings,
+    ws: Any,
+    task: str,
+    llm: Any,
+    on_event: Any,
+    *,
+    protect: list[str],
+    skills: Any = (),
+    plugins: Any = (),
+    goal: bool = False,
+    out: Console | None = None,
+) -> Any:
     """One agent transcript on the workspace. Interruptions and errors keep the work already in the workspace."""
     from .agent import Agent, AgentResult
     from .tools import ToolBox
@@ -171,20 +191,35 @@ def _agent_round(settings: Settings, ws: Any, task: str, llm: Any, on_event: Any
     out = out or console
     out.print("\n[bold]agent[/]")
     agent = Agent(
-        llm, ToolBox(ws, protected=protect, skills=skills, plugins=plugins), max_steps=settings.max_steps, on_event=on_event,
-        investigate_model=settings.investigate_model, investigate_steps=settings.investigate_steps, goal=goal,
+        llm,
+        ToolBox(ws, protected=protect, skills=skills, plugins=plugins),
+        max_steps=settings.max_steps,
+        on_event=on_event,
+        investigate_model=settings.investigate_model,
+        investigate_steps=settings.investigate_steps,
+        goal=goal,
     )
     try:
         return agent.run(task)
     except KeyboardInterrupt:
         out.print("\n[yellow]interrupted; collecting the diff so far[/]")
         return AgentResult(False, "interrupted by the user", 0, "interrupted")
-    except Exception as e:  # noqa: BLE001 - keep the work that is already in the workspace
+    except Exception as e:
         out.print(f"\n[red]✗ the agent stopped: {type(e).__name__}: {escape(str(e)[:400])}[/]")
         return AgentResult(False, f"stopped by an error: {type(e).__name__}: {str(e)[:200]}", 0, "error")
 
 
-def _print_result(result: Any, llm: Any, ws: Any, run_dir: Path, *, steps_total: int, round_steps: int | None, elapsed: float, out: Console | None = None) -> None:
+def _print_result(
+    result: Any,
+    llm: Any,
+    ws: Any,
+    run_dir: Path,
+    *,
+    steps_total: int,
+    round_steps: int | None,
+    elapsed: float,
+    out: Console | None = None,
+) -> None:
     out = out or console
     out.print()
     table = Table(show_header=False, box=None, padding=(0, 2))
@@ -196,13 +231,21 @@ def _print_result(result: Any, llm: Any, ws: Any, run_dir: Path, *, steps_total:
     table.add_row("elapsed", f"{elapsed:.0f}s")
     table.add_row("log", str(run_dir))
     out.print(table)
-    out.print(Panel(escape(result.summary or "(no summary)"), title="summary", border_style="green" if result.finished else "yellow"))
+    out.print(
+        Panel(
+            escape(result.summary or "(no summary)"),
+            title="summary",
+            border_style="green" if result.finished else "yellow",
+        )
+    )
 
 
-def _print_diff(diff: str, ws: Any, run_dir: Path, export: Optional[Path] = None, out: Console | None = None) -> None:
+def _print_diff(diff: str, ws: Any, run_dir: Path, export: Path | None = None, out: Console | None = None) -> None:
     out = out or console
     if ws.dropped_scratch:
-        out.print(f"[dim]left out of the diff, they look like scratch files: {escape(', '.join(ws.dropped_scratch))}[/]")
+        out.print(
+            f"[dim]left out of the diff, they look like scratch files: {escape(', '.join(ws.dropped_scratch))}[/]"
+        )
     if not diff.strip():
         out.print("no changes to the repository")
         return
@@ -227,7 +270,7 @@ def _solve(
     events_file: Any,
     on_event: Any,
     yes: bool,
-    export: Optional[Path],
+    export: Path | None,
     protect: list[str],
     started: float,
     resumed_from: dict[str, Any] | None = None,
@@ -257,7 +300,9 @@ def _solve(
     applied_ok: bool | None = None  # recorded once the user decides; None while undecided or with no diff
     while True:
         round_no += 1
-        result = _agent_round(settings, ws, task, llm, on_event, protect=protect, skills=skills, plugins=plugins, goal=goal)
+        result = _agent_round(
+            settings, ws, task, llm, on_event, protect=protect, skills=skills, plugins=plugins, goal=goal
+        )
         steps_total += result.steps
 
         diff: str | None = None
@@ -265,8 +310,9 @@ def _solve(
         try:
             diff = ws.diff()
             (run_dir / "diff.patch").write_text(diff, encoding="utf-8")
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             diff_error = f"{type(e).__name__}: {str(e)[:400]}"
+
         def write_info() -> None:
             elapsed = time.monotonic() - started
             (run_dir / "run.json").write_text(
@@ -314,7 +360,15 @@ def _solve(
             console.print(f"the agent's final state is image {ws.image_id}; the log is in {run_dir}")
             raise typer.Exit(1)
 
-        _print_result(result, llm, ws, run_dir, steps_total=steps_total, round_steps=result.steps if followups else None, elapsed=time.monotonic() - started)
+        _print_result(
+            result,
+            llm,
+            ws,
+            run_dir,
+            steps_total=steps_total,
+            round_steps=result.steps if followups else None,
+            elapsed=time.monotonic() - started,
+        )
         _print_diff(diff, ws, run_dir, export)
 
         more = auto_next(round_no, result, diff) if auto_next else None
@@ -368,8 +422,23 @@ SESSION_HELP = """Type an instruction to have the agent work on it in the sandbo
 class Session:
     """One sandbox, many instructions: the interactive form of praxbot run."""
 
-    def __init__(self, settings: Settings, ws: Any, root: Path, *, backend: str, run_id: str, run_dir: Path, events_file: Any,
-                 on_event: Any, protect: list[str], skills: Any = (), plugins: Any = (), read_line: Any = None, out: Console | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        ws: Any,
+        root: Path,
+        *,
+        backend: str,
+        run_id: str,
+        run_dir: Path,
+        events_file: Any,
+        on_event: Any,
+        protect: list[str],
+        skills: Any = (),
+        plugins: Any = (),
+        read_line: Any = None,
+        out: Console | None = None,
+    ) -> None:
         from .llm import LLM
 
         self.out = out or console
@@ -403,7 +472,7 @@ class Session:
         try:
             self.last_diff = self.ws.diff()
             (self.run_dir / "diff.patch").write_text(self.last_diff, encoding="utf-8")
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.out.print(f"[red]✗ could not extract the diff: {type(e).__name__}: {escape(str(e)[:300])}[/]")
         return self.last_diff
 
@@ -449,13 +518,33 @@ class Session:
 
     def run_round(self, task: str, *, goal: bool = False) -> tuple[Any, str]:
         self.round_starts.append(self.ws.current_step)
-        result = _agent_round(self.settings, self.ws, task, self.llm, self.on_event, protect=self.protect, skills=self.skills, plugins=self.plugins, goal=goal, out=self.out)
+        result = _agent_round(
+            self.settings,
+            self.ws,
+            task,
+            self.llm,
+            self.on_event,
+            protect=self.protect,
+            skills=self.skills,
+            plugins=self.plugins,
+            goal=goal,
+            out=self.out,
+        )
         self.steps += result.steps
         self.rounds += 1
         self.last_result, self.last_summary = result, result.summary
         diff = self.diff()
         self.record()
-        _print_result(result, self.llm, self.ws, self.run_dir, steps_total=self.steps, round_steps=result.steps if self.rounds > 1 else None, elapsed=time.monotonic() - self.started, out=self.out)
+        _print_result(
+            result,
+            self.llm,
+            self.ws,
+            self.run_dir,
+            steps_total=self.steps,
+            round_steps=result.steps if self.rounds > 1 else None,
+            elapsed=time.monotonic() - self.started,
+            out=self.out,
+        )
         _print_diff(diff, self.ws, self.run_dir, out=self.out)
         return result, diff
 
@@ -503,7 +592,9 @@ class Session:
             self.first_task = objective
         else:
             self.instructions.append(f"goal: {objective}")
-        driver = GoalDriver(objective, self.ws, max_rounds=rounds, check=check, check_timeout=self.settings.command_timeout)
+        driver = GoalDriver(
+            objective, self.ws, max_rounds=rounds, check=check, check_timeout=self.settings.command_timeout
+        )
         task = goal_task(objective, rounds, check)
         if self.rounds:
             task = continuation_task(self.first_task, self.last_summary, self.diff(), task)
@@ -524,9 +615,15 @@ class Session:
         if not _apply_diff(self.root, diff, self.out):
             self.out.print(f"the diff is saved at {self.run_dir / 'diff.patch'}")
             return False
-        r = self.ws.run("git add -A && git -c user.email=praxbot@localhost -c user.name=praxbot commit -qm 'praxbot session: applied to the working tree'", timeout=120, mutate=True)
+        r = self.ws.run(
+            "git add -A && git -c user.email=praxbot@localhost -c user.name=praxbot commit -qm 'praxbot session: applied to the working tree'",
+            timeout=120,
+            mutate=True,
+        )
         if r.exit_code != 0:
-            self.out.print(f"[yellow]applied, but the sandbox could not record it: {escape((r.stderr or r.stdout)[-300:])}[/]")
+            self.out.print(
+                f"[yellow]applied, but the sandbox could not record it: {escape((r.stderr or r.stdout)[-300:])}[/]"
+            )
         else:
             self.out.print("[dim]later diffs continue from this state[/]")
         self.applied_rounds = self.rounds
@@ -570,7 +667,7 @@ class Session:
                 raise ValueError(f"run {run_id} has no checkpoints")
             step = len(past.checkpoints) - 1 if step is None else step
             self.ws = reopen_workspace(past, step, self.settings, self.on_event, f"{self.run_id}-r{self.rounds + 1}")
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.out.print(f"[red]✗ could not resume: {type(e).__name__}: {escape(str(e)[:300])}[/]")
             return
         self.first_task = str(past.info.get("task") or "") or self.first_task
@@ -585,7 +682,10 @@ class Session:
         table = Table(show_header=False, box=None, padding=(0, 2))
         table.add_row("model", f"{self.settings.model} · {_sampling(self.settings)}")
         table.add_row("rounds", f"{self.rounds} · {self.steps} steps · {self.llm.usage.total_tokens:,} tokens")
-        table.add_row("sandbox", f"{self.ws.commands} commands · {len(self.ws.checkpoints)} checkpoints · cost {self.ws.total_cost:.4f} · now {self.ws.image_id}")
+        table.add_row(
+            "sandbox",
+            f"{self.ws.commands} commands · {len(self.ws.checkpoints)} checkpoints · cost {self.ws.total_cost:.4f} · now {self.ws.image_id}",
+        )
         table.add_row("changes", f"{diff.count('diff --git ')} files not applied" if diff.strip() else "none pending")
         table.add_row("log", str(self.run_dir))
         self.out.print(table)
@@ -625,8 +725,15 @@ class Session:
                 self.resume(argument)
             elif command == "/effort":
                 try:
-                    self.settings = _settings(model=self.settings.model, base_image=self.settings.base_image, setup=self.settings.setup, max_steps=self.settings.max_steps,
-                                              temperature=self.settings.temperature, top_p=self.settings.top_p, effort=argument.strip() or None)
+                    self.settings = _settings(
+                        model=self.settings.model,
+                        base_image=self.settings.base_image,
+                        setup=self.settings.setup,
+                        max_steps=self.settings.max_steps,
+                        temperature=self.settings.temperature,
+                        top_p=self.settings.top_p,
+                        effort=argument.strip() or None,
+                    )
                 except typer.BadParameter as e:
                     self.out.print(f"[red]{escape(str(e))}[/]")
                     return True
@@ -655,34 +762,70 @@ class Session:
         self.out.print(f"not applied. The diff is saved at {self.run_dir / 'diff.patch'}")
 
 
-def _start_session(repo: Path, model: Optional[str], base_image: Optional[str], setup: Optional[str], max_steps: Optional[int],
-                   backend: str, protect: list[str], verbose: bool, temperature: Optional[float], top_p: Optional[float], effort: Optional[str]) -> None:
+def _start_session(
+    repo: Path,
+    model: str | None,
+    base_image: str | None,
+    setup: str | None,
+    max_steps: int | None,
+    backend: str,
+    protect: list[str],
+    verbose: bool,
+    temperature: float | None,
+    top_p: float | None,
+    effort: str | None,
+) -> None:
     if backend not in {"contree", "local"}:
         raise typer.BadParameter("backend must be 'contree' or 'local'")
-    settings = _settings(model=model, base_image=base_image, setup=setup, max_steps=max_steps, temperature=temperature, top_p=top_p, effort=effort)
+    settings = _settings(
+        model=model,
+        base_image=base_image,
+        setup=setup,
+        max_steps=max_steps,
+        temperature=temperature,
+        top_p=top_p,
+        effort=effort,
+    )
     _require_credentials(settings, need_project=backend == "contree")
     root = _repo_root(repo)
     _header(settings, root, backend, "\n[dim]mode[/]   session: one sandbox, many instructions")
     skills, plugins = _extensions(settings)
     run_id, run_dir, events_file, on_event = _new_run(settings, verbose)
     ws = _open_workspace(settings, backend, root, run_id, on_event)
-    Session(settings, ws, root, backend=backend, run_id=run_id, run_dir=run_dir, events_file=events_file, on_event=on_event,
-            protect=protect, skills=skills, plugins=plugins).loop()
+    Session(
+        settings,
+        ws,
+        root,
+        backend=backend,
+        run_id=run_id,
+        run_dir=run_dir,
+        events_file=events_file,
+        on_event=on_event,
+        protect=protect,
+        skills=skills,
+        plugins=plugins,
+    ).loop()
 
 
 @app.command()
 def session(
     repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository to work on"),
-    model: Optional[str] = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
-    base_image: Optional[str] = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
-    setup: Optional[str] = typer.Option(None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"),
-    max_steps: Optional[int] = typer.Option(None, min=1, max=200, help="Model turns per instruction (default 40)"),
-    backend: str = typer.Option("contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"),
+    model: str | None = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
+    base_image: str | None = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
+    setup: str | None = typer.Option(
+        None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"
+    ),
+    max_steps: int | None = typer.Option(None, min=1, max=200, help="Model turns per instruction (default 40)"),
+    backend: str = typer.Option(
+        "contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"
+    ),
     protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
-    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0)"),
-    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
-    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low (default), high, or xhigh"),
+    temperature: float | None = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0)"),
+    top_p: float | None = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
+    effort: str | None = typer.Option(
+        None, help="How much the model reasons per step: off, low (default), high, or xhigh"
+    ),
 ) -> None:
     """Open one sandbox on this repository and keep giving it instructions. Also what bare `praxbot` does."""
     _start_session(repo, model, base_image, setup, max_steps, backend, protect, verbose, temperature, top_p, effort)
@@ -691,28 +834,53 @@ def session(
 @app.command()
 def ui(
     repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository to work on"),
-    model: Optional[str] = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
-    base_image: Optional[str] = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
-    setup: Optional[str] = typer.Option(None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"),
-    max_steps: Optional[int] = typer.Option(None, min=1, max=200, help="Model turns per instruction (default 40)"),
-    backend: str = typer.Option("contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"),
+    model: str | None = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
+    base_image: str | None = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
+    setup: str | None = typer.Option(
+        None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"
+    ),
+    max_steps: int | None = typer.Option(None, min=1, max=200, help="Model turns per instruction (default 40)"),
+    backend: str = typer.Option(
+        "contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"
+    ),
     protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
-    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0)"),
-    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
-    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low (default), high, or xhigh"),
+    temperature: float | None = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0)"),
+    top_p: float | None = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
+    effort: str | None = typer.Option(
+        None, help="How much the model reasons per step: off, low (default), high, or xhigh"
+    ),
 ) -> None:
     """The full-screen interface: conversation, sidebar, diff pane, one input line. Also what bare `praxbot` does on a terminal."""
     _start_ui(repo, model, base_image, setup, max_steps, backend, protect, verbose, temperature, top_p, effort)
 
 
-def _start_ui(repo: Path, model: Optional[str], base_image: Optional[str], setup: Optional[str], max_steps: Optional[int],
-              backend: str, protect: list[str], verbose: bool, temperature: Optional[float], top_p: Optional[float], effort: Optional[str]) -> None:
+def _start_ui(
+    repo: Path,
+    model: str | None,
+    base_image: str | None,
+    setup: str | None,
+    max_steps: int | None,
+    backend: str,
+    protect: list[str],
+    verbose: bool,
+    temperature: float | None,
+    top_p: float | None,
+    effort: str | None,
+) -> None:
     from .tui import run_ui
 
     if backend not in {"contree", "local"}:
         raise typer.BadParameter("backend must be 'contree' or 'local'")
-    settings = _settings(model=model, base_image=base_image, setup=setup, max_steps=max_steps, temperature=temperature, top_p=top_p, effort=effort)
+    settings = _settings(
+        model=model,
+        base_image=base_image,
+        setup=setup,
+        max_steps=max_steps,
+        temperature=temperature,
+        top_p=top_p,
+        effort=effort,
+    )
     _require_credentials(settings, need_project=backend == "contree")
     root = _repo_root(repo)
     skills, plugins = _extensions(settings)
@@ -724,29 +892,44 @@ def web(
     repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository to work on"),
     port: int = typer.Option(0, "--port", min=0, max=65535, help="Port on localhost; 0 picks a free one"),
     no_browser: bool = typer.Option(False, "--no-browser", help="Print the URL instead of opening a browser"),
-    model: Optional[str] = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
-    base_image: Optional[str] = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
-    setup: Optional[str] = typer.Option(None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"),
-    max_steps: Optional[int] = typer.Option(None, min=1, max=200, help="Model turns per instruction (default 40)"),
-    backend: str = typer.Option("contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"),
+    model: str | None = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
+    base_image: str | None = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
+    setup: str | None = typer.Option(
+        None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"
+    ),
+    max_steps: int | None = typer.Option(None, min=1, max=200, help="Model turns per instruction (default 40)"),
+    backend: str = typer.Option(
+        "contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"
+    ),
     protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
-    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0)"),
-    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
-    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low (default), high, or xhigh"),
+    temperature: float | None = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0)"),
+    top_p: float | None = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
+    effort: str | None = typer.Option(
+        None, help="How much the model reasons per step: off, low (default), high, or xhigh"
+    ),
 ) -> None:
     """The web interface on localhost: chat with tool calls, changes, to-dos and rounds in a sidebar, a slash-command menu."""
-    from .web import WebSession, serve
 
     if backend not in {"contree", "local"}:
         raise typer.BadParameter("backend must be 'contree' or 'local'")
-    settings = _settings(model=model, base_image=base_image, setup=setup, max_steps=max_steps, temperature=temperature, top_p=top_p, effort=effort)
+    settings = _settings(
+        model=model,
+        base_image=base_image,
+        setup=setup,
+        max_steps=max_steps,
+        temperature=temperature,
+        top_p=top_p,
+        effort=effort,
+    )
     _require_credentials(settings, need_project=backend == "contree")
     root = _repo_root(repo)
     _start_web(settings, root, backend, protect, verbose, port, not no_browser)
 
 
-def _start_web(settings: Settings, root: Path, backend: str, protect: list[str], verbose: bool, port: int, open_browser: bool) -> None:
+def _start_web(
+    settings: Settings, root: Path, backend: str, protect: list[str], verbose: bool, port: int, open_browser: bool
+) -> None:
     from .web import WebSession, serve
 
     skills, plugins = _extensions(settings)
@@ -760,8 +943,21 @@ def _start_web(settings: Settings, root: Path, backend: str, protect: list[str],
 
         out.print(f"sandbox {settings.base_image}" if backend == "contree" else "local workspace")
         ws = _open_workspace(settings, backend, root, run_id, on_event_with_hook, out=out)
-        return Session(settings, ws, root, backend=backend, run_id=run_id, run_dir=run_dir, events_file=events_file,
-                       on_event=on_event_with_hook, protect=protect, skills=skills, plugins=plugins, read_line=lambda: None, out=out)
+        return Session(
+            settings,
+            ws,
+            root,
+            backend=backend,
+            run_id=run_id,
+            run_dir=run_dir,
+            events_file=events_file,
+            on_event=on_event_with_hook,
+            protect=protect,
+            skills=skills,
+            plugins=plugins,
+            read_line=lambda: None,
+            out=out,
+        )
 
     serve(WebSession(settings, root, backend, make_session), port=port, open_browser=open_browser)
 
@@ -789,35 +985,49 @@ def status(
     lines = [
         f"[bold]Prax Bot[/] {__version__}",
         f"[dim]model[/]    {settings.model}",
-        f"[dim]sandbox[/]  project {settings.project_id}" if settings.project_id else "[dim]sandbox[/]  no project id; only --backend local will work",
+        f"[dim]sandbox[/]  project {settings.project_id}"
+        if settings.project_id
+        else "[dim]sandbox[/]  no project id; only --backend local will work",
         "[dim]auth[/]     ok" if not missing else f"[dim]auth[/]     [red]missing:[/] {escape('; '.join(missing))}",
         f"[dim]runs[/]     {summary['total_runs']} under {settings.home / 'runs'}",
     ]
     if summary["local_workspaces"]:
-        lines.append(f"[dim]local[/]    {summary['local_workspaces']} workspaces, {summary['local_bytes'] / 1e9:.1f} GB under {settings.home / 'local'}")
+        lines.append(
+            f"[dim]local[/]    {summary['local_workspaces']} workspaces, {summary['local_bytes'] / 1e9:.1f} GB under {settings.home / 'local'}"
+        )
     console.print(Panel.fit("\n".join(lines), border_style="cyan"))
 
     active = [r for r in runs if r.state == "in progress"]
     for r in active:
         console.print(
             f"[bold green]in progress[/]  {r.run_id}  started {ago(r.started)}, last activity {ago(r.last_activity)}"
-            + (f", last tool {escape(r.last_tool)}" if r.last_tool else "") + f"\n  {escape(r.task[:100])}"
+            + (f", last tool {escape(r.last_tool)}" if r.last_tool else "")
+            + f"\n  {escape(r.task[:100])}"
         )
     if not runs:
-        console.print("no runs yet. Start one with [bold]praxbot run \"<task>\"[/].")
+        console.print('no runs yet. Start one with [bold]praxbot run "<task>"[/].')
         return
     table = Table(box=None, padding=(0, 2), header_style="dim")
     for col in ("when", "kind", "task", "result", "steps", "tokens", "diff", "applied", "run id"):
         table.add_column(col, no_wrap=col != "task")
     for r in runs:
-        result = {"finished": "[green]finished[/]", "in progress": "[green]in progress[/]", "abandoned": "[dim]abandoned[/]"}.get(r.state, f"[yellow]{escape(r.state)}[/]")
+        result = {
+            "finished": "[green]finished[/]",
+            "in progress": "[green]in progress[/]",
+            "abandoned": "[dim]abandoned[/]",
+        }.get(r.state, f"[yellow]{escape(r.state)}[/]")
         if r.goal:
             result += " · goal met" if r.goal.get("met") else f" · goal not met ({r.goal.get('rounds', 0)} rounds)"
         table.add_row(
-            ago(r.started), r.kind, escape(r.task[:60] + ("…" if len(r.task) > 60 else "")), result,
-            "" if r.steps is None else str(r.steps), "" if r.tokens is None else f"{r.tokens:,}",
+            ago(r.started),
+            r.kind,
+            escape(r.task[:60] + ("…" if len(r.task) > 60 else "")),
+            result,
+            "" if r.steps is None else str(r.steps),
+            "" if r.tokens is None else f"{r.tokens:,}",
             f"{r.files_changed} file{'s' if r.files_changed != 1 else ''}" if r.files_changed else "none",
-            {True: "yes", False: "no"}.get(r.applied, ""), r.run_id,
+            {True: "yes", False: "no"}.get(r.applied, ""),
+            r.run_id,
         )
     console.print(table)
     console.print("[dim]praxbot inspect <run id> for the steps; praxbot resume <run id> to continue one.[/]")
@@ -827,24 +1037,45 @@ def status(
 def run(
     task: str = typer.Argument(..., help="What to do, in plain language"),
     repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository to work on"),
-    model: Optional[str] = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
-    investigate_model: Optional[str] = typer.Option(None, help="Model for the first investigation turns, e.g. Nemotron 3 Ultra. Default: same as --model"),
-    base_image: Optional[str] = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
-    setup: Optional[str] = typer.Option(None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"),
-    max_steps: Optional[int] = typer.Option(None, min=1, max=200, help="Model turns before the run is stopped (default 40)"),
-    backend: str = typer.Option("contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"),
+    model: str | None = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
+    investigate_model: str | None = typer.Option(
+        None, help="Model for the first investigation turns, e.g. Nemotron 3 Ultra. Default: same as --model"
+    ),
+    base_image: str | None = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
+    setup: str | None = typer.Option(
+        None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"
+    ),
+    max_steps: int | None = typer.Option(
+        None, min=1, max=200, help="Model turns before the run is stopped (default 40)"
+    ),
+    backend: str = typer.Option(
+        "contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"
+    ),
     yes: bool = typer.Option(False, "--yes", "-y", help="Apply the diff without asking"),
-    export: Optional[Path] = typer.Option(None, help="Also write the diff to this file"),
+    export: Path | None = typer.Option(None, help="Also write the diff to this file"),
     protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
-    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0, NVIDIA's recommendation for Nemotron 3)"),
-    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
-    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low (default), high, or xhigh"),
+    temperature: float | None = typer.Option(
+        None, min=0.0, max=2.0, help="Sampling temperature (default 1.0, NVIDIA's recommendation for Nemotron 3)"
+    ),
+    top_p: float | None = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
+    effort: str | None = typer.Option(
+        None, help="How much the model reasons per step: off, low (default), high, or xhigh"
+    ),
 ) -> None:
     """Solve a task in the current repository. Runs entirely in a sandbox, shows the diff, takes follow-up instructions, then asks before applying."""
     if backend not in {"contree", "local"}:
         raise typer.BadParameter("backend must be 'contree' or 'local'")
-    settings = _settings(model=model, investigate_model=investigate_model, base_image=base_image, setup=setup, max_steps=max_steps, temperature=temperature, top_p=top_p, effort=effort)
+    settings = _settings(
+        model=model,
+        investigate_model=investigate_model,
+        base_image=base_image,
+        setup=setup,
+        max_steps=max_steps,
+        temperature=temperature,
+        top_p=top_p,
+        effort=effort,
+    )
     _require_credentials(settings, need_project=backend == "contree")
     root = _repo_root(repo)
 
@@ -857,8 +1088,21 @@ def run(
     started = time.monotonic()
     ws = _open_workspace(settings, backend, root, run_id, on_event)
     _solve(
-        settings, ws, root, task, backend=backend, run_id=run_id, run_dir=run_dir, events_file=events_file,
-        on_event=on_event, yes=yes, export=export, protect=protect, started=started, skills=skills, plugins=plugins,
+        settings,
+        ws,
+        root,
+        task,
+        backend=backend,
+        run_id=run_id,
+        run_dir=run_dir,
+        events_file=events_file,
+        on_event=on_event,
+        yes=yes,
+        export=export,
+        protect=protect,
+        started=started,
+        skills=skills,
+        plugins=plugins,
     )
 
 
@@ -866,11 +1110,17 @@ def run(
 def init(
     repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository"),
     force: bool = typer.Option(False, "--force", help="Write AGENTS.md even if one exists"),
-    model: Optional[str] = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
-    base_image: Optional[str] = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
-    setup: Optional[str] = typer.Option(None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"),
-    max_steps: Optional[int] = typer.Option(None, min=1, max=200, help="Model turns before the run is stopped (default 40)"),
-    backend: str = typer.Option("contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"),
+    model: str | None = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
+    base_image: str | None = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
+    setup: str | None = typer.Option(
+        None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"
+    ),
+    max_steps: int | None = typer.Option(
+        None, min=1, max=200, help="Model turns before the run is stopped (default 40)"
+    ),
+    backend: str = typer.Option(
+        "contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"
+    ),
     yes: bool = typer.Option(False, "--yes", "-y", help="Write the file without asking"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
 ) -> None:
@@ -883,7 +1133,11 @@ def init(
     if (root / "AGENTS.md").exists() and not force:
         console.print(f"{root / 'AGENTS.md'} already exists; pass --force to replace it, or edit it by hand.")
         raise typer.Exit(1)
-    task = INIT_TASK.format(what="Replace the existing AGENTS.md at the repository root" if force else "Create AGENTS.md at the repository root")
+    task = INIT_TASK.format(
+        what="Replace the existing AGENTS.md at the repository root"
+        if force
+        else "Create AGENTS.md at the repository root"
+    )
     _header(settings, root, backend)
     console.print("[bold]task[/]  write AGENTS.md")
     skills, plugins = _extensions(settings)
@@ -892,13 +1146,28 @@ def init(
     started = time.monotonic()
     ws = _open_workspace(settings, backend, root, run_id, on_event)
     _solve(
-        settings, ws, root, task, backend=backend, run_id=run_id, run_dir=run_dir, events_file=events_file,
-        on_event=on_event, yes=yes, export=None, protect=[], started=started, record_task="init: write AGENTS.md",
-        skills=skills, plugins=plugins,
+        settings,
+        ws,
+        root,
+        task,
+        backend=backend,
+        run_id=run_id,
+        run_dir=run_dir,
+        events_file=events_file,
+        on_event=on_event,
+        yes=yes,
+        export=None,
+        protect=[],
+        started=started,
+        record_task="init: write AGENTS.md",
+        skills=skills,
+        plugins=plugins,
     )
 
 
-def _open_workspace(settings: Settings, backend: str, root: Path, run_id: str, on_event: Any, out: Console | None = None) -> Any:
+def _open_workspace(
+    settings: Settings, backend: str, root: Path, run_id: str, on_event: Any, out: Console | None = None
+) -> Any:
     from contree_sdk.sdk.exceptions import ForbiddenError
 
     from .sandbox import WorkspaceError, create_workspace, make_client
@@ -918,7 +1187,7 @@ def _open_workspace(settings: Settings, backend: str, root: Path, run_id: str, o
         out.print(f"[red]✗ {escape(str(e))}[/]")
     except ForbiddenError:
         out.print(f"[red]✗ {escape(NO_SANDBOX_ACCESS)}[/]")
-    except Exception as e:  # noqa: BLE001 - surface SDK errors with their type
+    except Exception as e:
         out.print(f"[red]✗ sandbox error: {type(e).__name__}: {escape(str(e))}[/]")
     if interface:
         raise RuntimeError("the workspace could not be created")
@@ -930,9 +1199,17 @@ def _header(settings: Settings, root: Path, backend: str, extra: str = "") -> No
         Panel.fit(
             f"[bold]Prax Bot[/] {__version__}\n"
             f"[dim]repo[/]   {root}\n[dim]model[/]  {settings.model}"
-            + (f" (investigation: {settings.investigate_model}, first {settings.investigate_steps} steps)" if settings.investigate_model else "")
+            + (
+                f" (investigation: {settings.investigate_model}, first {settings.investigate_steps} steps)"
+                if settings.investigate_model
+                else ""
+            )
             + f" · {_sampling(settings)}\n"
-            + (f"[dim]image[/]  {settings.base_image}" if backend == "contree" else "[dim]backend[/] local (this machine, no isolation)")
+            + (
+                f"[dim]image[/]  {settings.base_image}"
+                if backend == "contree"
+                else "[dim]backend[/] local (this machine, no isolation)"
+            )
             + extra,
             border_style="cyan",
         )
@@ -942,31 +1219,59 @@ def _header(settings: Settings, root: Path, backend: str, extra: str = "") -> No
 @app.command()
 def goal(
     objective: str = typer.Argument(..., help="What must be true when the run ends, in plain language"),
-    check: Optional[str] = typer.Option(None, "--check", help="Shell command that exits 0 when the goal is met, e.g. 'pytest -q'. Without it the model decides"),
-    rounds: int = typer.Option(5, "--rounds", min=1, max=50, help="Most rounds to run; each round is a fresh transcript on the same workspace"),
+    check: str | None = typer.Option(
+        None,
+        "--check",
+        help="Shell command that exits 0 when the goal is met, e.g. 'pytest -q'. Without it the model decides",
+    ),
+    rounds: int = typer.Option(
+        5, "--rounds", min=1, max=50, help="Most rounds to run; each round is a fresh transcript on the same workspace"
+    ),
     repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository to work on"),
-    model: Optional[str] = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
-    base_image: Optional[str] = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
-    setup: Optional[str] = typer.Option(None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"),
-    max_steps: Optional[int] = typer.Option(None, min=1, max=200, help="Model turns per round (default 40)"),
-    backend: str = typer.Option("contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"),
+    model: str | None = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
+    base_image: str | None = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
+    setup: str | None = typer.Option(
+        None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"
+    ),
+    max_steps: int | None = typer.Option(None, min=1, max=200, help="Model turns per round (default 40)"),
+    backend: str = typer.Option(
+        "contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"
+    ),
     yes: bool = typer.Option(False, "--yes", "-y", help="Apply the diff without asking"),
-    export: Optional[Path] = typer.Option(None, help="Also write the diff to this file"),
+    export: Path | None = typer.Option(None, help="Also write the diff to this file"),
     protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
-    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0, NVIDIA's recommendation for Nemotron 3)"),
-    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
-    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low (default), high, or xhigh"),
+    temperature: float | None = typer.Option(
+        None, min=0.0, max=2.0, help="Sampling temperature (default 1.0, NVIDIA's recommendation for Nemotron 3)"
+    ),
+    top_p: float | None = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
+    effort: str | None = typer.Option(
+        None, help="How much the model reasons per step: off, low (default), high, or xhigh"
+    ),
 ) -> None:
     """Work toward a goal in rounds until a check command passes or the model reports it met, then show the diff."""
     from .goal import GoalDriver, goal_task
 
     if backend not in {"contree", "local"}:
         raise typer.BadParameter("backend must be 'contree' or 'local'")
-    settings = _settings(model=model, base_image=base_image, setup=setup, max_steps=max_steps, temperature=temperature, top_p=top_p, effort=effort)
+    settings = _settings(
+        model=model,
+        base_image=base_image,
+        setup=setup,
+        max_steps=max_steps,
+        temperature=temperature,
+        top_p=top_p,
+        effort=effort,
+    )
     _require_credentials(settings, need_project=backend == "contree")
     root = _repo_root(repo)
-    _header(settings, root, backend, f"\n[dim]goal[/]   up to {rounds} rounds" + (f", met when `{escape(check)}` exits 0" if check else ", the model decides when it is met"))
+    _header(
+        settings,
+        root,
+        backend,
+        f"\n[dim]goal[/]   up to {rounds} rounds"
+        + (f", met when `{escape(check)}` exits 0" if check else ", the model decides when it is met"),
+    )
     console.print(f"[bold]goal[/]  {escape(objective)}")
     skills, plugins = _extensions(settings)
     console.print()
@@ -978,38 +1283,76 @@ def goal(
 
     def after_round(round_no: int, result: Any, diff: str) -> str | None:
         nxt = driver.next_instruction(round_no, result, diff)
-        on_event("goal.round", round=round_no, met=driver.met, stopped=driver.stopped, check_passed=driver.met if check else None)
+        on_event(
+            "goal.round",
+            round=round_no,
+            met=driver.met,
+            stopped=driver.stopped,
+            check_passed=driver.met if check else None,
+        )
         if nxt is None:
             console.print(f"\n[bold]{'[green]' if driver.met else '[yellow]'}{escape(driver.status)}[/][/]")
         return nxt
 
     _solve(
-        settings, ws, root, goal_task(objective, rounds, check), backend=backend, run_id=run_id, run_dir=run_dir,
-        events_file=events_file, on_event=on_event, yes=yes, export=export, protect=protect, started=started,
-        record_task=objective, goal=True, auto_next=after_round, skills=skills, plugins=plugins,
-        extra=lambda: {"goal": {"objective": objective, "check": check, "max_rounds": rounds, "rounds": driver.rounds, "met": driver.met, "stopped": driver.stopped}},
+        settings,
+        ws,
+        root,
+        goal_task(objective, rounds, check),
+        backend=backend,
+        run_id=run_id,
+        run_dir=run_dir,
+        events_file=events_file,
+        on_event=on_event,
+        yes=yes,
+        export=export,
+        protect=protect,
+        started=started,
+        record_task=objective,
+        goal=True,
+        auto_next=after_round,
+        skills=skills,
+        plugins=plugins,
+        extra=lambda: {
+            "goal": {
+                "objective": objective,
+                "check": check,
+                "max_rounds": rounds,
+                "rounds": driver.rounds,
+                "met": driver.met,
+                "stopped": driver.stopped,
+            }
+        },
     )
 
 
 @app.command()
 def resume(
-    run_id: Optional[str] = typer.Argument(None, help="The run to continue. Default: the latest run"),
-    instruction: Optional[str] = typer.Argument(None, help="What to do next. Default: finish the original task"),
-    from_step: Optional[int] = typer.Option(None, "--from", min=0, help="Checkpoint to start from (see praxbot inspect --list). Default: the last one"),
-    model: Optional[str] = typer.Option(None, help="Model id on Token Factory. Default: the model of the run"),
-    max_steps: Optional[int] = typer.Option(None, min=1, max=200, help="Model turns before the run is stopped (default 40)"),
+    run_id: str | None = typer.Argument(None, help="The run to continue. Default: the latest run"),
+    instruction: str | None = typer.Argument(None, help="What to do next. Default: finish the original task"),
+    from_step: int | None = typer.Option(
+        None, "--from", min=0, help="Checkpoint to start from (see praxbot inspect --list). Default: the last one"
+    ),
+    model: str | None = typer.Option(None, help="Model id on Token Factory. Default: the model of the run"),
+    max_steps: int | None = typer.Option(
+        None, min=1, max=200, help="Model turns before the run is stopped (default 40)"
+    ),
     yes: bool = typer.Option(False, "--yes", "-y", help="Apply the diff without asking"),
-    export: Optional[Path] = typer.Option(None, help="Also write the diff to this file"),
+    export: Path | None = typer.Option(None, help="Also write the diff to this file"),
     protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit. Repeatable"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
-    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0, NVIDIA's recommendation for Nemotron 3)"),
-    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
-    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low (default), high, or xhigh"),
+    temperature: float | None = typer.Option(
+        None, min=0.0, max=2.0, help="Sampling temperature (default 1.0, NVIDIA's recommendation for Nemotron 3)"
+    ),
+    top_p: float | None = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
+    effort: str | None = typer.Option(
+        None, help="How much the model reasons per step: off, low (default), high, or xhigh"
+    ),
 ) -> None:
     """Continue a past run from one of its checkpoints, in a workspace rebuilt from that image."""
     from contree_sdk.sdk.exceptions import ForbiddenError
 
-    from .runs import latest_run_id, load_run, reopen_workspace, continuation_task
+    from .runs import continuation_task, latest_run_id, load_run, reopen_workspace
     from .sandbox import WorkspaceError
 
     settings = _settings(model=model, max_steps=max_steps, temperature=temperature, top_p=top_p, effort=effort)
@@ -1062,23 +1405,39 @@ def resume(
     except ForbiddenError:
         console.print(f"[red]✗ {escape(NO_SANDBOX_ACCESS)}[/]")
         raise typer.Exit(1) from None
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         console.print(f"[red]✗ sandbox error: {type(e).__name__}: {escape(str(e))}[/]")
         raise typer.Exit(1) from None
 
-    instruction = instruction or "Continue the original task from this state: check what is still missing, finish it, and run the tests."
+    instruction = (
+        instruction
+        or "Continue the original task from this state: check what is still missing, finish it, and run the tests."
+    )
     task = continuation_task(str(info.get("task", "")), str(info.get("summary") or ""), diff_so_far, instruction)
     _solve(
-        settings, ws, root, task, backend=backend, run_id=new_run_id, run_dir=run_dir, events_file=events_file,
-        on_event=on_event, yes=yes, export=export, protect=protect, started=started,
+        settings,
+        ws,
+        root,
+        task,
+        backend=backend,
+        run_id=new_run_id,
+        run_dir=run_dir,
+        events_file=events_file,
+        on_event=on_event,
+        yes=yes,
+        export=export,
+        protect=protect,
+        started=started,
         resumed_from={"run_id": run_id, "step": step, "image": checkpoint["image"], "instruction": instruction},
-        record_task=str(info.get("task", "")), skills=skills, plugins=plugins,
+        record_task=str(info.get("task", "")),
+        skills=skills,
+        plugins=plugins,
     )
 
 
 @app.command()
 def doctor(
-    base_image: Optional[str] = typer.Option(None, help="OCI image to test. Default: python:3.12"),
+    base_image: str | None = typer.Option(None, help="OCI image to test. Default: python:3.12"),
     skip_sandbox: bool = typer.Option(False, help="Skip the sandbox checks"),
 ) -> None:
     """Check credentials, the Nemotron model, tool calling, and the sandbox."""
@@ -1111,7 +1470,7 @@ def doctor(
         available = settings.model in models
         row(available, f"configured model {settings.model}", "available" if available else "not in the list")
         ok &= available
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         row(False, "model list", f"{type(e).__name__}: {e}")
         ok = False
 
@@ -1145,13 +1504,12 @@ def doctor(
             detail = f"model answered in prose: {msg.content[:80]!r}"
         row(good, "tool-call round trip", f"{time.monotonic() - t0:.1f}s · {detail}")
         ok &= good
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         row(False, "tool-call round trip", f"{type(e).__name__}: {e}")
         ok = False
 
     if not skip_sandbox:
         console.print("\n[bold]sandbox[/]")
-        from contree_sdk import ContreeSync
         from contree_sdk.sdk.exceptions import ForbiddenError
 
         try:
@@ -1176,7 +1534,11 @@ def doctor(
             a_sees_b = a.run(shell="test -e /tmp/b", disposable=True, timeout=60).wait().exit_code == 0
             b_sees_a = b.run(shell="test -e /tmp/a", disposable=True, timeout=60).wait().exit_code == 0
             isolated = not a_sees_b and not b_sees_a
-            row(isolated, "fork isolation", "two runs from one image cannot see each other's files" if isolated else "files leaked between forks")
+            row(
+                isolated,
+                "fork isolation",
+                "two runs from one image cannot see each other's files" if isolated else "files leaked between forks",
+            )
             ok &= isolated
 
             c = a.apply_files({"/tmp/c.txt": b"upload ok"})
@@ -1186,7 +1548,7 @@ def doctor(
         except ForbiddenError:
             row(False, "sandbox access", NO_SANDBOX_ACCESS)
             ok = False
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             row(False, "sandbox", f"{type(e).__name__}: {e}")
             ok = False
 
@@ -1203,9 +1565,11 @@ def doctor(
 
 @app.command()
 def inspect(
-    run_id: Optional[str] = typer.Argument(None, help="Run id; default: the latest run. Omit with --list to see recent runs"),
-    diff: Optional[int] = typer.Option(None, "--diff", help="Show the diff of checkpoint N against the baseline"),
-    apply_step: Optional[int] = typer.Option(None, "--apply", help="Apply the state of checkpoint N to the working tree"),
+    run_id: str | None = typer.Argument(
+        None, help="Run id; default: the latest run. Omit with --list to see recent runs"
+    ),
+    diff: int | None = typer.Option(None, "--diff", help="Show the diff of checkpoint N against the baseline"),
+    apply_step: int | None = typer.Option(None, "--apply", help="Apply the state of checkpoint N to the working tree"),
     repo: Path = typer.Option(Path("."), "--repo", "-C", help="Repository to apply into"),
     list_runs_: bool = typer.Option(False, "--list", help="List recent runs"),
 ) -> None:
@@ -1213,7 +1577,7 @@ def inspect(
     from .runs import checkpoint_diff, latest_run_id, list_runs, load_run
 
     settings = Settings.from_env()
-    if list_runs_ or run_id is None and diff is None and apply_step is None and latest_run_id(settings) is None:
+    if list_runs_ or (run_id is None and diff is None and apply_step is None and latest_run_id(settings) is None):
         runs = list_runs(settings, limit=15)
         if not runs:
             console.print(f"no runs under {settings.home / 'runs'}")
@@ -1224,8 +1588,11 @@ def inspect(
         for r in runs:
             i = r.info
             table.add_row(
-                r.run_id, "finished" if i.get("finished") else str(i.get("reason", "?")), str(i.get("steps", "")),
-                f"{(i.get('prompt_tokens') or 0) + (i.get('completion_tokens') or 0):,}", str(i.get("backend", "")),
+                r.run_id,
+                "finished" if i.get("finished") else str(i.get("reason", "?")),
+                str(i.get("steps", "")),
+                f"{(i.get('prompt_tokens') or 0) + (i.get('completion_tokens') or 0):,}",
+                str(i.get("backend", "")),
                 escape(str(i.get("task", ""))[:60]),
             )
         console.print(table)
@@ -1242,7 +1609,7 @@ def inspect(
         step = diff if diff is not None else apply_step
         try:
             text = checkpoint_diff(run, int(step), settings)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             console.print(f"[red]could not compute the diff: {type(e).__name__}: {escape(str(e)[:300])}[/]")
             raise typer.Exit(1) from None
         if not text.strip():
@@ -1252,19 +1619,23 @@ def inspect(
             console.print(Syntax(text, "diff", theme="ansi_dark", word_wrap=False))
             return
         root = _repo_root(repo)
-        console.print(f"applying the state of checkpoint {step} ({escape(run.checkpoints[int(step)]['label'])}) to {root}")
+        console.print(
+            f"applying the state of checkpoint {step} ({escape(run.checkpoints[int(step)]['label'])}) to {root}"
+        )
         if not _apply_diff(root, text):
             raise typer.Exit(1)
         return
 
     i = run.info
-    console.print(Panel.fit(
-        f"[bold]run[/] {run.run_id}\n[dim]task[/]     {escape(str(i.get('task', '')))}\n"
-        f"[dim]result[/]   {'finished' if i.get('finished') else 'stopped: ' + str(i.get('reason', ''))}\n"
-        f"[dim]model[/]    {escape(str(i.get('model', '')))}   [dim]backend[/] {i.get('backend', '')}\n"
-        f"[dim]tokens[/]   {(i.get('prompt_tokens') or 0) + (i.get('completion_tokens') or 0):,}   [dim]elapsed[/] {int(i.get('elapsed_s') or 0)} s",
-        border_style="cyan",
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold]run[/] {run.run_id}\n[dim]task[/]     {escape(str(i.get('task', '')))}\n"
+            f"[dim]result[/]   {'finished' if i.get('finished') else 'stopped: ' + str(i.get('reason', ''))}\n"
+            f"[dim]model[/]    {escape(str(i.get('model', '')))}   [dim]backend[/] {i.get('backend', '')}\n"
+            f"[dim]tokens[/]   {(i.get('prompt_tokens') or 0) + (i.get('completion_tokens') or 0):,}   [dim]elapsed[/] {int(i.get('elapsed_s') or 0)} s",
+            border_style="cyan",
+        )
+    )
     steps = Table(box=None, padding=(0, 2))
     for col in ("step", "tool", "arguments", "result"):
         steps.add_column(col)
@@ -1272,7 +1643,12 @@ def inspect(
 
     for c in run.tool_calls:
         style = "red" if c.get("error") else ""
-        steps.add_row(str(c["step"]), str(c["name"]), escape(describe_call(str(c["name"]), str(c["args"]))[:70]), f"[{style}]{escape(str(c['result'])[:80])}[/]" if style else escape(str(c["result"])[:80]))
+        steps.add_row(
+            str(c["step"]),
+            str(c["name"]),
+            escape(describe_call(str(c["name"]), str(c["args"]))[:70]),
+            f"[{style}]{escape(str(c['result'])[:80])}[/]" if style else escape(str(c["result"])[:80]),
+        )
     console.print(steps)
     cps = Table(box=None, padding=(0, 2), title="checkpoints", title_justify="left")
     for col in ("step", "image", "label"):
@@ -1285,8 +1661,8 @@ def inspect(
 
 @app.command()
 def report(
-    run_id: Optional[str] = typer.Argument(None, help="Run id; default: the latest run"),
-    out: Optional[Path] = typer.Option(None, help="Where to write the HTML; default: report.html in the run directory"),
+    run_id: str | None = typer.Argument(None, help="Run id; default: the latest run"),
+    out: Path | None = typer.Option(None, help="Where to write the HTML; default: report.html in the run directory"),
     open_: bool = typer.Option(False, "--open", help="Open the report in a browser"),
 ) -> None:
     """Write a self-contained HTML report for a run."""

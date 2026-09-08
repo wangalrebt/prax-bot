@@ -179,7 +179,11 @@ class LocalWorkspace:
         listing = self.run("git ls-files --others --exclude-standard", mutate=False)
         self.dropped_scratch = scratch_files(listing.stdout.splitlines()) if listing.exit_code == 0 else []
         excludes = " ".join(shlex.quote(f":(exclude){p}") for p in self.dropped_scratch)
-        r = self.run(f"git add -A && git diff --cached --binary HEAD -- . {excludes}", mutate=False, truncate_output_at=DIFF_OUTPUT_LIMIT)
+        r = self.run(
+            f"git add -A && git diff --cached --binary HEAD -- . {excludes}",
+            mutate=False,
+            truncate_output_at=DIFF_OUTPUT_LIMIT,
+        )
         if r.exit_code != 0:
             raise WorkspaceError(f"git diff failed: {r.stderr.strip()}")
         if r.truncated:
@@ -210,7 +214,9 @@ def create_local_workspace(
         raise WorkspaceError(f"the repository contains an entry the local backend refuses to extract: {e}") from None
 
     git_env = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1"}
-    r = subprocess.run(["git", "-c", "init.defaultBranch=main", "init", "-q"], cwd=current, capture_output=True, text=True, env=git_env)
+    r = subprocess.run(
+        ["git", "-c", "init.defaultBranch=main", "init", "-q"], cwd=current, capture_output=True, text=True, env=git_env
+    )
     if r.returncode != 0:
         raise WorkspaceError(f"local baseline failed: git init: {r.stderr.strip()}")
     exclude = current / ".git" / "info" / "exclude"
@@ -219,7 +225,17 @@ def create_local_workspace(
         f.write("\n".join(DIFF_EXCLUDES) + "\n")
     for args in (
         ["git", "add", "-A"],
-        ["git", "-c", "user.email=praxbot@localhost", "-c", "user.name=praxbot", "commit", "-qm", "baseline", "--allow-empty"],
+        [
+            "git",
+            "-c",
+            "user.email=praxbot@localhost",
+            "-c",
+            "user.name=praxbot",
+            "commit",
+            "-qm",
+            "baseline",
+            "--allow-empty",
+        ],
     ):
         r = subprocess.run(args, cwd=current, capture_output=True, text=True, env=git_env)
         if r.returncode != 0:

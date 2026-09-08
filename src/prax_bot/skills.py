@@ -9,9 +9,10 @@ Personal skills live under ~/.praxbot/skills/<name>/SKILL.md on this machine.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 REPO_SKILLS_DIR = ".praxbot/skills"
 MAX_SKILLS = 40
@@ -37,7 +38,7 @@ class Skill:
 def parse_skill(text: str, fallback_name: str) -> tuple[str, str, str]:
     """(name, description, body) from a SKILL.md with YAML-style front matter; tolerant of a missing block."""
     name, description, body = fallback_name, "", text
-    m = re.match(r"\A---\s*\n(.*?)\n---\s*\n?(.*)\Z", text, re.S)
+    m = re.match(r"\A---\s*\n(.*?)\n---\s*\n?(.*)\Z", text, re.DOTALL)
     if m:
         for line in m.group(1).splitlines():
             key, _, value = line.partition(":")
@@ -93,5 +94,7 @@ def overview(skills: list[Skill]) -> str:
     if not skills:
         return ""
     lines = [f"- {s.name}: {s.description}" for s in skills]
-    return ("Skills available. Before doing work that a skill covers, call load_skill with its name and follow it:\n"
-            + "\n".join(lines))
+    return (
+        "Skills available. Before doing work that a skill covers, call load_skill with its name and follow it:\n"
+        + "\n".join(lines)
+    )

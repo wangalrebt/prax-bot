@@ -39,11 +39,13 @@ class FakeToolBox:
 
 
 def test_tool_calls_are_dispatched_until_finish() -> None:
-    llm = FakeLLM([
-        reply(None, call("read_file", path="a.py")),
-        reply("editing", call("edit_file", path="a.py", old="x", new="y"), call("run", command="pytest")),
-        reply(None, call("finish", summary="done and tested")),
-    ])
+    llm = FakeLLM(
+        [
+            reply(None, call("read_file", path="a.py")),
+            reply("editing", call("edit_file", path="a.py", old="x", new="y"), call("run", command="pytest")),
+            reply(None, call("finish", summary="done and tested")),
+        ]
+    )
     box = FakeToolBox()
     events: list[str] = []
     result = Agent(llm, box, max_steps=10, on_event=lambda kind, **p: events.append(kind)).run("fix it")
@@ -53,12 +55,22 @@ def test_tool_calls_are_dispatched_until_finish() -> None:
     final_messages = llm.requests[-1][0]
     assert final_messages[0]["role"] == "system" and final_messages[1] == {"role": "user", "content": "fix it"}
     assert [m["role"] for m in final_messages[2:]] == ["assistant", "tool", "assistant", "tool", "tool"]
-    assert final_messages[3]["tool_call_id"] == "call-read_file" and final_messages[3]["content"] == "ok read_file\n(step 1 of 10)"
+    assert (
+        final_messages[3]["tool_call_id"] == "call-read_file"
+        and final_messages[3]["content"] == "ok read_file\n(step 1 of 10)"
+    )
     assert "finish" in events and events.count("tool.result") == 3
 
 
 def test_prose_without_tools_is_nudged_then_forced() -> None:
-    llm = FakeLLM([reply("Let me think."), reply("Still thinking."), reply("Hmm."), reply(None, call("finish", summary="gave up"))])
+    llm = FakeLLM(
+        [
+            reply("Let me think."),
+            reply("Still thinking."),
+            reply("Hmm."),
+            reply(None, call("finish", summary="gave up")),
+        ]
+    )
     result = Agent(llm, FakeToolBox(), max_steps=10).run("task")
 
     assert result.finished and result.summary == "gave up"
@@ -87,7 +99,9 @@ def test_assistant_message_is_rebuilt_without_extras() -> None:
     assert out == {
         "role": "assistant",
         "content": "hi",
-        "tool_calls": [{"id": "call-run", "type": "function", "function": {"name": "run", "arguments": '{"command": "ls"}'}}],
+        "tool_calls": [
+            {"id": "call-run", "type": "function", "function": {"name": "run", "arguments": '{"command": "ls"}'}}
+        ],
     }
     assert assistant_message(SimpleNamespace(content=None, tool_calls=None)) == {"role": "assistant", "content": ""}
 

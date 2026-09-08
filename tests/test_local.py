@@ -60,21 +60,35 @@ def test_timeout_kills_the_command(tmp_path: Path) -> None:
 def test_environment_is_scrubbed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("NEBIUS_API_KEY", "secret")
     ws = workspace(tmp_path)
-    r = ws.run("echo \"key=${NEBIUS_API_KEY:-unset} home=$HOME\"", mutate=False)
+    r = ws.run('echo "key=${NEBIUS_API_KEY:-unset} home=$HOME"', mutate=False)
     assert r.stdout.strip() == f"key=unset home={ws.root / 'home'}"
 
 
 def test_create_local_workspace_builds_baseline_and_venv(tmp_path: Path) -> None:
     repo = make_repo(tmp_path / "repo")
     settings = Settings(
-        api_key="k", project_id=None, model="m", llm_base_url="u", base_image="python:3.12", setup="python -c 'import sys; print(sys.version_info[:2])'",
-        max_steps=5, command_timeout=30, setup_timeout=120, import_timeout=30, home=tmp_path / "home",
+        api_key="k",
+        project_id=None,
+        model="m",
+        llm_base_url="u",
+        base_image="python:3.12",
+        setup="python -c 'import sys; print(sys.version_info[:2])'",
+        max_steps=5,
+        command_timeout=30,
+        setup_timeout=120,
+        import_timeout=30,
+        home=tmp_path / "home",
     )
     events: list[str] = []
     ws = create_local_workspace(settings, repo, lambda k, **p: events.append(k), run_id="t1")
     assert events[:4] == ["sandbox.pack", "sandbox.base", "checkpoint", "sandbox.ready"] and "sandbox.setup" in events
     assert (ws.venv / "bin" / "python").exists()
-    assert ws.run("python -c 'import sys; print(sys.version_info.major, sys.version_info.minor)'", mutate=False).stdout.strip() == "3 12"
+    assert (
+        ws.run(
+            "python -c 'import sys; print(sys.version_info.major, sys.version_info.minor)'", mutate=False
+        ).stdout.strip()
+        == "3 12"
+    )
     assert ws.diff() == ""
     ws.run("mkdir -p pkg.egg-info __pycache__ && touch pkg.egg-info/PKG-INFO __pycache__/x.pyc real.txt")
     diff = ws.diff()
