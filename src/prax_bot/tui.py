@@ -104,7 +104,7 @@ class PraxApp(App[None]):
         self.settings, self.root, self.backend = settings, root, backend
         self.make_session = make_session
         self.session: Any = None
-        self.out = Console(file=PaneFile(self), force_terminal=True, color_system="truecolor", width=100, soft_wrap=True)
+        self.out = Console(file=PaneFile(self), force_terminal=True, color_system="truecolor", width=100)
         self.busy = False
         self.rounds: list[tuple[str, int]] = []
         self.pending_lines: list[str] = []
@@ -119,7 +119,7 @@ class PraxApp(App[None]):
                 yield Static(id="changes")
                 yield Static(id="rounds")
             with Vertical(id="main"):
-                yield RichLog(id="log", wrap=True, highlight=False, markup=False)
+                yield RichLog(id="log", wrap=False, min_width=20, highlight=False, markup=False)
                 yield RichLog(id="diff", wrap=False, highlight=False, markup=False)
         yield Static("starting…", id="status")
         yield Input(placeholder="an instruction, or /help", id="input")
@@ -128,11 +128,25 @@ class PraxApp(App[None]):
     def on_mount(self) -> None:
         self.sub_title = str(self.root)
         self.query_one("#input", Input).disabled = True
+        self.fit_console()
         self.render_sidebar()
         for line in self.pending_lines:
             self.query_one("#log", RichLog).write(Text.from_ansi(line))
         self.pending_lines.clear()
         self.open_session()
+
+    def on_resize(self) -> None:
+        self.fit_console()
+
+    def fit_console(self) -> None:
+        """Render into exactly the conversation pane's width so panels and tables line up."""
+        try:
+            log = self.query_one("#log", RichLog)
+            width = log.scrollable_content_region.width or log.content_size.width
+        except Exception:  # noqa: BLE001
+            return
+        if width > 20:
+            self.out.width = width - 1
 
     # ---- output from any thread ----
     def post_line(self, line: str) -> None:
@@ -179,6 +193,7 @@ class PraxApp(App[None]):
         self.call_from_thread(self.finish_work, "idle")
 
     def finish_work(self, status: str | None = None) -> None:
+        self.fit_console()
         self.busy = False
         inp = self.query_one("#input", Input)
         inp.disabled = False
@@ -229,6 +244,7 @@ class PraxApp(App[None]):
         self.start_work(line)
 
     def start_work(self, line: str) -> None:
+        self.fit_console()
         self.busy = True
         self.query_one("#input", Input).disabled = True
         self.set_status("working…")
