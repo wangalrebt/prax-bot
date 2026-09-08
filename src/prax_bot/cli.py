@@ -719,6 +719,47 @@ def _start_ui(repo: Path, model: Optional[str], base_image: Optional[str], setup
     run_ui(settings, root, backend, protect, skills, plugins, verbose)
 
 
+@app.command()
+def web(
+    repo: Path = typer.Option(Path("."), "--repo", "-C", help="A path inside the git repository to work on"),
+    port: int = typer.Option(0, "--port", min=0, max=65535, help="Port on localhost; 0 picks a free one"),
+    no_browser: bool = typer.Option(False, "--no-browser", help="Print the URL instead of opening a browser"),
+    model: Optional[str] = typer.Option(None, help="Model id on Token Factory. Default: Nemotron 3 Super"),
+    base_image: Optional[str] = typer.Option(None, help="OCI image for the sandbox. Default: python:3.12"),
+    setup: Optional[str] = typer.Option(None, help="Shell command to run once after upload, e.g. 'pip install -e . pytest'"),
+    max_steps: Optional[int] = typer.Option(None, min=1, max=200, help="Model turns per instruction (default 40)"),
+    backend: str = typer.Option("contree", help="contree: a Token Factory Sandbox. local: this machine, for development only"),
+    protect: list[str] = typer.Option([], "--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full tool outputs and checkpoints"),
+    temperature: Optional[float] = typer.Option(None, min=0.0, max=2.0, help="Sampling temperature (default 1.0)"),
+    top_p: Optional[float] = typer.Option(None, "--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)"),
+    effort: Optional[str] = typer.Option(None, help="How much the model reasons per step: off, low (default), high, or xhigh"),
+) -> None:
+    """The web interface on localhost: chat with tool calls, changes, to-dos and rounds in a sidebar, a slash-command menu."""
+    from .web import WebSession, serve
+
+    if backend not in {"contree", "local"}:
+        raise typer.BadParameter("backend must be 'contree' or 'local'")
+    settings = _settings(model=model, base_image=base_image, setup=setup, max_steps=max_steps, temperature=temperature, top_p=top_p, effort=effort)
+    _require_credentials(settings, need_project=backend == "contree")
+    root = _repo_root(repo)
+    skills, plugins = _extensions(settings)
+
+    def make_session(out: Console, hook: Any) -> Session:
+        run_id, run_dir, events_file, on_event = _new_run(settings, verbose, out=out)
+
+        def on_event_with_hook(kind: str, **payload: Any) -> None:
+            on_event(kind, **payload)
+            hook(kind, **payload)
+
+        out.print(f"sandbox {settings.base_image}" if backend == "contree" else "local workspace")
+        ws = _open_workspace(settings, backend, root, run_id, on_event_with_hook, out=out)
+        return Session(settings, ws, root, backend=backend, run_id=run_id, run_dir=run_dir, events_file=events_file,
+                       on_event=on_event_with_hook, protect=protect, skills=skills, plugins=plugins, read_line=lambda: None, out=out)
+
+    serve(WebSession(settings, root, backend, make_session), port=port, open_browser=not no_browser)
+
+
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context) -> None:
     """Prax Bot: a coding agent that works in a Nebius Token Factory Sandbox, powered by NVIDIA Nemotron. With no command, opens the interface."""
