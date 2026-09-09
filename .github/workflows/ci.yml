@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    name: lint, format, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install Python and dependencies
+        run: |
+          uv python install 3.12
+          uv sync --locked
+
+      - name: Lint
+        run: uv run ruff check src tests scripts
+
+      - name: Format check
+        run: uv run ruff format --check src tests scripts
+
+      - name: Test
+        # The suite uses fake models and workspaces: no key, no sandbox, no network.
+        run: uv run pytest -q
