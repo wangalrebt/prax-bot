@@ -84,6 +84,27 @@ Options:
 
 Environment variables `PRAXBOT_MODEL`, `PRAXBOT_TEMPERATURE`, `PRAXBOT_TOP_P`, `PRAXBOT_EFFORT`, `PRAXBOT_BASE_IMAGE`, `PRAXBOT_SETUP`, `PRAXBOT_MAX_STEPS`, `PRAXBOT_COMMAND_TIMEOUT`, `PRAXBOT_SETUP_TIMEOUT`, `PRAXBOT_IMPORT_TIMEOUT`, and `PRAXBOT_HOME` set the same things.
 
+### Config files
+
+Anything you would otherwise type as a flag every time can live in a file. Two files are read:
+
+| File | For | May set |
+|---|---|---|
+| `~/.praxbot/config.toml` | you | model, effort, backend, base_image, setup, max_steps, temperature, top_p, investigate_model, timeouts, llm_base_url |
+| `<repo>/.praxbot/config.toml` | one repository, committed with it | model, effort, base_image, setup, max_steps, temperature, top_p, investigate_model |
+
+Precedence, highest first: a flag, a `PRAXBOT_*` environment variable, the repository's file, your file, the default. `prax config` prints every setting with where it came from; `prax config --init` and `prax config --init-repo` write starter files in which every line is a comment.
+
+The usual reason for a repository file is the setup command, so nobody has to remember it:
+
+```toml
+# .praxbot/config.toml
+setup = "pip install -e . pytest"
+base_image = "python:3.12"
+```
+
+Two rules keep a cloned repository from doing harm: its file cannot choose the backend or the model endpoint, and a setup command it provides only runs inside a sandbox. On the local backend it is ignored with a notice, and `--setup` runs whatever you pass yourself.
+
 Every run is logged under `~/.praxbot/runs/<run id>/`: `events.jsonl` (every tool call and result), `diff.patch`, and `run.json` (model, tokens, sandbox commands, checkpoints with image ids, cost, timing).
 
 Past runs are first-class:

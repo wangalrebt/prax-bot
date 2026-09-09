@@ -48,7 +48,10 @@ MaxStepsOpt = Annotated[
     int | None, typer.Option(min=1, max=200, help="Model turns per round before it is stopped (default 40)")
 ]
 BackendOpt = Annotated[
-    str, typer.Option(help="contree: a Token Factory Sandbox. local: this machine, for development only")
+    str | None,
+    typer.Option(
+        help="contree: a Token Factory Sandbox. local: this machine, for development only. Default: the config file's backend, else contree"
+    ),
 ]
 YesOpt = Annotated[bool, typer.Option("--yes", "-y", help="Apply the diff without asking")]
 ExportOpt = Annotated[Path | None, typer.Option(help="Also write the diff to this file")]
@@ -90,6 +93,71 @@ def _repo_root(path: Path) -> Path:
     except (subprocess.CalledProcessError, FileNotFoundError):
         raise typer.BadParameter(f"{path} is not inside a git repository") from None
     return Path(out)
+
+
+def _maybe_repo_root(path: Path) -> Path | None:
+    """The repository root, or None when not inside one; for commands that work either way."""
+    try:
+        return _repo_root(path)
+    except typer.BadParameter:
+        return None
+
+
+STARTER_USER_CONFIG = """# Prax Bot settings. A flag or a PRAXBOT_* environment variable overrides anything here.
+# model = "nvidia/nemotron-3-super-120b-a12b"
+# effort = "low"            # off, low, high, xhigh
+# backend = "contree"       # contree: a Token Factory sandbox; local: this machine, for development
+# base_image = "python:3.12"
+# max_steps = 40
+# temperature = 1.0
+# top_p = 0.95
+"""
+
+STARTER_REPO_CONFIG = """# Prax Bot settings for this repository; they override ~/.praxbot/config.toml.
+# A repository cannot choose the backend, and its setup command only runs inside a sandbox.
+# setup = "pip install -e . pytest"   # runs once after the upload, before the agent starts
+# base_image = "python:3.12"
+# max_steps = 40
+# effort = "low"
+"""
+
+
+@app.command()
+def config(
+    init: bool = typer.Option(False, "--init", help="Write a starter ~/.praxbot/config.toml"),
+    init_repo: bool = typer.Option(
+        False, "--init-repo", help="Write a starter .praxbot/config.toml in this repository"
+    ),
+    force: bool = typer.Option(False, "--force", help="Overwrite an existing file"),
+) -> None:
+    """Show the effective settings and where each one comes from; --init writes a starter file to edit."""
+    from prax_bot.settings import CONFIG_FILE, REPO_CONFIG_FILE
+
+    root = _maybe_repo_root(Path("."))
+    settings = build_settings(repo_root=root)
+    if init or init_repo:
+        if init_repo and root is None:
+            console.print("not inside a git repository; --init-repo needs one")
+            raise typer.Exit(1)
+        path = settings.home / CONFIG_FILE if init else root / REPO_CONFIG_FILE  # type: ignore[operator]
+        if path.exists() and not force:
+            console.print(f"{path} already exists; pass --force to overwrite it")
+            raise typer.Exit(1)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(STARTER_USER_CONFIG if init else STARTER_REPO_CONFIG, encoding="utf-8")
+        console.print(f"wrote {path}; every line is a comment, uncomment what you want to set")
+        return
+    table = Table(box=None, padding=(0, 2), header_style="dim")
+    for column in ("setting", "value", "from"):
+        table.add_column(column)
+    for key, value, source in settings.effective():
+        table.add_row(key, escape(value) if value else "[dim]unset[/]", source)
+    console.print(table)
+    files = ", ".join(str(f) for f in settings.config_files)
+    console.print(f"[dim]config files: {escape(files) if files else 'none; prax config --init writes one'}[/]")
+    console.print(
+        "[dim]precedence: flag, PRAXBOT_* environment, repository .praxbot/config.toml, ~/.praxbot/config.toml, default[/]"
+    )
 
 
 def _require_credentials(settings: Settings, *, need_project: bool = True) -> None:
@@ -262,8 +330,7 @@ def _start_session(
     top_p: float | None,
     effort: str | None,
 ) -> None:
-    if backend not in {"contree", "local"}:
-        raise typer.BadParameter("backend must be 'contree' or 'local'")
+    root = _repo_root(repo)
     settings = build_settings(
         model=model,
         base_image=base_image,
@@ -272,9 +339,11 @@ def _start_session(
         temperature=temperature,
         top_p=top_p,
         effort=effort,
+        backend=backend,
+        repo_root=root,
     )
+    backend = settings.backend
     _require_credentials(settings, need_project=backend == "contree")
-    root = _repo_root(repo)
     _header(settings, root, backend, "\n[dim]mode[/]   session: one sandbox, many instructions")
     skills, plugins = load_extensions(settings)
     run_id, run_dir, events_file, on_event = new_run(settings, verbose)
@@ -301,7 +370,7 @@ def session(
     base_image: BaseImageOpt = None,
     setup: SetupOpt = None,
     max_steps: MaxStepsOpt = None,
-    backend: BackendOpt = "contree",
+    backend: BackendOpt = None,
     protect: ProtectOpt = (),
     verbose: VerboseOpt = False,
     temperature: TemperatureOpt = None,
@@ -319,7 +388,7 @@ def ui(
     base_image: BaseImageOpt = None,
     setup: SetupOpt = None,
     max_steps: MaxStepsOpt = None,
-    backend: BackendOpt = "contree",
+    backend: BackendOpt = None,
     protect: ProtectOpt = (),
     verbose: VerboseOpt = False,
     temperature: TemperatureOpt = None,
@@ -345,8 +414,7 @@ def _start_ui(
 ) -> None:
     from prax_bot.ui.tui import run_ui
 
-    if backend not in {"contree", "local"}:
-        raise typer.BadParameter("backend must be 'contree' or 'local'")
+    root = _repo_root(repo)
     settings = build_settings(
         model=model,
         base_image=base_image,
@@ -355,9 +423,11 @@ def _start_ui(
         temperature=temperature,
         top_p=top_p,
         effort=effort,
+        backend=backend,
+        repo_root=root,
     )
+    backend = settings.backend
     _require_credentials(settings, need_project=backend == "contree")
-    root = _repo_root(repo)
     skills, plugins = load_extensions(settings)
     run_ui(settings, root, backend, protect, skills, plugins, verbose)
 
@@ -371,7 +441,7 @@ def web(
     base_image: BaseImageOpt = None,
     setup: SetupOpt = None,
     max_steps: MaxStepsOpt = None,
-    backend: BackendOpt = "contree",
+    backend: BackendOpt = None,
     protect: ProtectOpt = (),
     verbose: VerboseOpt = False,
     temperature: TemperatureOpt = None,
@@ -380,8 +450,7 @@ def web(
 ) -> None:
     """The web interface on localhost: chat with tool calls, changes, to-dos and rounds in a sidebar, a slash-command menu."""
 
-    if backend not in {"contree", "local"}:
-        raise typer.BadParameter("backend must be 'contree' or 'local'")
+    root = _repo_root(repo)
     settings = build_settings(
         model=model,
         base_image=base_image,
@@ -390,9 +459,11 @@ def web(
         temperature=temperature,
         top_p=top_p,
         effort=effort,
+        backend=backend,
+        repo_root=root,
     )
+    backend = settings.backend
     _require_credentials(settings, need_project=backend == "contree")
-    root = _repo_root(repo)
     _start_web(settings, root, backend, protect, verbose, port, not no_browser)
 
 
@@ -435,9 +506,10 @@ def _start_web(
 def main(ctx: typer.Context) -> None:
     """Prax Bot: a coding agent that works in a Nebius Token Factory Sandbox, powered by NVIDIA Nemotron. With no command, opens the web interface."""
     if ctx.invoked_subcommand is None:
-        settings = build_settings()
-        _require_credentials(settings, need_project=True)
-        _start_web(settings, _repo_root(Path(".")), "contree", [], False, 0, True)
+        root = _repo_root(Path("."))
+        settings = build_settings(repo_root=root)
+        _require_credentials(settings, need_project=settings.backend == "contree")
+        _start_web(settings, root, settings.backend, [], False, 0, True)
 
 
 @app.command()
@@ -513,7 +585,7 @@ def run(
     base_image: BaseImageOpt = None,
     setup: SetupOpt = None,
     max_steps: MaxStepsOpt = None,
-    backend: BackendOpt = "contree",
+    backend: BackendOpt = None,
     yes: YesOpt = False,
     export: ExportOpt = None,
     protect: ProtectOpt = (),
@@ -523,8 +595,7 @@ def run(
     effort: EffortOpt = None,
 ) -> None:
     """Solve a task in the current repository. Runs entirely in a sandbox, shows the diff, takes follow-up instructions, then asks before applying."""
-    if backend not in {"contree", "local"}:
-        raise typer.BadParameter("backend must be 'contree' or 'local'")
+    root = _repo_root(repo)
     settings = build_settings(
         model=model,
         investigate_model=investigate_model,
@@ -534,9 +605,11 @@ def run(
         temperature=temperature,
         top_p=top_p,
         effort=effort,
+        backend=backend,
+        repo_root=root,
     )
+    backend = settings.backend
     _require_credentials(settings, need_project=backend == "contree")
-    root = _repo_root(repo)
 
     _header(settings, root, backend)
     console.print(f"[bold]task[/]  {escape(task)}")
@@ -573,16 +646,17 @@ def init(
     base_image: BaseImageOpt = None,
     setup: SetupOpt = None,
     max_steps: MaxStepsOpt = None,
-    backend: BackendOpt = "contree",
+    backend: BackendOpt = None,
     yes: bool = typer.Option(False, "--yes", "-y", help="Write the file without asking"),
     verbose: VerboseOpt = False,
 ) -> None:
     """Write an AGENTS.md for this repository: how to install, test and lint it, its layout and conventions, from what the agent finds."""
-    if backend not in {"contree", "local"}:
-        raise typer.BadParameter("backend must be 'contree' or 'local'")
-    settings = build_settings(model=model, base_image=base_image, setup=setup, max_steps=max_steps)
-    _require_credentials(settings, need_project=backend == "contree")
     root = _repo_root(repo)
+    settings = build_settings(
+        model=model, base_image=base_image, setup=setup, max_steps=max_steps, backend=backend, repo_root=root
+    )
+    backend = settings.backend
+    _require_credentials(settings, need_project=backend == "contree")
     if (root / "AGENTS.md").exists() and not force:
         console.print(f"{root / 'AGENTS.md'} already exists; pass --force to replace it, or edit it by hand.")
         raise typer.Exit(1)
@@ -656,7 +730,7 @@ def goal(
     base_image: BaseImageOpt = None,
     setup: SetupOpt = None,
     max_steps: MaxStepsOpt = None,
-    backend: BackendOpt = "contree",
+    backend: BackendOpt = None,
     yes: YesOpt = False,
     export: ExportOpt = None,
     protect: ProtectOpt = (),
@@ -668,8 +742,7 @@ def goal(
     """Work toward a goal in rounds until a check command passes or the model reports it met, then show the diff."""
     from prax_bot.core.goal import GoalDriver, goal_task
 
-    if backend not in {"contree", "local"}:
-        raise typer.BadParameter("backend must be 'contree' or 'local'")
+    root = _repo_root(repo)
     settings = build_settings(
         model=model,
         base_image=base_image,
@@ -678,9 +751,11 @@ def goal(
         temperature=temperature,
         top_p=top_p,
         effort=effort,
+        backend=backend,
+        repo_root=root,
     )
+    backend = settings.backend
     _require_credentials(settings, need_project=backend == "contree")
-    root = _repo_root(repo)
     _header(
         settings,
         root,
@@ -784,10 +859,19 @@ def resume(
         console.print(f"[red]✗ run {run_id} has checkpoints 0 to {len(past.checkpoints) - 1}[/]")
         raise typer.Exit(1)
     backend = str(info.get("backend") or "contree")
+    root = _repo_root(Path(str(info.get("repo") or ".")))
+    settings = build_settings(
+        model=model,
+        max_steps=max_steps,
+        temperature=temperature,
+        top_p=top_p,
+        effort=effort,
+        backend=backend,
+        repo_root=root,
+    )
     if model is None and info.get("model"):
         settings = dataclasses.replace(settings, model=str(info["model"]))
     _require_credentials(settings, need_project=backend == "contree")
-    root = _repo_root(Path(str(info.get("repo") or ".")))
     checkpoint = past.checkpoints[step]
 
     console.print(
@@ -851,7 +935,7 @@ def doctor(
     skip_sandbox: bool = typer.Option(False, help="Skip the sandbox checks"),
 ) -> None:
     """Check credentials, the Nemotron model, tool calling, and the sandbox."""
-    settings = Settings.from_env(base_image=base_image)
+    settings = build_settings(base_image=base_image, repo_root=_maybe_repo_root(Path(".")))
     ok = True
 
     def row(status: bool, name: str, detail: str = "") -> None:
@@ -866,6 +950,11 @@ def doctor(
         console.print(f"\n[dim]values are read from the environment or from {escape(str(contree_auth_ini()))}[/]")
         console.print("\nSet the missing variables and run doctor again.")
         raise typer.Exit(1)
+
+    console.print("\n[bold]config[/]")
+    row(True, "files", ", ".join(str(f) for f in settings.config_files) or "none (prax config --init writes one)")
+    for warning in settings.warnings:
+        row(False, "warning", warning)
 
     console.print("\n[bold]token factory[/]")
     from prax_bot.core.llm import LLM

@@ -61,10 +61,17 @@ def json_safe(value: Any) -> Any:
 
 
 def build_settings(**kwargs: Any) -> Settings:
+    """Settings from flags, environment, config files and defaults; a config file's complaints are shown once."""
     try:
-        return Settings.from_env(**kwargs)
-    except ValueError as e:
+        settings = Settings.from_env(**kwargs)
+    except (
+        TypeError,
+        ValueError,
+    ) as e:  # a bad value, or a value of the wrong type, in a config file or the environment
         raise typer.BadParameter(str(e)) from None
+    for warning in settings.warnings:
+        console.print(f"[yellow]warning:[/] {escape(warning)}")
+    return settings
 
 
 def sampling_label(settings: Settings) -> str:
