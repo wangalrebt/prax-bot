@@ -9,16 +9,16 @@ from pathlib import Path
 import pytest
 from rich.console import Console
 
-from prax_bot.runs import load_run, reopen_workspace
-from prax_bot.session import Session, new_run
-from prax_bot.tui import ConfirmScreen, PraxApp
+from prax_bot.runtime.runs import load_run, reopen_workspace
+from prax_bot.runtime.session import Session, new_run
+from prax_bot.ui.tui import ConfirmScreen, PraxApp
 from tests.test_agent import FakeLLM, call, reply
 from tests.test_resume import make_snapshot
 from tests.test_runs import make_run, settings
 
 
 def test_interface_runs_an_instruction_and_shows_the_diff(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    import prax_bot.llm
+    import prax_bot.core.llm
 
     s = settings(tmp_path)
     make_run(tmp_path, "20260901T000000Z-aaa")
@@ -26,7 +26,7 @@ def test_interface_runs_an_instruction_and_shows_the_diff(tmp_path: Path, monkey
     llm = FakeLLM(
         [reply(None, call("write_file", path="b.py", content="1\n")), reply(None, call("finish", summary="wrote b"))]
     )
-    monkeypatch.setattr(prax_bot.llm, "LLM", lambda settings: llm)
+    monkeypatch.setattr(prax_bot.core.llm, "LLM", lambda settings: llm)
     holder: dict = {}
 
     def make_session(out: Console, hook) -> Session:

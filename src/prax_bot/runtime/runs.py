@@ -11,8 +11,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from .sandbox import DIFF_OUTPUT_LIMIT
-from .settings import Settings
+from prax_bot.settings import Settings
+from prax_bot.workspace.sandbox import DIFF_OUTPUT_LIMIT
 
 
 @dataclass
@@ -95,8 +95,8 @@ def checkpoint_diff(run: Run, step: int, settings: Settings | None = None) -> st
         if r.returncode != 0:
             raise RuntimeError(r.stderr.strip())
         return r.stdout
-    from .sandbox import make_client
-    from .settings import WORKDIR
+    from prax_bot.settings import WORKDIR
+    from prax_bot.workspace.sandbox import make_client
 
     result = (
         make_client()
@@ -138,7 +138,7 @@ def reopen_workspace(run: Run, step: int, settings: Settings, on_event: Any = No
         raise ValueError(f"run {run.run_id} has checkpoints 0 to {len(checkpoints) - 1}")
     image = checkpoints[step]["image"]
     if image.startswith("local:"):
-        from .local import LocalWorkspace, clone_dir
+        from prax_bot.workspace.local import LocalWorkspace, clone_dir
 
         old_root = settings.home / "local" / run.run_id
         snap = old_root / "snapshots" / image.split(":", 1)[1]
@@ -152,7 +152,7 @@ def reopen_workspace(run: Run, step: int, settings: Settings, on_event: Any = No
         if (old_root / "venv").is_dir():
             clone_dir(old_root / "venv", root / "venv")
         return LocalWorkspace(root, command_timeout=settings.command_timeout, on_event=on_event)
-    from .sandbox import Workspace, make_client
+    from prax_bot.workspace.sandbox import Workspace, make_client
 
     client = make_client()
     return Workspace(client, client.images.use(image), command_timeout=settings.command_timeout, on_event=on_event)
@@ -266,7 +266,7 @@ def ago(when: datetime | None, now: datetime | None = None) -> str:
 
 
 def _short_args(name: str, raw: str) -> str:
-    from .render import describe_call
+    from prax_bot.runtime.render import describe_call
 
     return describe_call(name, raw)
 

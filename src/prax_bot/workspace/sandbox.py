@@ -30,7 +30,7 @@ from contree_sdk.sdk.exceptions import (
     UnprocessableEntityError,
 )
 
-from .settings import WORKDIR, Settings
+from prax_bot.settings import WORKDIR, Settings
 
 EventFn = Callable[..., None]
 MAX_REPO_BYTES = 200 * 1024 * 1024

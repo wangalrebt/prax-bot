@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from .tools import TOOL_MODELS, ToolBox, tool_specs
+from prax_bot.core.tools import TOOL_MODELS, ToolBox, tool_specs
 
 EventFn = Callable[..., None]
 

@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
-from prax_bot.agent import FORCE_FINISH, Agent, assistant_message, elide_old_tool_results
-from prax_bot.llm import Usage
+from prax_bot.core.agent import FORCE_FINISH, Agent, assistant_message, elide_old_tool_results
+from prax_bot.core.llm import Usage
 
 
 def call(name: str, **args: object) -> SimpleNamespace:

@@ -12,7 +12,7 @@ from typing import Any
 from contree_sdk.sdk.exceptions import ContreeError
 from pydantic import BaseModel, Field, ValidationError
 
-from .sandbox import SCRATCH_DIR, Workspace, WorkspaceError, resolve_in_workdir
+from prax_bot.workspace.sandbox import SCRATCH_DIR, Workspace, WorkspaceError, resolve_in_workdir
 
 SEARCH_EXCLUDED_DIRS = (".git", "node_modules", ".venv", "venv", "__pycache__", ".pytest_cache")
 DEFINITION_RE = r"^\s*(async def|def|class|function|func|fn|struct|impl|trait|interface|type|module)\s+[A-Za-z_]"
@@ -446,7 +446,7 @@ class ToolBox:
 
     def specs(self, *, goal: bool = False) -> list[dict[str, Any]]:
         """Tool schemas for this run: the built-ins, load_skill when skills exist, and plugin tools."""
-        from .plugins import ExtraTool
+        from prax_bot.extensions.plugins import ExtraTool
 
         specs = tool_specs(goal=goal)
         if self._skills and "load_skill" not in self._extra:
@@ -457,7 +457,7 @@ class ToolBox:
 
     def skills_overview(self) -> str:
         """Names and descriptions of the skills; the repository's own are discovered from its file list."""
-        from .skills import overview, repo_skills
+        from prax_bot.extensions.skills import overview, repo_skills
 
         if not self._paths and getattr(self.ws, "run", None):
             r = self.ws.run(

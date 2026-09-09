@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from prax_bot.agent import Agent
-from prax_bot.sandbox import SCRATCH_DIR, resolve_in_workdir, scratch_files
-from prax_bot.tools import ToolBox
+from prax_bot.core.agent import Agent
+from prax_bot.core.tools import ToolBox
+from prax_bot.workspace.sandbox import SCRATCH_DIR, resolve_in_workdir, scratch_files
 from tests.test_agent import FakeLLM, FakeToolBox, call, reply
 from tests.test_review_fixes import ShellFakeWorkspace
 from tests.test_tools import FakeWorkspace

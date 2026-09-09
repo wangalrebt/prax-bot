@@ -23,8 +23,8 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Header, Input, Label, RichLog, Static
 
-from .session import SESSION_HELP, Session, new_run, open_workspace
-from .settings import Settings
+from prax_bot.runtime.session import SESSION_HELP, Session, new_run, open_workspace
+from prax_bot.settings import Settings
 
 FILE_RE = re.compile(r"^diff --git a/(\S+) b/", re.MULTILINE)
 

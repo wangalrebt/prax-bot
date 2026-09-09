@@ -28,7 +28,7 @@ from rich.prompt import Confirm
 from rich.syntax import Syntax
 from rich.table import Table
 
-from .settings import Settings
+from prax_bot.settings import Settings
 
 QUIT_COMMANDS = ("/quit", "/exit", "/q")
 
@@ -77,9 +77,9 @@ def sampling_label(settings: Settings) -> str:
 
 def load_extensions(settings: Settings) -> tuple[list[Any], list[Any]]:
     """Personal skills and plugins from the home directory, announced on the terminal."""
-    from .plugins import load_plugins
-    from .skills import home_skills
-    from .tools import TOOL_MODELS
+    from prax_bot.core.tools import TOOL_MODELS
+    from prax_bot.extensions.plugins import load_plugins
+    from prax_bot.extensions.skills import home_skills
 
     skills = home_skills(settings.home)
     plugins = load_plugins(
@@ -125,7 +125,7 @@ def apply_diff(root: Path, diff: str, out: Console | None = None) -> bool:
 
 def new_run(settings: Settings, verbose: bool, out: Console | None = None) -> tuple[str, Path, Any, Any]:
     """A fresh run directory with its event log and the on_event callback that feeds it and the terminal."""
-    from .render import Reporter
+    from prax_bot.runtime.render import Reporter
 
     run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:6]
     run_dir = settings.home / "runs" / run_id
@@ -147,7 +147,7 @@ def open_workspace(
 ) -> Any:
     from contree_sdk.sdk.exceptions import ForbiddenError
 
-    from .sandbox import WorkspaceError, create_workspace, make_client
+    from prax_bot.workspace.sandbox import WorkspaceError, create_workspace, make_client
 
     interface = out is not None
     out = out or console
@@ -155,7 +155,7 @@ def open_workspace(
         out.print("[bold]sandbox[/]" if backend == "contree" else "[bold]local workspace[/]")
     try:
         if backend == "local":
-            from .local import create_local_workspace
+            from prax_bot.workspace.local import create_local_workspace
 
             return create_local_workspace(settings, root, on_event, run_id)
         client = make_client()
@@ -185,8 +185,8 @@ def agent_round(
     out: Console | None = None,
 ) -> Any:
     """One agent transcript on the workspace. Interruptions and errors keep the work already in the workspace."""
-    from .agent import Agent, AgentResult
-    from .tools import ToolBox
+    from prax_bot.core.agent import Agent, AgentResult
+    from prax_bot.core.tools import ToolBox
 
     out = out or console
     out.print("\n[bold]agent[/]")
@@ -351,7 +351,7 @@ class Session:
         read_line: Any = None,
         out: Console | None = None,
     ) -> None:
-        from .llm import LLM
+        from prax_bot.core.llm import LLM
 
         self.out = out or console
         self.settings, self.ws, self.root, self.backend = settings, ws, root, backend
@@ -444,7 +444,7 @@ class Session:
         return result, diff
 
     def instruct(self, text: str) -> None:
-        from .runs import continuation_task
+        from prax_bot.runtime.runs import continuation_task
 
         self.on_event("instruction", text=text)
         if self.first_task is None:
@@ -458,8 +458,8 @@ class Session:
     def goal(self, argument: str) -> None:
         import shlex
 
-        from .goal import GoalDriver, goal_task
-        from .runs import continuation_task
+        from prax_bot.core.goal import GoalDriver, goal_task
+        from prax_bot.runtime.runs import continuation_task
 
         try:
             words = shlex.split(argument)
@@ -542,7 +542,7 @@ class Session:
         self.record()
 
     def resume(self, argument: str) -> None:
-        from .runs import load_run, reopen_workspace
+        from prax_bot.runtime.runs import load_run, reopen_workspace
 
         words = argument.split()
         if not words:
@@ -632,7 +632,7 @@ class Session:
         except typer.BadParameter as e:
             self.out.print(f"[red]{escape(str(e))}[/]")
             return
-        from .llm import LLM
+        from prax_bot.core.llm import LLM
 
         usage = self.llm.usage
         self.llm = LLM(self.settings)

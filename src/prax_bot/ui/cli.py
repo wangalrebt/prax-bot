@@ -18,8 +18,8 @@ from rich.prompt import Confirm
 from rich.syntax import Syntax
 from rich.table import Table
 
-from . import __version__
-from .session import (
+from prax_bot import __version__
+from prax_bot.runtime.session import (
     NO_SANDBOX_ACCESS,
     Session,
     agent_round,
@@ -35,7 +35,7 @@ from .session import (
     sampling_label,
     write_record,
 )
-from .settings import Settings, contree_auth_ini
+from prax_bot.settings import Settings, contree_auth_ini
 
 # Options shared by the commands that open a workspace, declared once so their help text cannot drift.
 RepoOpt = Annotated[Path, typer.Option("--repo", "-C", help="A path inside the git repository to work on")]
@@ -144,8 +144,8 @@ def _solve(
     Each follow-up starts a new agent transcript on the same workspace: the task text carries the original
     request, the previous summary and the diff so far, and the sandbox state carries everything else.
     """
-    from .llm import LLM
-    from .runs import continuation_task
+    from prax_bot.core.llm import LLM
+    from prax_bot.runtime.runs import continuation_task
 
     if ask_followup is None:
         ask_followup = _ask_followup if sys.stdin.isatty() and not yes else (lambda: "")
@@ -343,7 +343,7 @@ def _start_ui(
     top_p: float | None,
     effort: str | None,
 ) -> None:
-    from .tui import run_ui
+    from prax_bot.ui.tui import run_ui
 
     if backend not in {"contree", "local"}:
         raise typer.BadParameter("backend must be 'contree' or 'local'")
@@ -399,7 +399,7 @@ def web(
 def _start_web(
     settings: Settings, root: Path, backend: str, protect: list[str], verbose: bool, port: int, open_browser: bool
 ) -> None:
-    from .web import WebSession, serve
+    from prax_bot.ui.web import WebSession, serve
 
     skills, plugins = load_extensions(settings)
 
@@ -445,7 +445,7 @@ def status(
     limit: int = typer.Option(10, "--limit", "-n", min=1, max=100, help="How many recent runs to list"),
 ) -> None:
     """What Prax Bot is doing now, what it did recently, and whether it is set up."""
-    from .runs import ago, status_summary
+    from prax_bot.runtime.runs import ago, status_summary
 
     settings = Settings.from_env()
     missing = settings.missing()
@@ -666,7 +666,7 @@ def goal(
     effort: EffortOpt = None,
 ) -> None:
     """Work toward a goal in rounds until a check command passes or the model reports it met, then show the diff."""
-    from .goal import GoalDriver, goal_task
+    from prax_bot.core.goal import GoalDriver, goal_task
 
     if backend not in {"contree", "local"}:
         raise typer.BadParameter("backend must be 'contree' or 'local'")
@@ -762,8 +762,8 @@ def resume(
     """Continue a past run from one of its checkpoints, in a workspace rebuilt from that image."""
     from contree_sdk.sdk.exceptions import ForbiddenError
 
-    from .runs import continuation_task, latest_run_id, load_run, reopen_workspace
-    from .sandbox import WorkspaceError
+    from prax_bot.runtime.runs import continuation_task, latest_run_id, load_run, reopen_workspace
+    from prax_bot.workspace.sandbox import WorkspaceError
 
     settings = build_settings(model=model, max_steps=max_steps, temperature=temperature, top_p=top_p, effort=effort)
     run_id = run_id or latest_run_id(settings)
@@ -868,7 +868,7 @@ def doctor(
         raise typer.Exit(1)
 
     console.print("\n[bold]token factory[/]")
-    from .llm import LLM
+    from prax_bot.core.llm import LLM
 
     llm = LLM(settings)
     try:
@@ -923,7 +923,7 @@ def doctor(
         from contree_sdk.sdk.exceptions import ForbiddenError
 
         try:
-            from .sandbox import make_client
+            from prax_bot.workspace.sandbox import make_client
 
             client = make_client()
             info = client.get_token_info()
@@ -984,7 +984,7 @@ def inspect(
     list_runs_: bool = typer.Option(False, "--list", help="List recent runs"),
 ) -> None:
     """Look at a past run: its steps, its checkpoint chain, and the diff at any checkpoint."""
-    from .runs import checkpoint_diff, latest_run_id, list_runs, load_run
+    from prax_bot.runtime.runs import checkpoint_diff, latest_run_id, list_runs, load_run
 
     settings = Settings.from_env()
     if list_runs_ or (run_id is None and diff is None and apply_step is None and latest_run_id(settings) is None):
@@ -1049,7 +1049,7 @@ def inspect(
     steps = Table(box=None, padding=(0, 2))
     for col in ("step", "tool", "arguments", "result"):
         steps.add_column(col)
-    from .render import describe_call
+    from prax_bot.runtime.render import describe_call
 
     for c in run.tool_calls:
         style = "red" if c.get("error") else ""
@@ -1076,7 +1076,7 @@ def report(
     open_: bool = typer.Option(False, "--open", help="Open the report in a browser"),
 ) -> None:
     """Write a self-contained HTML report for a run."""
-    from .runs import latest_run_id, load_run, render_html
+    from prax_bot.runtime.runs import latest_run_id, load_run, render_html
 
     settings = Settings.from_env()
     run_id = run_id or latest_run_id(settings)

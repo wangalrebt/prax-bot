@@ -17,7 +17,8 @@ import tarfile
 import time
 from pathlib import Path
 
-from .sandbox import (
+from prax_bot.settings import WORKDIR, Settings
+from prax_bot.workspace.sandbox import (
     DIFF_EXCLUDES,
     DIFF_OUTPUT_LIMIT,
     SCRATCH_DIR,
@@ -32,7 +33,6 @@ from .sandbox import (
     scratch_files,
     suspicious_files,
 )
-from .settings import WORKDIR, Settings
 
 DEFAULT_TRUNCATE = 65_535
 

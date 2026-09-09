@@ -7,7 +7,7 @@ from typing import Any
 
 from openai import OpenAI
 
-from .settings import Settings
+from prax_bot.settings import Settings
 
 
 @dataclass

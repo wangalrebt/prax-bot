@@ -15,8 +15,8 @@ dependencies = [
 ]
 
 [project.scripts]
-prax = "prax_bot.cli:app"
-praxbot = "prax_bot.cli:app"
+prax = "prax_bot.ui.cli:app"
+praxbot = "prax_bot.ui.cli:app"
 
 [build-system]
 requires = ["uv_build>=0.12.0,<0.13.0"]

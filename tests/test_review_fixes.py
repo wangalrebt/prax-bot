@@ -6,11 +6,11 @@ from pathlib import Path
 
 from contree_sdk.sdk.exceptions import ContreeError
 
-from prax_bot.agent import REPEAT_NUDGE, Agent
-from prax_bot.local import LocalWorkspace
-from prax_bot.sandbox import CommandResult, suspicious_files
-from prax_bot.session import json_safe
-from prax_bot.tools import ToolBox
+from prax_bot.core.agent import REPEAT_NUDGE, Agent
+from prax_bot.core.tools import ToolBox
+from prax_bot.runtime.session import json_safe
+from prax_bot.workspace.local import LocalWorkspace
+from prax_bot.workspace.sandbox import CommandResult, suspicious_files
 from tests.test_agent import FakeLLM, FakeToolBox, call, reply
 from tests.test_local import make_repo
 from tests.test_tools import FakeWorkspace

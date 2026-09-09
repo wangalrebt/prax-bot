@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from prax_bot.local import LocalWorkspace, create_local_workspace
 from prax_bot.settings import Settings
+from prax_bot.workspace.local import LocalWorkspace, create_local_workspace
 
 
 def make_repo(root: Path) -> Path:

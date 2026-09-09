@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from prax_bot.llm import LLM, MAX_COMPLETION_TOKENS, XHIGH_COMPLETION_TOKENS
+from prax_bot.core.llm import LLM, MAX_COMPLETION_TOKENS, XHIGH_COMPLETION_TOKENS
 from prax_bot.settings import Settings
 from tests.test_runs import settings as base_settings
 

@@ -8,8 +8,8 @@ from types import SimpleNamespace
 import pytest
 from contree_sdk.sdk.exceptions import ApiStatusCodeError, ContreeTransportError, ForbiddenError
 
-import prax_bot.sandbox as sandbox
-from prax_bot.sandbox import create_workspace, transient
+import prax_bot.workspace.sandbox as sandbox
+from prax_bot.workspace.sandbox import create_workspace, transient
 from tests.test_sandbox import FakeImage, base, make_repo, settings
 
 

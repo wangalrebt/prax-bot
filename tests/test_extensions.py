@@ -7,10 +7,10 @@ import shutil
 from pathlib import Path
 from types import SimpleNamespace
 
-from prax_bot.agent import Agent
-from prax_bot.plugins import load_plugins
-from prax_bot.skills import Skill, home_skills, overview, parse_skill, repo_skills
-from prax_bot.tools import ToolBox
+from prax_bot.core.agent import Agent
+from prax_bot.core.tools import ToolBox
+from prax_bot.extensions.plugins import load_plugins
+from prax_bot.extensions.skills import Skill, home_skills, overview, parse_skill, repo_skills
 from tests.test_agent import FakeLLM, call, reply
 from tests.test_tools import FakeWorkspace
 

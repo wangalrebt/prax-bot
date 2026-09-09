@@ -136,8 +136,8 @@ def evaluate(task: dict, src: Path, diff: str, args: argparse.Namespace, out: Pa
 
     from contree_sdk.sdk.exceptions import ContreeError
 
-    from prax_bot.sandbox import create_workspace, make_client
     from prax_bot.settings import Settings
+    from prax_bot.workspace.sandbox import create_workspace, make_client
 
     settings = Settings.from_env(setup=task["setup"])
     last_error: Exception | None = None

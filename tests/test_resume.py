@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from prax_bot.runs import continuation_task, load_run, reopen_workspace
+from prax_bot.runtime.runs import continuation_task, load_run, reopen_workspace
 from tests.test_agent import FakeLLM, call, reply
 from tests.test_runs import make_run, settings
 
@@ -66,9 +66,9 @@ def test_reopen_workspace_rebuilds_a_local_checkpoint(tmp_path: Path) -> None:
 def test_solve_continues_on_the_same_workspace_after_a_followup(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    import prax_bot.llm
-    from prax_bot import cli
-    from prax_bot.session import new_run
+    import prax_bot.core.llm
+    from prax_bot.runtime.session import new_run
+    from prax_bot.ui import cli
 
     s = settings(tmp_path)
     make_run(tmp_path, "20260901T000000Z-aaa")
@@ -84,7 +84,7 @@ def test_solve_continues_on_the_same_workspace_after_a_followup(
             reply(None, call("finish", summary="wrote c")),
         ]
     )
-    monkeypatch.setattr(prax_bot.llm, "LLM", lambda settings: llm)
+    monkeypatch.setattr(prax_bot.core.llm, "LLM", lambda settings: llm)
     answers = iter(["also add c", ""])
     run_id, run_dir, events_file, on_event = new_run(s, verbose=False)
     cli._solve(

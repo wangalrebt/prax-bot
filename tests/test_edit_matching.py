@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from prax_bot.tools import apply_edit
+from prax_bot.core.tools import apply_edit
 
 FILE = (
     "def sliding_window(n, seq):\n"

@@ -1,5 +1,5 @@
 """`python -m prax_bot` runs the same command line as `prax`."""
 
-from prax_bot.cli import app
+from prax_bot.ui.cli import app
 
 app()

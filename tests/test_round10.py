@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from prax_bot.agent import FORCE_FINISH, MAX_NUDGES, Agent
+from prax_bot.core.agent import FORCE_FINISH, MAX_NUDGES, Agent
 from tests.test_agent import FakeLLM, FakeToolBox, call, reply
 
 

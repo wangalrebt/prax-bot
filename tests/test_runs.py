@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from prax_bot.runs import checkpoint_diff, list_runs, load_run, render_html
+from prax_bot.runtime.runs import checkpoint_diff, list_runs, load_run, render_html
 from prax_bot.settings import Settings
 
 

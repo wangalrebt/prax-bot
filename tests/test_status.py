@@ -10,8 +10,8 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from prax_bot.cli import app
-from prax_bot.runs import ago, run_started, status_summary
+from prax_bot.runtime.runs import ago, run_started, status_summary
+from prax_bot.ui.cli import app
 from tests.test_runs import make_run, settings
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from prax_bot.sandbox import CommandResult
-from prax_bot.tools import OUTPUT_TAIL_BYTES, ToolBox, apply_edit
+from prax_bot.core.tools import OUTPUT_TAIL_BYTES, ToolBox, apply_edit
+from prax_bot.workspace.sandbox import CommandResult
 from tests.test_tools import FakeWorkspace
 
 

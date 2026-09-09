@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from prax_bot.runs import load_run, reopen_workspace
-from prax_bot.session import Session, new_run
+from prax_bot.runtime.runs import load_run, reopen_workspace
+from prax_bot.runtime.session import Session, new_run
 from tests.test_agent import FakeLLM, call, reply
 from tests.test_resume import make_snapshot
 from tests.test_runs import make_run, settings
@@ -27,7 +27,7 @@ def git_repo(path: Path) -> Path:
 
 
 def test_session_runs_instructions_undoes_applies_and_records(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    import prax_bot.llm
+    import prax_bot.core.llm
 
     s = settings(tmp_path)
     make_run(tmp_path, "20260901T000000Z-aaa")
@@ -44,7 +44,7 @@ def test_session_runs_instructions_undoes_applies_and_records(tmp_path: Path, mo
             reply(None, call("finish", summary="wrote d")),
         ]
     )
-    monkeypatch.setattr(prax_bot.llm, "LLM", lambda settings: llm)
+    monkeypatch.setattr(prax_bot.core.llm, "LLM", lambda settings: llm)
     lines = iter(
         [
             "add b",
@@ -99,7 +99,7 @@ def test_session_runs_instructions_undoes_applies_and_records(tmp_path: Path, mo
 
 
 def test_session_goal_command_parses_check_and_rounds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    import prax_bot.llm
+    import prax_bot.core.llm
 
     s = settings(tmp_path)
     make_run(tmp_path, "20260901T000000Z-aaa")
@@ -113,7 +113,7 @@ def test_session_goal_command_parses_check_and_rounds(tmp_path: Path, monkeypatc
             reply(None, call("finish", summary="done", goal_met=True)),
         ]
     )
-    monkeypatch.setattr(prax_bot.llm, "LLM", lambda settings: llm)
+    monkeypatch.setattr(prax_bot.core.llm, "LLM", lambda settings: llm)
     lines = iter(['/goal --rounds 3 "b and c exist"', "/quit"])
     run_id, run_dir, events_file, on_event = new_run(s, verbose=False)
     session = Session(

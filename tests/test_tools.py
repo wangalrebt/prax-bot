@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from prax_bot.sandbox import Checkpoint, resolve_in_workdir
-from prax_bot.tools import MAX_READ_LINES, ToolBox, apply_edit, clip, tool_specs
+from prax_bot.core.tools import MAX_READ_LINES, ToolBox, apply_edit, clip, tool_specs
+from prax_bot.workspace.sandbox import Checkpoint, resolve_in_workdir
 
 
 class FakeWorkspace:

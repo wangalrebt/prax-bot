@@ -10,8 +10,8 @@ from types import SimpleNamespace
 import pytest
 from contree_sdk.sdk.exceptions import ContreeError, NotFoundError
 
-from prax_bot.sandbox import Workspace, WorkspaceError, create_workspace, pack_repo
 from prax_bot.settings import Settings
+from prax_bot.workspace.sandbox import Workspace, WorkspaceError, create_workspace, pack_repo
 
 
 def git(*args: str, cwd: Path) -> None:
@@ -237,7 +237,7 @@ def test_create_workspace_reports_bootstrap_failure(tmp_path: Path) -> None:
 
 
 def test_diff_retries_transient_sandbox_errors(monkeypatch) -> None:
-    import prax_bot.sandbox as sb
+    import prax_bot.workspace.sandbox as sb
 
     monkeypatch.setattr(sb.time, "sleep", lambda s: None)
     log: list = []

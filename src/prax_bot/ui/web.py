@@ -23,8 +23,8 @@ from urllib.parse import parse_qs, urlparse
 from rich.console import Console
 from rich.text import Text
 
-from .session import json_safe
-from .settings import Settings
+from prax_bot.runtime.session import json_safe
+from prax_bot.settings import Settings
 
 HISTORY_LIMIT = 5000
 

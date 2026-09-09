@@ -12,16 +12,16 @@ from pathlib import Path
 import pytest
 from rich.console import Console
 
-from prax_bot.runs import load_run, reopen_workspace
-from prax_bot.session import Session, new_run
-from prax_bot.web import PAGE, WebSession, make_handler
+from prax_bot.runtime.runs import load_run, reopen_workspace
+from prax_bot.runtime.session import Session, new_run
+from prax_bot.ui.web import PAGE, WebSession, make_handler
 from tests.test_agent import FakeLLM, call, reply
 from tests.test_resume import make_snapshot
 from tests.test_runs import make_run, settings
 
 
 def test_web_session_runs_instructions_and_streams_events(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    import prax_bot.llm
+    import prax_bot.core.llm
 
     s = settings(tmp_path)
     make_run(tmp_path, "20260901T000000Z-aaa")
@@ -29,7 +29,7 @@ def test_web_session_runs_instructions_and_streams_events(tmp_path: Path, monkey
     llm = FakeLLM(
         [reply(None, call("write_file", path="b.py", content="1\n")), reply(None, call("finish", summary="wrote b"))]
     )
-    monkeypatch.setattr(prax_bot.llm, "LLM", lambda settings: llm)
+    monkeypatch.setattr(prax_bot.core.llm, "LLM", lambda settings: llm)
 
     def make_session(out: Console, hook):
         ws = reopen_workspace(load_run("20260901T000000Z-aaa", s), 1, s, hook, "20260902T000000Z-web")

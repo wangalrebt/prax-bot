@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from prax_bot.agent import REPEAT_NUDGE, Agent
-from prax_bot.tools import ToolBox, tool_specs
+from prax_bot.core.agent import REPEAT_NUDGE, Agent
+from prax_bot.core.tools import ToolBox, tool_specs
 from tests.test_agent import FakeLLM, FakeToolBox, call, reply
 from tests.test_review_fixes import ShellFakeWorkspace
 
@@ -46,7 +46,7 @@ def test_repeated_call_is_caught_even_when_interleaved() -> None:
 
 
 def test_call_signature_ignores_key_order_and_defaults() -> None:
-    from prax_bot.agent import call_signature
+    from prax_bot.core.agent import call_signature
 
     a = call_signature("search", '{"pattern": "colwidths =", "path": "."}')
     b = call_signature("search", '{"path": ".", "pattern": "colwidths =", "max_results": 50, "ignore_case": false}')

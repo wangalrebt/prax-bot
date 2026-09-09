@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import json
 
-from prax_bot.agent import Agent
-from prax_bot.tools import ToolBox
+from prax_bot.core.agent import Agent
+from prax_bot.core.tools import ToolBox
 from tests.test_agent import FakeLLM, FakeToolBox, call, reply
 from tests.test_tools import FakeWorkspace
 
