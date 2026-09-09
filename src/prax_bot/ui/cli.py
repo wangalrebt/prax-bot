@@ -64,6 +64,14 @@ TemperatureOpt = Annotated[
     typer.Option(min=0.0, max=2.0, help="Sampling temperature (default 1.0, NVIDIA's recommendation for Nemotron 3)"),
 ]
 TopPOpt = Annotated[float | None, typer.Option("--top-p", min=0.0, max=1.0, help="Nucleus sampling (default 0.95)")]
+ContextBudgetOpt = Annotated[
+    int | None,
+    typer.Option(
+        "--context-budget",
+        min=10_000,
+        help="Tokens of context per model call before the transcript is summarised (default 80,000)",
+    ),
+]
 EffortOpt = Annotated[
     str | None, typer.Option(help="How much the model reasons per step: off, low (default), high, or xhigh")
 ]
@@ -329,6 +337,7 @@ def _start_session(
     temperature: float | None,
     top_p: float | None,
     effort: str | None,
+    context_budget: int | None = None,
 ) -> None:
     root = _repo_root(repo)
     settings = build_settings(
@@ -339,6 +348,7 @@ def _start_session(
         temperature=temperature,
         top_p=top_p,
         effort=effort,
+        context_budget=context_budget,
         backend=backend,
         repo_root=root,
     )
@@ -376,9 +386,12 @@ def session(
     temperature: TemperatureOpt = None,
     top_p: TopPOpt = None,
     effort: EffortOpt = None,
+    context_budget: ContextBudgetOpt = None,
 ) -> None:
     """Open one sandbox on this repository and keep giving it instructions. Also what bare `praxbot` does."""
-    _start_session(repo, model, base_image, setup, max_steps, backend, protect, verbose, temperature, top_p, effort)
+    _start_session(
+        repo, model, base_image, setup, max_steps, backend, protect, verbose, temperature, top_p, effort, context_budget
+    )
 
 
 @app.command()
@@ -394,9 +407,12 @@ def ui(
     temperature: TemperatureOpt = None,
     top_p: TopPOpt = None,
     effort: EffortOpt = None,
+    context_budget: ContextBudgetOpt = None,
 ) -> None:
     """The full-screen interface: conversation, sidebar, diff pane, one input line. Also what bare `praxbot` does on a terminal."""
-    _start_ui(repo, model, base_image, setup, max_steps, backend, protect, verbose, temperature, top_p, effort)
+    _start_ui(
+        repo, model, base_image, setup, max_steps, backend, protect, verbose, temperature, top_p, effort, context_budget
+    )
 
 
 def _start_ui(
@@ -411,6 +427,7 @@ def _start_ui(
     temperature: float | None,
     top_p: float | None,
     effort: str | None,
+    context_budget: int | None = None,
 ) -> None:
     from prax_bot.ui.tui import run_ui
 
@@ -423,6 +440,7 @@ def _start_ui(
         temperature=temperature,
         top_p=top_p,
         effort=effort,
+        context_budget=context_budget,
         backend=backend,
         repo_root=root,
     )
@@ -447,6 +465,7 @@ def web(
     temperature: TemperatureOpt = None,
     top_p: TopPOpt = None,
     effort: EffortOpt = None,
+    context_budget: ContextBudgetOpt = None,
 ) -> None:
     """The web interface on localhost: chat with tool calls, changes, to-dos and rounds in a sidebar, a slash-command menu."""
 
@@ -459,6 +478,7 @@ def web(
         temperature=temperature,
         top_p=top_p,
         effort=effort,
+        context_budget=context_budget,
         backend=backend,
         repo_root=root,
     )
@@ -593,6 +613,7 @@ def run(
     temperature: TemperatureOpt = None,
     top_p: TopPOpt = None,
     effort: EffortOpt = None,
+    context_budget: ContextBudgetOpt = None,
 ) -> None:
     """Solve a task in the current repository. Runs entirely in a sandbox, shows the diff, takes follow-up instructions, then asks before applying."""
     root = _repo_root(repo)
@@ -605,6 +626,7 @@ def run(
         temperature=temperature,
         top_p=top_p,
         effort=effort,
+        context_budget=context_budget,
         backend=backend,
         repo_root=root,
     )
@@ -738,6 +760,7 @@ def goal(
     temperature: TemperatureOpt = None,
     top_p: TopPOpt = None,
     effort: EffortOpt = None,
+    context_budget: ContextBudgetOpt = None,
 ) -> None:
     """Work toward a goal in rounds until a check command passes or the model reports it met, then show the diff."""
     from prax_bot.core.goal import GoalDriver, goal_task
@@ -751,6 +774,7 @@ def goal(
         temperature=temperature,
         top_p=top_p,
         effort=effort,
+        context_budget=context_budget,
         backend=backend,
         repo_root=root,
     )
@@ -833,6 +857,7 @@ def resume(
     temperature: TemperatureOpt = None,
     top_p: TopPOpt = None,
     effort: EffortOpt = None,
+    context_budget: ContextBudgetOpt = None,
 ) -> None:
     """Continue a past run from one of its checkpoints, in a workspace rebuilt from that image."""
     from contree_sdk.sdk.exceptions import ForbiddenError
@@ -840,7 +865,14 @@ def resume(
     from prax_bot.runtime.runs import continuation_task, latest_run_id, load_run, reopen_workspace
     from prax_bot.workspace.sandbox import WorkspaceError
 
-    settings = build_settings(model=model, max_steps=max_steps, temperature=temperature, top_p=top_p, effort=effort)
+    settings = build_settings(
+        model=model,
+        max_steps=max_steps,
+        temperature=temperature,
+        top_p=top_p,
+        effort=effort,
+        context_budget=context_budget,
+    )
     run_id = run_id or latest_run_id(settings)
     if run_id is None:
         console.print("no runs yet")
@@ -866,6 +898,7 @@ def resume(
         temperature=temperature,
         top_p=top_p,
         effort=effort,
+        context_budget=context_budget,
         backend=backend,
         repo_root=root,
     )

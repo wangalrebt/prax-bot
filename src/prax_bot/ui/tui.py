@@ -211,7 +211,8 @@ class PraxApp(App[None]):
             return "idle"
         s = self.session
         pending = FILE_RE.findall(s.last_diff or "")
-        return f"idle · {s.rounds} rounds · {s.steps} steps · {s.llm.usage.total_tokens:,} tokens · {len(pending)} files pending · effort {s.settings.effort}"
+        context = int(getattr(s.llm, "last_prompt_tokens", 0) or 0)
+        return f"idle · {s.rounds} rounds · {s.steps} steps · {s.llm.usage.total_tokens:,} tokens · context {context:,} · {len(pending)} files pending · effort {s.settings.effort}"
 
     def render_sidebar(self) -> None:
         s = self.settings

@@ -205,6 +205,7 @@ def agent_round(
         investigate_model=settings.investigate_model,
         investigate_steps=settings.investigate_steps,
         goal=goal,
+        context_budget=settings.context_budget,
     )
     try:
         return agent.run(task)
@@ -584,6 +585,10 @@ class Session:
         table = Table(show_header=False, box=None, padding=(0, 2))
         table.add_row("model", f"{self.settings.model} · {sampling_label(self.settings)}")
         table.add_row("rounds", f"{self.rounds} · {self.steps} steps · {self.llm.usage.total_tokens:,} tokens")
+        table.add_row(
+            "context",
+            f"{int(getattr(self.llm, 'last_prompt_tokens', 0) or 0):,} tokens in the last call · summarised past {self.settings.context_budget:,}",
+        )
         table.add_row(
             "sandbox",
             f"{self.ws.commands} commands · {len(self.ws.checkpoints)} checkpoints · cost {self.ws.total_cost:.4f} · now {self.ws.image_id}",

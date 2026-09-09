@@ -48,6 +48,8 @@ class LLM:
         )
         self.usage = Usage()
         self.last_finish_reason: str | None = None
+        self.last_prompt_tokens = 0  # the context the most recent call sent, in tokens
+        self.last_completion_tokens = 0
         self.temperature = settings.temperature
         self.top_p = settings.top_p
         self.effort = settings.effort
@@ -68,28 +70,28 @@ class LLM:
     def complete(
         self,
         messages: list[dict[str, Any]],
-        tools: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
         *,
         tool_choice: Any = "auto",
         temperature: float | None = None,
         model: str | None = None,
     ) -> Any:
+        """One chat completion. With no tools (a summary, a probe) the request carries no tool fields at all."""
         chosen = model or self.model
+        tool_fields = {"tools": tools, "tool_choice": tool_choice} if tools else {}
         response = self.client.chat.completions.create(
             model=chosen,
             messages=messages,
-            tools=tools,
-            tool_choice=tool_choice,
             temperature=self.temperature if temperature is None else temperature,
+            **tool_fields,
             **self.request_options(),
         )
         self.last_finish_reason = getattr(response.choices[0], "finish_reason", None)
         usage = getattr(response, "usage", None)
-        self.usage.add(
-            chosen,
-            (getattr(usage, "prompt_tokens", 0) or 0) if usage is not None else 0,
-            (getattr(usage, "completion_tokens", 0) or 0) if usage is not None else 0,
-        )
+        prompt = (getattr(usage, "prompt_tokens", 0) or 0) if usage is not None else 0
+        completion = (getattr(usage, "completion_tokens", 0) or 0) if usage is not None else 0
+        self.last_prompt_tokens, self.last_completion_tokens = prompt, completion
+        self.usage.add(chosen, prompt, completion)
         return response.choices[0].message
 
     def list_models(self) -> list[str]:

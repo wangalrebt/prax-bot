@@ -30,6 +30,16 @@ Respond only with tool calls."""
 
 NUDGE = "Continue by calling a tool. Call finish when the task is complete or if you are stuck."
 MAX_NUDGES = 3  # consecutive turns without a tool call before finish is forced
+KEEP_FULL = 6  # the most recent tool results stay complete
+PRUNE_TIERS = ((12, 4096), (24, 1024))  # older results are cut to these sizes; beyond the last tier, a one-line digest
+COMPACT_KEEP_TURNS = 3  # assistant turns kept verbatim after a compaction
+COMPACT_MIN_GAP = 6  # steps between two compactions
+SUMMARY_SYSTEM = (
+    "You summarise a coding agent's transcript so the agent can continue without it. Write for the agent, not a "
+    "person. Cover, in this order and with exact names: the task; what has been learned (files, functions, line "
+    "numbers, the root cause if found); what has been changed so far (files, what the edit did, checkpoint numbers); "
+    "what the last test run showed; what remains to do. Keep every concrete identifier. No preamble."
+)
 LATE_FRACTION = 5  # the last fifth of the budget counts as late; the model is told to wrap up
 LATE_NO_EDIT = (
     "Only {left} steps remain and no repository file has been changed. Stop investigating: "
@@ -116,6 +126,116 @@ def compact_old_tool_results(
 elide_old_tool_results = compact_old_tool_results  # older name
 
 
+def _cut(text: str, cap: int) -> str:
+    """The head and tail of an oversized result with a marker between, fitting inside `cap` so a second pass is a no-op."""
+    if len(text) <= cap:
+        return text
+    marker = f"\n[… pruned {len(text):,} characters of an older result to its head and tail …]\n"
+    room = max(cap - len(marker), 40)
+    head = int(room * 0.75)
+    tail = room - head
+    return f"{text[:head]}{marker}{text[-tail:]}"
+
+
+def prune_by_age(
+    messages: list[dict[str, Any]],
+    *,
+    names: dict[str, str] | None = None,
+    compact: Callable[[str, str], str] | None = None,
+) -> int:
+    """Shrink tool results as they age: the newest stay whole, older ones lose their middle, the oldest become a digest.
+
+    Runs every step, so the context carries recent detail and only a memory of the rest. Returns how many changed.
+    """
+    tool_indexes = [i for i, m in enumerate(messages) if m.get("role") == "tool"]
+    changed = 0
+    for age, i in enumerate(reversed(tool_indexes)):
+        if age < KEEP_FULL:
+            continue
+        content = messages[i].get("content") or ""
+        if content.startswith(("[compacted]", "[elided")):
+            continue
+        cap = next((size for limit, size in PRUNE_TIERS if age < limit), None)
+        if cap is None:
+            name = (names or {}).get(messages[i].get("tool_call_id", ""), "")
+            replacement = (
+                compact(name, content)
+                if compact and name
+                else f"[elided earlier tool output of {len(content)} characters]"
+            )
+        elif len(content) > cap:
+            replacement = _cut(content, cap)
+        else:
+            continue
+        if replacement != content:
+            messages[i]["content"] = replacement
+            changed += 1
+    return changed
+
+
+def render_for_summary(messages: list[dict[str, Any]], limit: int = 120_000) -> str:
+    """The transcript as plain text for the summariser: roles, tool calls with their arguments, results trimmed."""
+    lines: list[str] = []
+    for m in messages:
+        role = m.get("role")
+        if role == "system":
+            continue
+        if role == "assistant":
+            text = (m.get("content") or "").strip()
+            calls = m.get("tool_calls") or []
+            parts = [text] if text else []
+            for tc in calls:
+                fn = tc.get("function", {}) if isinstance(tc, dict) else getattr(tc, "function", None)
+                name = fn.get("name") if isinstance(fn, dict) else getattr(fn, "name", "")
+                args = fn.get("arguments") if isinstance(fn, dict) else getattr(fn, "arguments", "")
+                parts.append(f"call {name}({str(args)[:300]})")
+            lines.append("assistant: " + " | ".join(parts))
+        elif role == "tool":
+            lines.append("result: " + str(m.get("content") or "")[:600].replace("\n", " "))
+        else:
+            lines.append("user: " + str(m.get("content") or "")[:2000])
+    text = "\n".join(lines)
+    return _cut(text, limit)
+
+
+def compact_transcript(
+    messages: list[dict[str, Any]], llm: Any, *, keep_turns: int = COMPACT_KEEP_TURNS
+) -> tuple[list[dict[str, Any]], str, str]:
+    """Replace the middle of a long transcript with a model-written summary.
+
+    Kept verbatim: the system prompt and the opening user messages except the repository map, and the last
+    `keep_turns` assistant turns with their tool results, so the model's recent context is exact. Returns the
+    messages, the summary, and a reason when nothing was done: "too short" (nothing to compact yet) or
+    "no summary" (the model gave none, or the call failed); the transcript is then returned unchanged.
+    """
+    assistant_indexes = [i for i, m in enumerate(messages) if m.get("role") == "assistant"]
+    if len(assistant_indexes) <= keep_turns:
+        return messages, "", "too short"
+    first_assistant = assistant_indexes[0]
+    tail_start = assistant_indexes[-keep_turns]
+    try:
+        reply = llm.complete(
+            [
+                {"role": "system", "content": SUMMARY_SYSTEM},
+                {"role": "user", "content": render_for_summary(messages[:tail_start])},
+            ],
+            None,
+        )
+        summary = (getattr(reply, "content", None) or "").strip()
+    except Exception:
+        summary = ""
+    if not summary:
+        return messages, "", "no summary"
+    preamble = [m for m in messages[:first_assistant] if not str(m.get("content") or "").startswith("Repository map")]
+    bridge = {
+        "role": "user",
+        "content": "The earlier part of this conversation was compacted to save context. Summary of the work so far:\n"
+        + summary
+        + "\nContinue from here; the workspace state is unchanged.",
+    }
+    return [*preamble, bridge, *messages[tail_start:]], summary, ""
+
+
 class Agent:
     def __init__(
         self,
@@ -128,8 +248,10 @@ class Agent:
         investigate_model: str | None = None,
         investigate_steps: int = 6,
         goal: bool = False,
+        context_budget: int = 80_000,
     ) -> None:
         self.llm = llm
+        self.context_budget = context_budget
         self.toolbox = toolbox
         self.investigate_model = investigate_model
         self.investigate_steps = investigate_steps
@@ -192,11 +314,37 @@ class Agent:
         edited = False
         empty_finish_refused = False
         blank_retries = 0
+        last_compacted_at = -COMPACT_MIN_GAP
         while True:
             stalled = nudges >= MAX_NUDGES
             force_finish = step >= self.max_steps - 1 or stalled
             investigating = self.investigate_model and step < self.investigate_steps and not edited
             model = self.investigate_model if investigating else None
+            context = int(getattr(self.llm, "last_prompt_tokens", 0) or 0)
+            over_budget = bool(self.context_budget) and context > self.context_budget
+            if over_budget and step >= 1 and step - last_compacted_at >= COMPACT_MIN_GAP:
+                messages, summary, reason = compact_transcript(messages, self.llm)
+                if summary:
+                    last_compacted_at = step
+                    self.on_event(
+                        "context.compacted",
+                        step=step,
+                        tokens_before=context,
+                        summary_chars=len(summary),
+                        kept_turns=COMPACT_KEEP_TURNS,
+                    )
+                elif reason == "no summary":
+                    last_compacted_at = step  # do not ask again every step
+                    self.on_event(
+                        "context.compacted",
+                        step=step,
+                        tokens_before=context,
+                        summary_chars=0,
+                        kept_turns=0,
+                        error=reason,
+                    )
+                # "too short": nothing to compact yet; pruning below still applies
+            prune_by_age(messages, names=call_names, compact=compact)
             compacted = compact_old_tool_results(
                 messages, max_chars=self.max_transcript_chars, names=call_names, compact=compact
             )
@@ -214,6 +362,7 @@ class Agent:
                 usage=self.llm.usage,
                 model=model or getattr(self.llm, "model", ""),
                 finish_reason=finish_reason,
+                context=int(getattr(self.llm, "last_prompt_tokens", 0) or 0),
             )
 
             if not calls and not (msg.content or "").strip() and blank_retries < BLANK_RETRIES:

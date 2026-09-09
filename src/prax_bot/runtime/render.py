@@ -90,6 +90,13 @@ class Reporter:
             c.print(f"       [dim]todo list: {done}/{len(payload['todos'])} done[/]")
         elif kind == "nudge":
             c.print(f"       [yellow]{escape(payload['reason'])}; asked the model to change approach[/]")
+        elif kind == "context.compacted":
+            if payload.get("error"):
+                c.print(f"       [yellow]context · compaction skipped ({escape(str(payload['error']))})[/]")
+            else:
+                c.print(
+                    f"       [dim]context · {payload['tokens_before']:,} tokens compacted into a summary; the last {payload['kept_turns']} turns kept[/]"
+                )
         elif kind == "context.elided":
             c.print(f"       [dim]elided {payload['count']} earlier tool outputs to fit the context[/]")
         elif kind == "finish":

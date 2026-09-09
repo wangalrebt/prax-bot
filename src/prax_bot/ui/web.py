@@ -126,6 +126,8 @@ class WebSession:
             "rounds": s.rounds if s else 0,
             "steps": s.steps if s else 0,
             "tokens": s.llm.usage.total_tokens if s else 0,
+            "context": int(getattr(s.llm, "last_prompt_tokens", 0) or 0) if s else 0,
+            "context_budget": (s.settings.context_budget if s else self.settings.context_budget),
             "calls": s.llm.usage.calls if s else 0,
             "checkpoints": len(s.ws.checkpoints) if s else 0,
             "cost": s.ws.total_cost if s else 0.0,
@@ -457,7 +459,7 @@ document.querySelectorAll("#effort button").forEach(b=>b.classList.toggle("on",b
 $("#sinfo").textContent=s.repo;
 const sf=$("#sfiles");sf.innerHTML="";if(s.files.length){s.files.forEach(f=>{const r=el("div","frow");r.innerHTML='<span class="g">●</span>';r.appendChild(document.createTextNode(f));sf.appendChild(r)})}else sf.innerHTML='<div class="dim">none pending</div>';
 const st=$("#sstatus"),dot=$("#dot");st.textContent=s.status==="working"?("working"+(s.step?" · "+s.step:"")):s.status;dot.className="dot"+(s.status==="working"?" working":s.status==="failed"?" failed":"");
-$("#sround").textContent=s.rounds+" rounds · "+s.steps+" steps";$("#stoks").textContent=s.tokens.toLocaleString()+" tokens · "+s.calls+" calls";$("#spend").textContent=s.files.length?s.files.length+" files pending":"nothing pending";$("#squeue").textContent=s.queued?s.queued+" queued":"";
+$("#sround").textContent=s.rounds+" rounds · "+s.steps+" steps";$("#stoks").textContent=s.tokens.toLocaleString()+" tokens · "+s.calls+" calls · context "+(s.context||0).toLocaleString();$("#spend").textContent=s.files.length?s.files.length+" files pending":"nothing pending";$("#squeue").textContent=s.queued?s.queued+" queued":"";
 $("#send").disabled=s.closed||s.status==="failed";$("#apply").disabled=s.closed||!s.files.length;$("#undo").disabled=s.closed||!s.rounds;
 if(s.closed){st.textContent="session ended";input.disabled=true}}
 function renderRounds(){const r=$("#srounds");r.innerHTML="";const turns=[...document.querySelectorAll(".turn")];if(!turns.length){r.innerHTML='<div class="dim">none yet</div>';return}turns.forEach((t,i)=>{const d=el("div","rround");d.innerHTML='<span class="n">'+(i+1)+'</span>';d.appendChild(document.createTextNode(t.dataset.label||""));d.onclick=()=>t.scrollIntoView({block:"start",behavior:"smooth"});r.appendChild(d)})}

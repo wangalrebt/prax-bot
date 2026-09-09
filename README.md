@@ -145,6 +145,16 @@ cp examples/plugins/lint.py ~/.praxbot/plugins/
 uv run prax run "fix the unused imports flagged by lint"
 ``` If the repository has an `AGENTS.md` or `CLAUDE.md`, its contents are given to the model at the start of the run.
 
+## How the context is managed
+
+Every model call resends the whole transcript, so on a long task the cost per step grows with everything that came before. Three things keep it in check, in order of how much they cost:
+
+1. **Tool results age out.** The six most recent results stay complete. Older ones lose their middle, first to about 4,000 characters, then to about 1,000, and past that a result becomes a one-line digest of what it was. This runs before every call.
+2. **A hard character cap** on the transcript still applies as a backstop.
+3. **Summarising compaction.** When the context the last call sent passes the budget, the model writes a summary of the work so far, with every file, function, checkpoint and test result named, and the transcript becomes: the system prompt, the task and project instructions, that summary, and the last three turns verbatim. The workspace is untouched; only what the model remembers changes. At most once every six steps.
+
+The budget is a setting: `--context-budget`, `PRAXBOT_CONTEXT_BUDGET`, or `context_budget` in a config file, 80,000 tokens by default. `/status`, the terminal status line and the web status bar show the size of the last call's context, and a compaction is reported when it happens. The size is the real one, read from the API's usage figures, not an estimate.
+
 ## How the sandbox is used
 
 Token Factory Sandboxes are immutable images. Running a command on an image produces a new image. Prax Bot keeps the current image as the workspace state: mutating commands and file writes advance it, read-only commands run disposably and leave it alone. That gives free checkpoints, an exact record of every state the agent passed through, and a diff that is computed inside the sandbox with git. Build artifacts such as `*.egg-info/`, `__pycache__/`, and `.pytest_cache/` are kept out of the diff through the workspace's `.git/info/exclude`.

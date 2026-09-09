@@ -38,9 +38,20 @@ USER_KEYS: dict[str, type] = {
     "command_timeout": int,
     "setup_timeout": int,
     "import_timeout": int,
+    "context_budget": int,
 }
 TYPE_WORDS = {str: "a string", int: "an integer", float: "a number"}
-REPO_KEYS = ("model", "investigate_model", "base_image", "setup", "max_steps", "effort", "temperature", "top_p")
+REPO_KEYS = (
+    "model",
+    "investigate_model",
+    "base_image",
+    "setup",
+    "max_steps",
+    "effort",
+    "temperature",
+    "top_p",
+    "context_budget",
+)
 
 
 def load_config(home: Path, repo_root: Path | None) -> tuple[dict[str, Any], dict[str, str], list[str], list[Path]]:
@@ -133,6 +144,7 @@ class Settings:
     top_p: float | None = 0.95
     effort: str = "low"  # off: no reasoning; low: short reasoning (default, measured); high: the model's default; xhigh: default reasoning with a 32k completion cap
     backend: str = "contree"
+    context_budget: int = 80_000  # tokens of context per model call before the transcript is summarised
     sources: dict[str, str] = field(default_factory=dict)  # setting -> flag, env, repo config, user config, default
     warnings: list[str] = field(default_factory=list)  # things a config file got wrong, worth one line each
     config_files: list[Path] = field(default_factory=list)
@@ -150,6 +162,7 @@ class Settings:
         top_p: float | None = None,
         effort: str | None = None,
         backend: str | None = None,
+        context_budget: int | None = None,
         repo_root: Path | None = None,
     ) -> Settings:
         env = os.environ
@@ -166,6 +179,7 @@ class Settings:
             "top_p": top_p,
             "effort": effort,
             "backend": backend,
+            "context_budget": context_budget,
         }
 
         def pick(key: str, default: Any, cast: Any = str) -> Any:
@@ -223,6 +237,7 @@ class Settings:
             command_timeout=int(pick("command_timeout", 300, int)),
             setup_timeout=int(pick("setup_timeout", 900, int)),
             import_timeout=int(pick("import_timeout", 900, int)),
+            context_budget=int(pick("context_budget", 80_000, int)),
             home=home,
             sources=sources,
             warnings=warnings,
