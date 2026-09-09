@@ -1,0 +1,27 @@
+{
+  "args": {
+    "cmd": "reeval",
+    "ids": "pytest-dev__pytest-5809",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "1",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "pytest-dev__pytest-5809",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "steps": 14,
+      "tokens": 152674,
+      "diff_lines": 13,
+      "agent_elapsed": 76.02128541702405,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "3/3",
+      "eval": "resolved",
+      "eval_cost": 0.02960258
+    }
+  ]
+}

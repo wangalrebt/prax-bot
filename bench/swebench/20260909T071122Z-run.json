@@ -1,0 +1,344 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "sympy__sympy-20916,django__django-11880,django__django-16899,matplotlib__matplotlib-25122,matplotlib__matplotlib-23476,sympy__sympy-15017,pytest-dev__pytest-5809,scikit-learn__scikit-learn-12585,psf__requests-5414,sphinx-doc__sphinx-8621,psf__requests-1142,pydata__xarray-4075",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "3",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "sympy__sympy-20916",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 698071,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 665767,
+          "completion_tokens": 32304
+        }
+      },
+      "sandbox_commands": 28,
+      "sandbox_cost": 0.0781866,
+      "diff_lines": 13,
+      "summary": "(no summary given)",
+      "agent_elapsed": 802.3492834588978,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "1/1",
+      "eval": "not resolved",
+      "eval_cost": 0.025407259999999997,
+      "wall": 808.0567803748418
+    },
+    {
+      "instance_id": "django__django-11880",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 20,
+      "tokens": 209726,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 20,
+          "prompt_tokens": 206573,
+          "completion_tokens": 3153
+        }
+      },
+      "sandbox_commands": 16,
+      "sandbox_cost": 0.057023850000000015,
+      "diff_lines": 12,
+      "summary": "Fixed the __deepcopy__ method of django.forms.fields.Field to deep copy the error_messages dictionary. Added a line to copy error_messages using .copy() to prevent shared state between field instances. Verified with a custom test and existing error_messages tests pass.",
+      "agent_elapsed": 444.0353099168278,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "114/114",
+      "eval": "resolved",
+      "eval_cost": 0.03982575,
+      "wall": 453.0695474999957
+    },
+    {
+      "instance_id": "django__django-16899",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 16,
+      "tokens": 128871,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 16,
+          "prompt_tokens": 121611,
+          "completion_tokens": 7260
+        }
+      },
+      "sandbox_commands": 10,
+      "sandbox_cost": 0.025638269999999998,
+      "diff_lines": 17,
+      "summary": "Modified django/contrib/admin/checks.py to include the field name in the error message for readonly_fields items that are not callable or attributes. Changed the error message from \\\"The value of '%s' is not a callable, an attribute of '%s', or an attribute of '%s'.\\\" to \\\"The value of '%s' refers t",
+      "agent_elapsed": 432.0806554579176,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "54/54",
+      "eval": "resolved",
+      "eval_cost": 0.04079363,
+      "wall": 442.555874040816
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-25122",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 12,
+      "tokens": 95279,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 12,
+          "prompt_tokens": 91494,
+          "completion_tokens": 3785
+        }
+      },
+      "sandbox_commands": 9,
+      "sandbox_cost": 0.16344848,
+      "diff_lines": 17,
+      "summary": "Fixed the window correction in mlab._spectral_helper by removing unnecessary np.abs calls. Changed two lines: \n1. result /= (np.abs(window)**2).sum() -> result /= (window**2).sum()\n2. result /= np.abs(window).sum()**2 -> result /= window.sum()**2\nVerified that the matplotlib test suite passes (2424 ",
+      "agent_elapsed": 195.54477695794776,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "12/12",
+      "p2p": "2476/2476",
+      "eval": "resolved",
+      "eval_cost": 0.19138128000000001,
+      "wall": 222.20603158301674
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23476",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 34,
+      "tokens": 410965,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 34,
+          "prompt_tokens": 394788,
+          "completion_tokens": 16177
+        }
+      },
+      "sandbox_commands": 24,
+      "sandbox_cost": 0.13621049000000002,
+      "diff_lines": 58,
+      "summary": "Fixed the DPI doubling issue on unpickling for macOS backend by ensuring the C-level FigureCanvas is initialized in FigureCanvasMac.__init__. Added a call to _macosx.FigureCanvas.__init__(self) after the super().__init__ call. Verified that existing pickle tests pass and a simple reproduction script",
+      "agent_elapsed": 304.4468119579833,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "104/104",
+      "eval": "not resolved",
+      "eval_cost": 0.19049744000000002,
+      "wall": 324.06023262487724
+    },
+    {
+      "instance_id": "sympy__sympy-15017",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 34,
+      "tokens": 470685,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 34,
+          "prompt_tokens": 460182,
+          "completion_tokens": 10503
+        }
+      },
+      "sandbox_commands": 23,
+      "sandbox_cost": 0.07793486000000001,
+      "diff_lines": 14,
+      "summary": "Modified sympy/tensor/array/ndim_array.py to fix __len__ for rank-0 arrays: now returns 1 instead of 0. Verified with custom tests that len(Array(3)) == 1, len(list(Array(3))) == 1, and higher-rank arrays still work correctly. The existing test sympy/tensor/array/tests/test_immutable_ndim_array.py::",
+      "agent_elapsed": 170.60617129202,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "14/14",
+      "eval": "not resolved",
+      "eval_cost": 0.02357258,
+      "wall": 175.83806537510827
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5809",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 14,
+      "tokens": 152674,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 14,
+          "prompt_tokens": 148241,
+          "completion_tokens": 4433
+        }
+      },
+      "sandbox_commands": 15,
+      "sandbox_cost": 0.0853546,
+      "diff_lines": 13,
+      "summary": "Changed the lexer parameter in src/_pytest/pastebin.py from 'python3' (or 'python' for Python 2) to 'text' to avoid HTTP 400 errors when posting to bpaste.net. Verified that the functional pastebin tests (test_failed, test_all, test_non_ascii_paste_text) pass. The unit test test_create_new_paste fai",
+      "agent_elapsed": 76.02128541702405,
+      "resolved": false,
+      "eval": "error: ContreeTransportError: ContreeTransportError(request=RequestInfo(url='https://api.tokenfactory.nebius.com/sandboxes/v1/files/d9a8d76421cd539f892c5f3efb0f50a7c104ce35077acd29acb883b39e2ef64c', method='GET'), response=None, e",
+      "wall": 78.06649029208347
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-12585",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 10,
+      "tokens": 72464,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 10,
+          "prompt_tokens": 70391,
+          "completion_tokens": 2073
+        }
+      },
+      "sandbox_commands": 10,
+      "sandbox_cost": 0.06473516,
+      "diff_lines": 13,
+      "summary": "Fixed the clone function in sklearn/base.py to handle estimator types (classes) as parameters by adding an isinstance check. The fix prevents the TypeError when get_params is called on a type. Verified with the original failing example and ran the test suite for base and pipeline components to ensur",
+      "agent_elapsed": 56.1264464170672,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "22/22",
+      "eval": "resolved",
+      "eval_cost": 0.03151927,
+      "wall": 62.07636125013232
+    },
+    {
+      "instance_id": "psf__requests-5414",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 41,
+      "tokens": 460651,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 41,
+          "prompt_tokens": 447824,
+          "completion_tokens": 12827
+        }
+      },
+      "sandbox_commands": 26,
+      "sandbox_cost": 0.04691582,
+      "diff_lines": 24,
+      "summary": "Fixed the issue where requesting a URL like 'http://.example.com' raised a UnicodeError. The fix adds a check for empty labels (leading/trailing dot or double dot) in the host part of the URL before IDNA encoding, raising InvalidURL with the message 'URL has an invalid label.' as intended. Verified ",
+      "agent_elapsed": 192.2356807908509,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "130/130",
+      "eval": "resolved",
+      "eval_cost": 0.01618874,
+      "wall": 197.0517977080308
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 46,
+      "tokens": 732066,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 46,
+          "prompt_tokens": 705166,
+          "completion_tokens": 26900
+        }
+      },
+      "sandbox_commands": 41,
+      "sandbox_cost": 0.14311928,
+      "diff_lines": 20,
+      "summary": "Fixed the KeyboardTransform in sphinx/builders/html/transforms.py to correctly handle standalone keystrokes that are compound-key separators (-, +, ^). The fix modifies the run() method to treat text consisting only of separators/whitespace as a single keystroke, avoiding incorrect splitting. Verifi",
+      "agent_elapsed": 240.70402400009334,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "31/31",
+      "eval": "resolved",
+      "eval_cost": 0.03232824,
+      "wall": 247.98496083309874
+    },
+    {
+      "instance_id": "psf__requests-1142",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 706193,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 680726,
+          "completion_tokens": 25467
+        }
+      },
+      "sandbox_commands": 22,
+      "sandbox_cost": 0.03865259,
+      "diff_lines": 22,
+      "summary": "(no summary given)",
+      "agent_elapsed": 198.10486841690727,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "5/5",
+      "eval": "resolved",
+      "eval_cost": 0.017005690000000004,
+      "wall": 202.59655733290128
+    },
+    {
+      "instance_id": "pydata__xarray-4075",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 12,
+      "tokens": 83440,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 12,
+          "prompt_tokens": 80947,
+          "completion_tokens": 2493
+        }
+      },
+      "sandbox_commands": 10,
+      "sandbox_cost": 0.0870713,
+      "diff_lines": 17,
+      "summary": "Fixed weighted mean with boolean weights by converting mask and weights to float in _sum_of_weights before calling _reduce (which uses dot). Verified with the provided MCVE and the existing weighted test suite passes.",
+      "agent_elapsed": 54.189314916031435,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "958/958",
+      "eval": "resolved",
+      "eval_cost": 0.08004802000000001,
+      "wall": 67.31219079089351
+    }
+  ]
+}

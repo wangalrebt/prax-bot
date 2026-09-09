@@ -383,6 +383,29 @@ The 31 tasks were then run once more at the recommended sampling settings with e
 
 One task better, which is inside the swing of a 31-task sample: 2 flipped to resolved (django-12193, sympy-17655) and 1 flipped to a miss (sphinx-8621). The cost is not inside any swing: the run used 30% fewer tokens and the resolved tasks together 46% fewer, with the median resolved task at 18 steps against 24.5 before. Temperature 1.0, top_p 0.95 and effort low are therefore the defaults from here on, and the headline number is 23 of 31. The frozen-harness table above stays as the record of the run that measured the harness itself.
 
+Context management was then added (tool results that age out, and a summarising compaction past 80,000 tokens of context; see [How the context is managed](#how-the-context-is-managed)) and the original twelve were run once more, everything else unchanged:
+
+| instance | effort low, before | effort low, with context management |
+|---|---|---|
+| django__django-11880 | yes, 31 steps, 463k | yes, 20, 210k |
+| django__django-16899 | yes, 12, 84k | yes, 16, 129k |
+| matplotlib__matplotlib-25122 | yes, 27, 290k | yes, 12, 95k |
+| psf__requests-1142 | yes, 50, 876k | yes, 50, 706k |
+| psf__requests-5414 | no, 50, 677k | yes, 41, 461k |
+| pydata__xarray-4075 | yes, 14, 135k | yes, 12, 83k |
+| pytest-dev__pytest-5809 | yes, 13, 124k | yes, 14, 153k |
+| scikit-learn__scikit-learn-12585 | yes, 18, 168k | yes, 10, 72k |
+| sphinx-doc__sphinx-8621 | no, 50, 1,041k | yes, 46, 732k |
+| matplotlib__matplotlib-23476 | no, 27, 403k | no, 34, 411k |
+| sympy__sympy-15017 | yes, 26, 434k | no, 34, 471k |
+| sympy__sympy-20916 | no, 50, 1,215k | no, 50, 698k |
+| **resolved** | **8 of 12** | **9 of 12** |
+| tokens for the run | 5.91M | 4.22M |
+
+Twenty-nine percent fewer tokens for the run, and one more task resolved: requests-5414 passed for the first time in six attempts and sphinx-8621 came back, while sympy-15017 flipped to a miss. The savings sit where the transcripts are longest: the two 50-step misses cost 43% and 30% less, and four passes came in at under half their previous cost. Resolved tasks as a group cost about the same as before (2.64M against 2.57M), so what changed is the price of the long runs, not of the easy ones. Pytest-5809 was graded again from its saved patch after a transient sandbox API error, as before.
+
+On the ten-task suite, whose tasks take five to ten steps and rarely reach the pruning tiers, context management changed nothing that matters: 9 of 10 at 1.40M tokens against 9 of 10 at 1.33M, the difference being one noisy 25-step pass. It is on by default.
+
 Thirty-one tasks is still a small sample and these are the easier tier of Verified, so this is not comparable to leaderboard numbers on the full 500. It is a genuine measurement on real GitHub issues with hidden tests, run once, with the harness frozen before the run.
 
 ## Development
