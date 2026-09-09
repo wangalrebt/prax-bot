@@ -357,8 +357,24 @@ Thirty-one tasks is still a small sample and these are the easier tier of Verifi
 ## Development
 
 ```bash
-uv run pytest
+uv run pytest                                   # the suite; no key or sandbox needed
+uv run ruff check src tests scripts             # lint, kept at zero findings
+uv run ruff format src tests scripts            # format
 ```
+
+The package is organised by role:
+
+```
+src/prax_bot/
+  settings.py   configuration from flags, environment and the sandbox auth file
+  core/         the agent loop and what it can call: agent, tools, llm, goal
+  workspace/    where the code runs: sandbox (Token Factory), local (this machine)
+  extensions/   what a repository or a user can add: skills, plugins
+  runtime/      what every front end shares: session, runs (records, status, reports), render
+  ui/           the front ends: cli, tui, web
+```
+
+Every front end drives the same `runtime/session.py`; nothing in `runtime/` or below knows which one is calling. Imports are absolute, and the subpackage `__init__` files import nothing, so the module graph is only what the modules themselves declare.
 
 ## License
 
