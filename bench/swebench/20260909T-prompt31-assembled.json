@@ -1,6 +1,6 @@
 {
   "args": {
-    "note": "revised system prompt + context management; 12 assembled after a restart + 19; re-grades applied requests-2317 graded on the third attempt after two transient sandbox API errors: F2P 8/8, P2P 132/133, not resolved."
+    "note": "revised system prompt + context management; 12 assembled after a restart + 19; re-grades applied requests-2317: two gradings lost to transient sandbox API errors, one to a sandbox without a network route (a connect-timeout test failed with 'Network is unreachable'), resolved on the next grading with F2P 8/8, P2P 133/133."
   },
   "results": [
     {
@@ -275,13 +275,13 @@
       "diff_lines": 13,
       "summary": "(no summary given)",
       "agent_elapsed": 316.90048799989745,
-      "resolved": false,
-      "eval": "not resolved",
+      "resolved": true,
+      "eval": "resolved",
       "wall": 439.0562526669819,
       "patch_applied": true,
       "f2p": "8/8",
-      "p2p": "132/133",
-      "eval_cost": 0.019707449999999998
+      "p2p": "133/133",
+      "eval_cost": 0.01873301
     },
     {
       "instance_id": "astropy__astropy-14995",

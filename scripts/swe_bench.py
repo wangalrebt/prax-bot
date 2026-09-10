@@ -88,8 +88,35 @@ def prepare_baseline(client, row, settings: Settings):
     return image, baseline
 
 
+NETWORK_ERROR = "Network is unreachable"
+GRADING_ATTEMPTS = 3
+
+
 def grade(client, image, row, diff: str, scratch: Path, timeout: int = 1800) -> dict:
-    """Apply the diff in a fresh fork of the task image and run the dataset's evaluation script."""
+    """Apply the diff in a fresh fork of the task image and run the dataset's evaluation script.
+
+    Some sandbox hosts have no network route, and a few regression tests (the connect-timeout tests in
+    requests, for example) then fail with "Network is unreachable" instead of timing out. A grading that
+    is not resolved and shows that error is run again, up to GRADING_ATTEMPTS times in all.
+    """
+    for attempt in range(1, GRADING_ATTEMPTS + 1):
+        verdict = _grade_once(client, image, row, diff, scratch, timeout)
+        network_error = verdict.pop("network_error", False)
+        verdict["grading_attempts"] = attempt
+        if verdict["resolved"] or not network_error:
+            return verdict
+        if attempt < GRADING_ATTEMPTS:
+            print(
+                f"   {row['instance_id']}: a test failed on network access in a sandbox without a route; "
+                f"grading again ({attempt + 1} of {GRADING_ATTEMPTS})",
+                flush=True,
+            )
+    verdict["eval"] = "not resolved; a test failed on network access in every grading"
+    return verdict
+
+
+def _grade_once(client, image, row, diff: str, scratch: Path, timeout: int) -> dict:
+    """One grading run: apply the patch, run the evaluation script, parse the report."""
     from swebench.harness.grading import get_eval_report
     from swebench.harness.utils import make_test_spec
 
@@ -136,6 +163,7 @@ def grade(client, image, row, diff: str, scratch: Path, timeout: int = 1800) -> 
         "p2p": f"{len(p2p.get('success', []))}/{len(p2p.get('success', [])) + len(p2p.get('failure', []))}",
         "eval": "resolved" if report.get("resolved") else "not resolved",
         "eval_cost": result.result.cost,
+        "network_error": NETWORK_ERROR in log,
     }
 
 
