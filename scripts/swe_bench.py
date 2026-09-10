@@ -99,13 +99,20 @@ def grade(client, image, row, diff: str, scratch: Path, timeout: int = 1800) -> 
         "(git apply -v /tmp/model.patch || patch --batch --fuzz=5 -p1 -i /tmp/model.patch) && "
         "echo PRAXBOT_PATCH_APPLIED && bash /tmp/eval.sh"
     )
-    result = image.run(
-        shell=script,
-        files={"/tmp/model.patch": diff.encode(), "/tmp/eval.sh": spec.eval_script.encode()},
-        disposable=True,
-        timeout=timeout,
-        truncate_output_at=DIFF_OUTPUT_LIMIT,
-    ).wait()
+    from prax_bot.workspace.sandbox import with_retries
+
+    # the sandbox API drops a connection now and then; a grading run is expensive to lose to that
+    result = with_retries(
+        lambda: image.run(
+            shell=script,
+            files={"/tmp/model.patch": diff.encode(), "/tmp/eval.sh": spec.eval_script.encode()},
+            disposable=True,
+            timeout=timeout,
+            truncate_output_at=DIFF_OUTPUT_LIMIT,
+        ).wait(),
+        label="grading",
+        emit=lambda kind, **payload: print(f"   retrying grading: {payload.get('error')}", flush=True),
+    )
     log = str(result.stdout or "") + "\n" + str(result.stderr or "")
     log_path = scratch / "eval.log"
     log_path.write_text(log)
