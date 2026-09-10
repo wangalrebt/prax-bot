@@ -19,6 +19,7 @@ from rich.syntax import Syntax
 from rich.table import Table
 
 from prax_bot import __version__
+from prax_bot.core.prompts import prompt
 from prax_bot.runtime.session import (
     NO_SANDBOX_ACCESS,
     Session,
@@ -82,15 +83,7 @@ app = typer.Typer(
     help="Prax Bot: a coding agent that works in a Nebius Token Factory Sandbox, powered by NVIDIA Nemotron.",
 )
 
-INIT_TASK = (
-    "{what}: a short guide for coding agents working in this repository. Cover, in this order: what the project is "
-    "in one sentence; how to install its dependencies; how to run the tests, and the linters or type checkers if it has any; "
-    "the layout of the code (which directories hold what); conventions worth knowing (style, naming, where tests go, "
-    "commit or changelog rules if documented); and anything surprising a newcomer would trip over. Keep it under 80 lines. "
-    "Base every command and statement on files you actually read (pyproject, setup files, CI configs, Makefiles, READMEs, "
-    "existing tests); run the test command once to confirm it works, and never invent commands. "
-    "Change no file other than AGENTS.md."
-)
+INIT_TASK = prompt("init_task")
 
 
 def _repo_root(path: Path) -> Path:
@@ -168,24 +161,43 @@ def config(
     )
 
 
-@app.command()
-def prompt(
+@app.command(name="prompt")
+def prompt_command(
+    name: str = typer.Argument(
+        "system", help="Which prompt: system, summary, nudge, continuation, goal, protected, tools/run, ..."
+    ),
     path: bool = typer.Option(False, "--path", help="Print where the prompt comes from instead of its text"),
+    list_all: bool = typer.Option(False, "--list", help="List every prompt and where each comes from"),
 ) -> None:
-    """Print the system prompt in effect: the built-in one, or the file set as system_prompt_file."""
-    from prax_bot.core.agent import DEFAULT_SYSTEM_PROMPT_PATH, SYSTEM_PROMPT
+    """Print a prompt the model sees: built in, or your override under ~/.praxbot/prompts/."""
+    from prax_bot.core import prompts
 
     settings = build_settings(repo_root=_maybe_repo_root(Path(".")))
-    custom = settings.system_prompt_text()
-    if path:
-        console.print(
-            str(Path(settings.system_prompt_file).expanduser()) if custom else f"built in: {DEFAULT_SYSTEM_PROMPT_PATH}"
-        )
-        console.print(
-            "[dim]replace it with system_prompt_file in ~/.praxbot/config.toml or PRAXBOT_SYSTEM_PROMPT_FILE; project rules belong in AGENTS.md[/]"
-        )
+    if list_all:
+        table = Table(box=None, padding=(0, 2), header_style="dim")
+        for column in ("prompt", "from", "file"):
+            table.add_column(column)
+        for n in prompts.names():
+            kind, where = prompts.source(n)
+            if n == "system" and settings.system_prompt_file:
+                kind, where = "system_prompt_file", Path(settings.system_prompt_file).expanduser()
+            table.add_row(n, kind, str(where))
+        console.print(table)
+        console.print(f"[dim]override any of them with a file of the same name under {prompts.override_dir()}[/]")
         return
-    print(custom or SYSTEM_PROMPT)
+    try:
+        kind, where = prompts.source(name)
+    except KeyError as e:
+        console.print(f"[red]{escape(str(e))}[/]")
+        raise typer.Exit(1) from None
+    custom = settings.system_prompt_text() if name == "system" else None
+    if custom:
+        kind, where = "system_prompt_file", Path(settings.system_prompt_file).expanduser()
+    if path:
+        console.print(f"{kind}: {where}")
+        console.print("[dim]project rules belong in AGENTS.md; prax prompt --list shows every prompt[/]")
+        return
+    print(custom or prompts.text(name))
 
 
 def _require_credentials(settings: Settings, *, need_project: bool = True) -> None:

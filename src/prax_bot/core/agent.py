@@ -5,43 +5,31 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from dataclasses import dataclass
-from importlib import resources
+from pathlib import Path
 from typing import Any
 
+from prax_bot.core.prompts import PACKAGED, prompt
 from prax_bot.core.tools import TOOL_MODELS, ToolBox, tool_specs
 
 EventFn = Callable[..., None]
 
-PROMPTS = resources.files("prax_bot.core.prompts")
-DEFAULT_SYSTEM_PROMPT_PATH = PROMPTS / "system.md"
-SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT_PATH.read_text(encoding="utf-8").strip()  # the built-in prompt; see `prax prompt`
 
-NUDGE = "Continue by calling a tool. Call finish when the task is complete or if you are stuck."
+DEFAULT_SYSTEM_PROMPT_PATH = Path(str(PACKAGED / "system.md"))
+SYSTEM_PROMPT = prompt("system")  # the built-in prompt, or the user's override of it; see `prax prompt`
+
+NUDGE = prompt("nudge")
 MAX_NUDGES = 3  # consecutive turns without a tool call before finish is forced
 KEEP_FULL = 6  # the most recent tool results stay complete
 PRUNE_TIERS = ((12, 4096), (24, 1024))  # older results are cut to these sizes; beyond the last tier, a one-line digest
 COMPACT_KEEP_TURNS = 3  # assistant turns kept verbatim after a compaction
 COMPACT_MIN_GAP = 6  # steps between two compactions
-SUMMARY_SYSTEM = (
-    "You summarise a coding agent's transcript so the agent can continue without it. Write for the agent, not a "
-    "person. Cover, in this order and with exact names: the task; what has been learned (files, functions, line "
-    "numbers, the root cause if found); what has been changed so far (files, what the edit did, checkpoint numbers); "
-    "what the last test run showed; what remains to do. Keep every concrete identifier. No preamble."
-)
+SUMMARY_SYSTEM = prompt("summary")
 LATE_FRACTION = 5  # the last fifth of the budget counts as late; the model is told to wrap up
-LATE_NO_EDIT = (
-    "Only {left} steps remain and no repository file has been changed. Stop investigating: "
-    "make the most likely fix now, then call finish."
-)
-LATE_EDITED = (
-    "Only {left} steps remain. Wrap up: run the relevant tests once if you have not, then call finish with a summary."
-)
+LATE_NO_EDIT = prompt("late_no_edit")
+LATE_EDITED = prompt("late_edited")
 BLANK_RETRIES = 2  # a reply with no text and no tool call is retried before it counts as a stall
-BLANK_NUDGE = "Your last reply was cut off before it contained a tool call. Decide now and call one tool; keep any reasoning short."
-REPEAT_NUDGE = (
-    "You have made the same call with the same arguments three times; its result will not change. "
-    "Use the results you already have, try a different approach, or call finish and explain what is blocking you."
-)
+BLANK_NUDGE = prompt("nudge_blank")
+REPEAT_NUDGE = prompt("nudge_repeat")
 REPEAT_LIMIT = 3
 REPEAT_WINDOW = 8
 FORCE_FINISH = {"type": "function", "function": {"name": "finish"}}
@@ -215,12 +203,7 @@ def compact_transcript(
     if not summary:
         return messages, "", "no summary"
     preamble = [m for m in messages[:first_assistant] if not str(m.get("content") or "").startswith("Repository map")]
-    bridge = {
-        "role": "user",
-        "content": "The earlier part of this conversation was compacted to save context. Summary of the work so far:\n"
-        + summary
-        + "\nContinue from here; the workspace state is unchanged.",
-    }
+    bridge = {"role": "user", "content": prompt("compacted_bridge", summary=summary)}
     return [*preamble, bridge, *messages[tail_start:]], summary, ""
 
 
@@ -280,8 +263,7 @@ class Agent:
                 messages.append(
                     {
                         "role": "user",
-                        "content": "Repository map, definitions with line numbers. Use it to decide what to read; "
-                        "read regions with start_line and end_line, and call outline for files not shown.\n" + overview,
+                        "content": prompt("repo_map_intro") + "\n" + overview,
                     }
                 )
                 self.on_event("repo.map", chars=len(overview))

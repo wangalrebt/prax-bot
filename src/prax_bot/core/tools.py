@@ -12,6 +12,7 @@ from typing import Any
 from contree_sdk.sdk.exceptions import ContreeError
 from pydantic import BaseModel, Field, ValidationError
 
+from prax_bot.core.prompts import prompt
 from prax_bot.workspace.sandbox import SCRATCH_DIR, Workspace, WorkspaceError, resolve_in_workdir
 
 SEARCH_EXCLUDED_DIRS = (".git", "node_modules", ".venv", "venv", "__pycache__", ".pytest_cache")
@@ -132,18 +133,7 @@ TOOL_MODELS: dict[str, type[BaseModel]] = {
     "finish": Finish,
 }
 
-TOOL_DESCRIPTIONS = {
-    "list_files": "List files under a directory of the repository (tracked and untracked, ignoring .gitignore'd files).",
-    "search": "Search file contents with a regular expression. Returns path:line:text matches.",
-    "read_file": "Read a file with line numbers. At most 400 lines per call; use start_line and end_line to read a region.",
-    "outline": "List the functions and classes a file defines, with line numbers. Use it to navigate a large file before reading a region.",
-    "edit_file": "Replace one exact occurrence of `old` with `new` in an existing file.",
-    "write_file": f"Create a new file with the given content. Fails if the file exists; use edit_file instead. Throwaway scripts belong under {SCRATCH_DIR}, not in the repository.",
-    "run": "Run a shell command in the repository root inside the sandbox. Returns the exit code and the tail of the output; the full output is saved to a file whose path is reported, and you can grep or sed that file with another run. Each run creates a checkpoint.",
-    "todo_write": "Record the plan for multi-step work as a task list and update it as you go. Send the entire list every time; it replaces the previous one.",
-    "restore": "Restore the whole workspace to an earlier checkpoint, undoing later edits and commands. Use it only when your own edit broke something that worked before. Tests that were already failing before your edits are not a reason to restore. At most three restores per run.",
-    "finish": "Finish the task. Call this once the change is made and verified, or if you cannot complete the task.",
-}
+TOOL_DESCRIPTIONS = {name: prompt(f"tools/{name}", scratch_dir=SCRATCH_DIR) for name in TOOL_MODELS}
 
 
 def tool_specs(*, goal: bool = False) -> list[dict[str, Any]]:
@@ -442,7 +432,7 @@ class ToolBox:
     def compact(self, name: str, output: str) -> str:
         return compact_tool_output(name, output, self.defs_for)
 
-    LOAD_SKILL_DESCRIPTION = "Read a skill's full instructions. Call it, with the name from the skills list, before doing work the skill covers."
+    LOAD_SKILL_DESCRIPTION = prompt("tools/load_skill")
 
     def specs(self, *, goal: bool = False) -> list[dict[str, Any]]:
         """Tool schemas for this run: the built-ins, load_skill when skills exist, and plugin tools."""
@@ -472,7 +462,7 @@ class ToolBox:
         sk = self._skills.get(a.name.strip())
         if sk is None:
             return f"error: no skill named {a.name!r}. Available: {', '.join(self._skills) or 'none'}"
-        return f"Skill {sk.name} ({sk.source}):\n{sk.text()}"
+        return prompt("skill_loaded", name=sk.name, source=sk.source, text=sk.text())
 
     def nested_instructions(self, path: str, limit: int = 3_000) -> str:
         """The nearest AGENTS.md above a path, below the repository root, the first time that directory is touched."""
@@ -494,7 +484,7 @@ class ToolBox:
                 if not text:
                     return ""
                 clipped = text[:limit] + ("\n… (truncated)" if len(text) > limit else "")
-                return f"\n\nInstructions from {candidate} apply here:\n{clipped}"
+                return "\n\n" + prompt("nested_instructions", path=candidate, text=clipped)
         return ""
 
     def project_instructions(self, limit: int = 4_000) -> str:
@@ -506,7 +496,7 @@ class ToolBox:
                 continue
             if text:
                 clipped = text[:limit] + ("\n… (truncated)" if len(text) > limit else "")
-                return f"Project instructions from {name}:\n{clipped}"
+                return prompt("project_instructions", name=name, text=clipped)
         return ""
 
     def repo_map(self, task: str, budget: int = REPO_MAP_BUDGET) -> str:
@@ -638,12 +628,7 @@ class ToolBox:
         """The model has seen exactly this content, from a read or from its own last edit."""
         return self._observed.get(path) == _digest(text)
 
-    PROTECTED_MSG = (
-        "is protected and must not be modified. Add a new test file or put reproduction scripts under "
-        + SCRATCH_DIR
-        + " instead. If an existing test asserts the old behaviour, leave it: keep your fix "
-        "and say so in finish. Do not revert a correct change to satisfy a stale test."
-    )
+    PROTECTED_MSG = prompt("protected", scratch_dir=SCRATCH_DIR)
 
     def _protected(self, path: str) -> bool:
         """True for an existing repository file matching a protected glob. New files and the scratch dir are free."""

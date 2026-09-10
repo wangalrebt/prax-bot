@@ -10,24 +10,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from prax_bot.core.prompts import prompt
+
 CHECK_OUTPUT_TAIL = 3000
 STALL_ROUNDS = 2  # rounds in a row with an unchanged diff before the goal is declared blocked
 
 
 def goal_task(objective: str, max_rounds: int, check: str | None) -> str:
     """The first round's task text."""
-    how = (
-        f"The goal is met when this command exits 0 in the repository: {check}"
-        if check
-        else "You decide when the goal is met; verify it before saying so."
-    )
-    return (
-        f"Goal: {objective.strip()}\n\n"
-        f"This is a goal run of up to {max_rounds} rounds; each round is a fresh conversation on the same workspace, "
-        f"so leave notes for yourself in the code, not in prose. {how}\n"
-        "When the whole goal is achieved and verified, call finish with goal_met=true. "
-        "If it is not, call finish with goal_met=false and say exactly what remains."
-    )
+    how = prompt("goal_how_check", check=check) if check else prompt("goal_how_model")
+    return prompt("goal", objective=objective.strip(), max_rounds=max_rounds, how=how)
 
 
 @dataclass

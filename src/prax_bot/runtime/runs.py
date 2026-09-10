@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from prax_bot.core.prompts import prompt
 from prax_bot.settings import Settings
 from prax_bot.workspace.sandbox import DIFF_OUTPUT_LIMIT
 
@@ -117,13 +118,12 @@ def continuation_task(original_task: str, summary: str | None, diff: str, instru
     shown = diff.strip()
     if len(shown) > MAX_CONTEXT_DIFF_CHARS:
         shown = shown[:MAX_CONTEXT_DIFF_CHARS] + "\n... (diff truncated; run `git diff HEAD` to see all of it)"
-    return (
-        "You are continuing earlier work in this repository. The workspace already contains the changes below,\n"
-        "uncommitted, relative to the baseline commit HEAD. Build on them; do not start over.\n\n"
-        f"Original task:\n{original_task.strip()}\n\n"
-        f"Summary of the earlier work:\n{(summary or '').strip() or '(none)'}\n\n"
-        f"Changes so far (git diff HEAD):\n```diff\n{shown or '(no changes yet)'}\n```\n\n"
-        f"Now do this:\n{instruction.strip()}"
+    return prompt(
+        "continuation",
+        original_task=original_task.strip(),
+        summary=(summary or "").strip() or "(none)",
+        diff=shown or "(no changes yet)",
+        instruction=instruction.strip(),
     )
 
 

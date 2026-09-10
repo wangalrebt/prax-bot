@@ -1,0 +1,1 @@
+Run a shell command in the repository root inside the sandbox. Returns the exit code and the tail of the output; the full output is saved to a file whose path is reported, and you can grep or sed that file with another run. Each run creates a checkpoint.

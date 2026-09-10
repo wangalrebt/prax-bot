@@ -1,0 +1,1 @@
+is protected and must not be modified. Add a new test file or put reproduction scripts under {scratch_dir} instead. If an existing test asserts the old behaviour, leave it: keep your fix and say so in finish. Do not revert a correct change to satisfy a stale test.

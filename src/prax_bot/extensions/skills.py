@@ -14,6 +14,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from prax_bot.core.prompts import prompt
+
 REPO_SKILLS_DIR = ".praxbot/skills"
 MAX_SKILLS = 40
 MAX_SKILL_CHARS = 20_000
@@ -94,7 +96,4 @@ def overview(skills: list[Skill]) -> str:
     if not skills:
         return ""
     lines = [f"- {s.name}: {s.description}" for s in skills]
-    return (
-        "Skills available. Before doing work that a skill covers, call load_skill with its name and follow it:\n"
-        + "\n".join(lines)
-    )
+    return prompt("skills_intro") + "\n" + "\n".join(lines)

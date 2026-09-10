@@ -105,51 +105,20 @@ base_image = "python:3.12"
 
 Two rules keep a cloned repository from doing harm: its file cannot choose the backend or the model endpoint, and a setup command it provides only runs inside a sandbox. On the local backend it is ignored with a notice, and `--setup` runs whatever you pass yourself.
 
-### The system prompt
+### Prompts
 
-The prompt the model works under ships with the package as `src/prax_bot/core/prompts/system.md`; `prax prompt` prints the one in effect and `prax prompt --path` says where it comes from. To replace it, point `system_prompt_file` in `~/.praxbot/config.toml`, or `PRAXBOT_SYSTEM_PROMPT_FILE`, at your own file. Only your own config can do that: a repository's file may not set it, because a cloned repository must not choose what the model is told. Rules that belong to a project go in its `AGENTS.md`, which the model reads at the start of every run.
-
-The prompt is short by design, about 2,700 characters, and every rule in it traces to a failure seen in the benchmark logs: reproduce the report before editing, because the most common miss was a confident fix that made the visible tests pass and not the hidden ones; keep a fix when tests that assert the old behaviour fail, because two runs undid correct edits; restore is for one bad command, never for starting over, because two runs restored to the baseline and lost their work; and act once sure, because the budget is finite and every result says how much is left.
-
-Every run is logged under `~/.praxbot/runs/<run id>/`: `events.jsonl` (every tool call and result), `diff.patch`, and `run.json` (model, tokens, sandbox commands, checkpoints with image ids, cost, timing).
-
-Past runs are first-class:
+Every word the model sees is a text file, not a string in the code: the system prompt, the summariser used for compaction, the nudges the loop sends when the model stalls or nears its budget, the continuation and goal texts, the message on a protected file, and each tool's description. They ship with the package under `src/prax_bot/core/prompts/`, one file per prompt, with `{placeholders}` the code fills in.
 
 ```bash
-uv run prax status                         # what is running now, recent runs and their verdicts, setup state
-uv run prax inspect --list                 # recent runs
-uv run prax inspect <run-id>               # steps and the checkpoint chain
-uv run prax inspect <run-id> --diff 3      # the repository as it stood at checkpoint 3, as a diff
-uv run prax inspect <run-id> --apply 3     # put that state into your working tree
-uv run prax report <run-id> --open         # a self-contained HTML report
-uv run prax resume                         # continue the latest run from its last checkpoint
-uv run prax resume <run-id> "add a test for the empty case"   # continue with a new instruction
-uv run prax resume <run-id> --from 3       # continue from checkpoint 3 instead of the last one
+prax prompt --list          # every prompt and where each comes from
+prax prompt                 # the system prompt in effect
+prax prompt tools/restore   # any other one by name
+prax prompt --path system   # where it comes from
 ```
 
-A goal keeps the agent working in rounds until something verifiable is true:
+To change one, put a file with the same name under `~/.praxbot/prompts/`, for example `~/.praxbot/prompts/system.md` or `~/.praxbot/prompts/tools/run.md`, and it replaces the packaged text; `system_prompt_file` in the config does the same for the system prompt by pointing at any file. Only your own configuration can do this: a repository's config may not set it, because a cloned repository must not choose what the model is told. Rules that belong to a project go in its `AGENTS.md`, which the model reads at the start of every run.
 
-```bash
-uv run prax goal "all tests pass and mypy is clean" --check "pytest -q && mypy src" --rounds 5 --setup "pip install -e . pytest mypy"
-uv run prax goal "the CLI has a --json flag documented in the README"        # no check: the model reports when the goal is met
-```
-
-Each round is a fresh conversation on the same workspace, seeded with the goal, the previous round's summary and the diff so far. After every round the check command runs in the sandbox without creating a checkpoint; when it exits 0 the goal is met and the diff is shown. Without `--check`, the model ends a round with `finish(goal_met=true)` when it judges the goal achieved. The run stops early after the round cap, after two rounds that changed nothing, or on an error, and says which. The record in `run.json` keeps the objective, the rounds used and the verdict.
-
-Every command and edit the agent made is an immutable sandbox image, so any intermediate state can be diffed, restored, or resumed after the fact. `resume` starts a new sandbox from the chosen image, so the installed dependencies and the work so far are already there, and writes a new run that records which run and checkpoint it came from.
-
-### Instructions, skills, and plugins
-
-**AGENTS.md.** If the repository has an `AGENTS.md` (or `CLAUDE.md`) at its root, the model reads it at the start of every run. An `AGENTS.md` inside a subdirectory is shown the first time the model reads or edits a file under that directory, so package-level rules reach it when they matter. `praxbot init` writes a root `AGENTS.md` for a repository that has none: the agent reads the project files, runs the tests once to confirm the command, and drafts the guide; you see the diff and choose whether to keep it.
-
-**Skills** follow the SKILL.md convention: a directory with a `SKILL.md` whose front matter gives a `name` and a `description`. Only the names and descriptions are shown at the start of a run; the model calls `load_skill` to read one in full when the work calls for it. Skills committed in the repository live under `.praxbot/skills/<name>/SKILL.md` and are read inside the sandbox; personal ones live under `~/.praxbot/skills/<name>/SKILL.md`. `examples/skills/` has one to copy.
-
-**Plugins** add tools. A plugin is a Python file in `~/.praxbot/plugins/` that defines `register(add)` and calls `add(name, description, ArgsModel, handler)` for each tool, where `ArgsModel` is a pydantic class and `handler(workspace, args)` returns the text the model sees. Handlers run on your machine, so plugins load only from your home directory, never from the repository being worked on; anything a plugin wants to run in the sandbox goes through `workspace.run`. `examples/plugins/lint.py` adds a `lint` tool that runs ruff in the sandbox:
-
-```bash
-cp examples/plugins/lint.py ~/.praxbot/plugins/
-uv run prax run "fix the unused imports flagged by lint"
-``` If the repository has an `AGENTS.md` or `CLAUDE.md`, its contents are given to the model at the start of the run.
+The system prompt is short by design, about 2,700 characters, and every rule in it traces to a failure seen in the benchmark logs: reproduce the report before editing, because the most common miss was a confident fix that made the visible tests pass and not the hidden ones; keep a fix when tests that assert the old behaviour fail, because two runs undid correct edits; restore is for one bad command, never for starting over, because two runs restored to the baseline and lost their work; and act once sure, because the budget is finite and every result says how much is left.
 
 ## How the context is managed
 
