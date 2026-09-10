@@ -105,6 +105,12 @@ base_image = "python:3.12"
 
 Two rules keep a cloned repository from doing harm: its file cannot choose the backend or the model endpoint, and a setup command it provides only runs inside a sandbox. On the local backend it is ignored with a notice, and `--setup` runs whatever you pass yourself.
 
+### The system prompt
+
+The prompt the model works under ships with the package as `src/prax_bot/core/prompts/system.md`; `prax prompt` prints the one in effect and `prax prompt --path` says where it comes from. To replace it, point `system_prompt_file` in `~/.praxbot/config.toml`, or `PRAXBOT_SYSTEM_PROMPT_FILE`, at your own file. Only your own config can do that: a repository's file may not set it, because a cloned repository must not choose what the model is told. Rules that belong to a project go in its `AGENTS.md`, which the model reads at the start of every run.
+
+The prompt is short by design, about 2,700 characters, and every rule in it traces to a failure seen in the benchmark logs: reproduce the report before editing, because the most common miss was a confident fix that made the visible tests pass and not the hidden ones; keep a fix when tests that assert the old behaviour fail, because two runs undid correct edits; restore is for one bad command, never for starting over, because two runs restored to the baseline and lost their work; and act once sure, because the budget is finite and every result says how much is left.
+
 Every run is logged under `~/.praxbot/runs/<run id>/`: `events.jsonl` (every tool call and result), `diff.patch`, and `run.json` (model, tokens, sandbox commands, checkpoints with image ids, cost, timing).
 
 Past runs are first-class:

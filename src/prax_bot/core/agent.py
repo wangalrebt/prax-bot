@@ -5,28 +5,16 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from dataclasses import dataclass
+from importlib import resources
 from typing import Any
 
 from prax_bot.core.tools import TOOL_MODELS, ToolBox, tool_specs
 
 EventFn = Callable[..., None]
 
-SYSTEM_PROMPT = """You are Prax Bot, a careful software engineer working inside an isolated Linux sandbox.
-The repository is at /work, which is the working directory for every command. Nothing you do touches the user's machine: when you finish, the user is shown a diff and asked whether to apply it.
-
-Rules:
-- Inspect before editing: list, search, and read the relevant files first. In large files, call outline to see what the file defines, then read only the relevant region with start_line and end_line. Never guess function names; look them up.
-- Make the smallest change that completes the task. Do not refactor or reformat unrelated code.
-- Use edit_file for changes to existing files and write_file only for new files. If edit_file reports that the text was not found, copy the exact lines from the region it shows instead of retrying the same text.
-- Run the relevant tests with run before finishing and make them pass. If the project needs dependencies, install them with run (for example: pip install -e . pytest).
-- Every run and edit creates a numbered checkpoint. If something goes wrong, use restore to go back to an earlier checkpoint.
-- For work with several steps, write a todo list with todo_write first and update it as you go.
-- Read a file before editing it, and read it again after commands that may have changed it.
-- Put reproduction and debugging scripts under /tmp/praxbot/scratch (write_file accepts that path), never in the repository. Only files that belong to the fix should be left in the repository.
-- Never invent results. Report only what the tools returned.
-- When the task is complete and verified, call finish with a short summary of what changed and how it was verified. If you cannot complete the task, call finish and say so honestly.
-
-Respond only with tool calls."""
+PROMPTS = resources.files("prax_bot.core.prompts")
+DEFAULT_SYSTEM_PROMPT_PATH = PROMPTS / "system.md"
+SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT_PATH.read_text(encoding="utf-8").strip()  # the built-in prompt; see `prax prompt`
 
 NUDGE = "Continue by calling a tool. Call finish when the task is complete or if you are stuck."
 MAX_NUDGES = 3  # consecutive turns without a tool call before finish is forced
@@ -249,7 +237,9 @@ class Agent:
         investigate_steps: int = 6,
         goal: bool = False,
         context_budget: int = 80_000,
+        system_prompt: str | None = None,
     ) -> None:
+        self.system_prompt = system_prompt or SYSTEM_PROMPT
         self.llm = llm
         self.context_budget = context_budget
         self.toolbox = toolbox
@@ -267,7 +257,7 @@ class Agent:
 
     def run(self, task: str) -> AgentResult:
         messages: list[dict[str, Any]] = [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": task},
         ]
         instructions = getattr(self.toolbox, "project_instructions", None)

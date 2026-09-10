@@ -39,6 +39,7 @@ USER_KEYS: dict[str, type] = {
     "setup_timeout": int,
     "import_timeout": int,
     "context_budget": int,
+    "system_prompt_file": str,
 }
 TYPE_WORDS = {str: "a string", int: "an integer", float: "a number"}
 REPO_KEYS = (
@@ -52,6 +53,18 @@ REPO_KEYS = (
     "top_p",
     "context_budget",
 )
+
+
+def read_prompt_file(path_text: str) -> str:
+    """The text of a system prompt file, with a clear error when it cannot be used."""
+    path = Path(path_text).expanduser()
+    try:
+        text = path.read_text(encoding="utf-8").strip()
+    except OSError as e:
+        raise ValueError(f"system_prompt_file {path} could not be read: {e}") from None
+    if not text:
+        raise ValueError(f"system_prompt_file {path} is empty")
+    return text
 
 
 def load_config(home: Path, repo_root: Path | None) -> tuple[dict[str, Any], dict[str, str], list[str], list[Path]]:
@@ -145,6 +158,7 @@ class Settings:
     effort: str = "low"  # off: no reasoning; low: short reasoning (default, measured); high: the model's default; xhigh: default reasoning with a 32k completion cap
     backend: str = "contree"
     context_budget: int = 80_000  # tokens of context per model call before the transcript is summarised
+    system_prompt_file: str | None = None  # a file whose text replaces the built-in system prompt; user-level only
     sources: dict[str, str] = field(default_factory=dict)  # setting -> flag, env, repo config, user config, default
     warnings: list[str] = field(default_factory=list)  # things a config file got wrong, worth one line each
     config_files: list[Path] = field(default_factory=list)
@@ -163,6 +177,7 @@ class Settings:
         effort: str | None = None,
         backend: str | None = None,
         context_budget: int | None = None,
+        system_prompt_file: str | None = None,
         repo_root: Path | None = None,
     ) -> Settings:
         env = os.environ
@@ -180,6 +195,7 @@ class Settings:
             "effort": effort,
             "backend": backend,
             "context_budget": context_budget,
+            "system_prompt_file": system_prompt_file,
         }
 
         def pick(key: str, default: Any, cast: Any = str) -> Any:
@@ -214,6 +230,9 @@ class Settings:
             setup_value = None
             sources["setup"] = "ignored"
         top_p_value = pick("top_p", 0.95, float)
+        prompt_file = pick("system_prompt_file", None)
+        if prompt_file:
+            read_prompt_file(prompt_file)  # fail now, with the file named, not in the middle of a run
         return cls(
             temperature=float(pick("temperature", 1.0, float)),
             top_p=None if top_p_value is None else float(top_p_value),
@@ -238,11 +257,16 @@ class Settings:
             setup_timeout=int(pick("setup_timeout", 900, int)),
             import_timeout=int(pick("import_timeout", 900, int)),
             context_budget=int(pick("context_budget", 80_000, int)),
+            system_prompt_file=str(prompt_file) if prompt_file else None,
             home=home,
             sources=sources,
             warnings=warnings,
             config_files=files,
         )
+
+    def system_prompt_text(self) -> str | None:
+        """The text of the configured system prompt file, or None for the built-in prompt."""
+        return read_prompt_file(self.system_prompt_file) if self.system_prompt_file else None
 
     def effective(self) -> list[tuple[str, str, str]]:
         """(setting, value, source) for everything a config file can set, for `prax config`."""

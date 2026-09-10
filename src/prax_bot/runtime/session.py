@@ -206,6 +206,7 @@ def agent_round(
         investigate_steps=settings.investigate_steps,
         goal=goal,
         context_budget=settings.context_budget,
+        system_prompt=settings.system_prompt_text(),
     )
     try:
         return agent.run(task)

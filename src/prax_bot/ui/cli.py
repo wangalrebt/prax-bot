@@ -168,6 +168,26 @@ def config(
     )
 
 
+@app.command()
+def prompt(
+    path: bool = typer.Option(False, "--path", help="Print where the prompt comes from instead of its text"),
+) -> None:
+    """Print the system prompt in effect: the built-in one, or the file set as system_prompt_file."""
+    from prax_bot.core.agent import DEFAULT_SYSTEM_PROMPT_PATH, SYSTEM_PROMPT
+
+    settings = build_settings(repo_root=_maybe_repo_root(Path(".")))
+    custom = settings.system_prompt_text()
+    if path:
+        console.print(
+            str(Path(settings.system_prompt_file).expanduser()) if custom else f"built in: {DEFAULT_SYSTEM_PROMPT_PATH}"
+        )
+        console.print(
+            "[dim]replace it with system_prompt_file in ~/.praxbot/config.toml or PRAXBOT_SYSTEM_PROMPT_FILE; project rules belong in AGENTS.md[/]"
+        )
+        return
+    print(custom or SYSTEM_PROMPT)
+
+
 def _require_credentials(settings: Settings, *, need_project: bool = True) -> None:
     problems = settings.missing()
     if not need_project:
