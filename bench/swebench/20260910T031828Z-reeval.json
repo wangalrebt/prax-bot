@@ -1,0 +1,27 @@
+{
+  "args": {
+    "cmd": "reeval",
+    "ids": "psf__requests-2317",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "1",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "psf__requests-2317",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "steps": 50,
+      "tokens": 651634,
+      "diff_lines": 13,
+      "agent_elapsed": 316.90048799989745,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "8/8",
+      "p2p": "132/133",
+      "eval": "not resolved",
+      "eval_cost": 0.019707449999999998
+    }
+  ]
+}

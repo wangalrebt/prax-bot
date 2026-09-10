@@ -27,4 +27,9 @@ def lint(workspace, args: LintArgs) -> str:
 
 
 def register(add) -> None:
-    add("lint", "Run ruff on a file or directory and report the findings. Cheaper than running the tests for style and unused-import problems.", LintArgs, lint)
+    add(
+        "lint",
+        "Run ruff on a file or directory and report the findings. Cheaper than running the tests for style and unused-import problems.",
+        LintArgs,
+        lint,
+    )

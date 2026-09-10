@@ -381,6 +381,29 @@ Twenty-nine percent fewer tokens for the run, and one more task resolved: reques
 
 On the ten-task suite, whose tasks take five to ten steps and rarely reach the pruning tiers, context management changed nothing that matters: 9 of 10 at 1.40M tokens against 9 of 10 at 1.33M, the difference being one noisy 25-step pass. It is on by default.
 
+The system prompt was then rewritten from the benchmark logs (see [Prompts](#prompts)), the main addition being the rule to reproduce the report before editing, and the twelve were run again with everything else unchanged. After a quality pass over the other prompt texts and the code-style prompt, once more:
+
+| instance | context management | + revised prompt | + quality pass, code style |
+|---|---|---|---|
+| django__django-11880 | yes, 20, 209k | yes, 20, 211k | yes, 49, 608k |
+| django__django-16899 | yes, 16, 128k | yes, 16, 113k | yes, 15, 114k |
+| matplotlib__matplotlib-25122 | yes, 12, 95k | yes, 31, 329k | yes, 28, 345k |
+| psf__requests-1142 | yes, 50, 706k | yes, 50, 720k | yes, 50, 678k |
+| psf__requests-5414 | yes, 41, 460k | no, 50, 594k | yes, 48, 681k |
+| pydata__xarray-4075 | yes, 12, 83k | yes, 16, 135k | yes, 15, 160k |
+| pytest-dev__pytest-5809 | yes, 14, 152k | yes, 12, 115k | yes, 9, 79k |
+| scikit-learn__scikit-learn-12585 | yes, 10, 72k | yes, 24, 237k | yes, 19, 189k |
+| sphinx-doc__sphinx-8621 | yes, 46, 732k | yes, 50, 841k | no, 50, 950k |
+| matplotlib__matplotlib-23476 | no, 34, 410k | no, 47, 629k | no, 46, 645k |
+| sympy__sympy-15017 | no, 34, 470k | yes, 48, 571k | yes, 15, 161k |
+| sympy__sympy-20916 | no, 50, 698k | no (no diff), 50, 700k | no, 43, 551k |
+| **resolved** | **9 of 12** | **9 of 12** | **9 of 12** |
+| tokens for the run | 4.22M | 5.20M | 5.17M |
+
+The count did not move: nine of twelve three times, with the third miss rotating between requests-5414, sphinx-8621 and sympy-15017, which is the flaky tail of this set rather than anything the prompt did. The cost moved, by 23% and 22%, and did not come back when the rule was shortened. The transcripts of the last run say where it went: 134 of 387 steps came after the last edit to the repository. Django-11880 had its fix in place at step 7 and spent the remaining 42 steps trying to run Django's test suite, seven commands that never started because the path or the settings module was wrong, and eight scratch scripts to re-confirm what the first one had shown. Matplotlib-25122 fixed at step 3 and verified for 25. The rule to run the reproduction and the tests after the fix is doing what it says, at that price.
+
+On the full thirty-one, revised prompt and context management together: 22 of 31 at 12.2M tokens, against 23 of 31 at 14.2M for effort low alone. Two came up (sphinx-8621, sphinx-9591) and three went down (pytest-7521, sympy-17655, and requests-2317, whose patch passed all eight target tests and broke one of 133 that had passed). Of the four tasks the reproduce rule was written for, where the earlier runs had made one confident wrong edit, run the tests and finished, two resolved against one before. The ten-task suite was unchanged at 9 of 10, at 1.25M tokens against 1.40M.
+
 Thirty-one tasks is still a small sample and these are the easier tier of Verified, so this is not comparable to leaderboard numbers on the full 500. It is a genuine measurement on real GitHub issues with hidden tests, run once, with the harness frozen before the run.
 
 ## Development

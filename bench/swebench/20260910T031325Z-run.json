@@ -1,0 +1,348 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "sympy__sympy-20916,django__django-11880,django__django-16899,matplotlib__matplotlib-25122,matplotlib__matplotlib-23476,sympy__sympy-15017,pytest-dev__pytest-5809,scikit-learn__scikit-learn-12585,psf__requests-5414,sphinx-doc__sphinx-8621,psf__requests-1142,pydata__xarray-4075",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "3",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "sympy__sympy-20916",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 43,
+      "tokens": 551426,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 43,
+          "prompt_tokens": 533636,
+          "completion_tokens": 17790
+        }
+      },
+      "sandbox_commands": 24,
+      "sandbox_cost": 0.07225154000000002,
+      "diff_lines": 13,
+      "summary": "Modified sympy/printing/pretty/pretty_symbology.py to generate subscript mappings for all Greek letters (not just beta, gamma, rho, phi, chi). Changed the loop from `for gl in ['beta', 'gamma', 'rho', 'phi', 'chi']:` to `for gl in greeks:` where greeks is imported from sympy.core.alphabets. This ens",
+      "agent_elapsed": 181.643039500108,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "1/1",
+      "eval": "not resolved",
+      "eval_cost": 0.025175120000000002,
+      "wall": 187.15769875003025
+    },
+    {
+      "instance_id": "django__django-11880",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 49,
+      "tokens": 608244,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 49,
+          "prompt_tokens": 595458,
+          "completion_tokens": 12786
+        }
+      },
+      "sandbox_commands": 34,
+      "sandbox_cost": 0.07428552999999997,
+      "diff_lines": 12,
+      "summary": "Fixed the __deepcopy__ method of django.forms.fields.Field to deepcopy the error_messages dictionary. Previously, the method performed a shallow copy, causing all copies of a field to share the same error_messages dict. The fix adds `result.error_messages = copy.deepcopy(self.error_messages, memo)` ",
+      "agent_elapsed": 189.69589870795608,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "114/114",
+      "eval": "resolved",
+      "eval_cost": 0.04004939,
+      "wall": 198.95717099984176
+    },
+    {
+      "instance_id": "django__django-16899",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 15,
+      "tokens": 114629,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 15,
+          "prompt_tokens": 110573,
+          "completion_tokens": 4056
+        }
+      },
+      "sandbox_commands": 12,
+      "sandbox_cost": 0.025292410000000005,
+      "diff_lines": 17,
+      "summary": "Modified django/contrib/admin/checks.py to include the field name in the error message for readonly_fields checks. The change updates _check_readonly_fields_item to format the error message as \"The value of '%s' refers to '%s', which is not a callable, an attribute of '%s', or an attribute of '%s'.\"",
+      "agent_elapsed": 61.14429837488569,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "54/54",
+      "eval": "resolved",
+      "eval_cost": 0.042194960000000004,
+      "wall": 71.11205108300783
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-25122",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 28,
+      "tokens": 345389,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 28,
+          "prompt_tokens": 335485,
+          "completion_tokens": 9904
+        }
+      },
+      "sandbox_commands": 23,
+      "sandbox_cost": 0.30199397,
+      "diff_lines": 17,
+      "summary": "Fixed the window correction in mlab._spectral_helper by removing unnecessary np.abs calls. Changed two lines: result /= (np.abs(window)**2).sum() to result /= (window**2).sum() and result /= np.abs(window).sum()**2 to result /= window.sum()**2. This ensures correct normalization for windows with neg",
+      "agent_elapsed": 174.75868299999274,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "12/12",
+      "p2p": "2476/2476",
+      "eval": "resolved",
+      "eval_cost": 0.19045311,
+      "wall": 201.08639095793478
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23476",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 46,
+      "tokens": 645032,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 46,
+          "prompt_tokens": 582529,
+          "completion_tokens": 62503
+        }
+      },
+      "sandbox_commands": 24,
+      "sandbox_cost": 0.23734815999999997,
+      "diff_lines": 65,
+      "summary": "Fixed DPI doubling on unpickling for macOS backend by storing the original DPI in figure._original_dpi and using it for scaling in the resize method. Verified with Agg backend pickle test and figure test suite.",
+      "agent_elapsed": 317.36352183297276,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "104/104",
+      "eval": "not resolved",
+      "eval_cost": 0.19196165,
+      "wall": 336.84191962494515
+    },
+    {
+      "instance_id": "sympy__sympy-15017",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 15,
+      "tokens": 161110,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 15,
+          "prompt_tokens": 159326,
+          "completion_tokens": 1784
+        }
+      },
+      "sandbox_commands": 11,
+      "sandbox_cost": 0.02706539,
+      "diff_lines": 22,
+      "summary": "Fixed NDimArray.__len__ for rank-0 arrays by changing _loop_size initialization from 0 to 1 when shape is empty, using functools.reduce with default 1. Verified that len(sympy.Array(3)) now returns 1, matching numpy behavior and the iterator length. Ran existing array tests (test_immutable_ndim_arra",
+      "agent_elapsed": 51.23830679105595,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "14/14",
+      "eval": "resolved",
+      "eval_cost": 0.022585360000000002,
+      "wall": 56.476392624899745
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5809",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 9,
+      "tokens": 79776,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 9,
+          "prompt_tokens": 76654,
+          "completion_tokens": 3122
+        }
+      },
+      "sandbox_commands": 11,
+      "sandbox_cost": 0.01951059,
+      "diff_lines": 13,
+      "summary": "Changed the lexer parameter in src/_pytest/pastebin.py from 'python3' (or 'python' for Python 2) to 'text' to avoid HTTP 400 errors when posting to bpaste.net. The pastebin output is console text, not Python code, so 'text' is appropriate. The change causes the existing test test_create_new_paste to",
+      "agent_elapsed": 44.53964458289556,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "3/3",
+      "eval": "resolved",
+      "eval_cost": 0.03022931,
+      "wall": 52.224959707818925
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-12585",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 19,
+      "tokens": 189165,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 19,
+          "prompt_tokens": 184305,
+          "completion_tokens": 4860
+        }
+      },
+      "sandbox_commands": 17,
+      "sandbox_cost": 0.11197734,
+      "diff_lines": 13,
+      "summary": "Fixed the clone function in sklearn/base.py to handle estimator types (classes) as parameters by adding an `isinstance(estimator, type)` check. The change ensures that when a parameter is a class (not an instance), clone treats it as a non-estimator and either deep copies it (if safe=False) or raise",
+      "agent_elapsed": 82.16307079209946,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "22/22",
+      "eval": "resolved",
+      "eval_cost": 0.031405039999999995,
+      "wall": 88.15060741710477
+    },
+    {
+      "instance_id": "psf__requests-5414",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 48,
+      "tokens": 681553,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 48,
+          "prompt_tokens": 664625,
+          "completion_tokens": 16928
+        }
+      },
+      "sandbox_commands": 28,
+      "sandbox_cost": 0.05987713000000001,
+      "diff_lines": 26,
+      "summary": "Fixed the issue where http://.example.com raised UnicodeError instead of InvalidURL. Modified requests/models.py to check for empty labels in the host (due to leading/trailing dots) before IDNA encoding and raise InvalidURL with message 'URL has an invalid label.' Verified that the fix works and tha",
+      "agent_elapsed": 194.84670833288692,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "130/130",
+      "eval": "resolved",
+      "eval_cost": 0.01644197,
+      "wall": 200.3385383328423
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 950233,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 51,
+          "prompt_tokens": 853554,
+          "completion_tokens": 96679
+        }
+      },
+      "sandbox_commands": 35,
+      "sandbox_cost": 0.09292308000000002,
+      "diff_lines": 50,
+      "summary": "(no summary given)",
+      "agent_elapsed": 418.70452183298767,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/2",
+      "p2p": "28/31",
+      "eval": "not resolved",
+      "eval_cost": 0.032979100000000004,
+      "wall": 425.7139923328068
+    },
+    {
+      "instance_id": "psf__requests-1142",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 678036,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 658332,
+          "completion_tokens": 19704
+        }
+      },
+      "sandbox_commands": 20,
+      "sandbox_cost": 0.02843631000000001,
+      "diff_lines": 19,
+      "summary": "(no summary given)",
+      "agent_elapsed": 202.14518337487243,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "5/5",
+      "eval": "resolved",
+      "eval_cost": 0.01644058,
+      "wall": 206.53201337484643
+    },
+    {
+      "instance_id": "pydata__xarray-4075",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 15,
+      "tokens": 160885,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 15,
+          "prompt_tokens": 156190,
+          "completion_tokens": 4695
+        }
+      },
+      "sandbox_commands": 12,
+      "sandbox_cost": 0.15943912000000002,
+      "diff_lines": 27,
+      "summary": "Fixed the issue where boolean weights were not properly normalized in weighted mean calculations. The fix converts boolean weights to numeric (by multiplying by 1) in the _sum_of_weights method before computing the dot product. This ensures that the sum of weights is calculated correctly. Verified b",
+      "agent_elapsed": 79.6897256670054,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "958/958",
+      "eval": "resolved",
+      "eval_cost": 0.08253685000000001,
+      "wall": 93.38792037498206
+    }
+  ]
+}
