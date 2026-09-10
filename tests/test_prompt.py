@@ -114,6 +114,7 @@ def test_prompt_loader_lists_renders_and_overrides(tmp_path: Path, monkeypatch: 
     # placeholders: filled when given, left alone when not, and a value is never re-interpreted
     assert prompts.prompt("skill_loaded", name="x", source="s", text="{name} stays") == "Skill x (s):\n{name} stays"
     assert prompts.prompt("late_no_edit").count("{left}") == 1
+    assert prompts.prompt("mid_no_edit").count("{left}") == 1
     with pytest.raises(KeyError, match="no prompt named 'nope'"):
         prompts.source("nope")
     # a file of the same name under ~/.praxbot/prompts replaces the packaged text

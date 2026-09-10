@@ -27,6 +27,8 @@ SUMMARY_SYSTEM = prompt("summary")
 LATE_FRACTION = 5  # the last fifth of the budget counts as late; the model is told to wrap up
 LATE_NO_EDIT = prompt("late_no_edit")
 LATE_EDITED = prompt("late_edited")
+MID_FRACTION = 2  # halfway through the budget with nothing edited, the model is told to commit to a hypothesis
+MID_NO_EDIT = prompt("mid_no_edit")
 BLANK_RETRIES = 2  # a reply with no text and no tool call is retried before it counts as a stall
 BLANK_NUDGE = prompt("nudge_blank")
 REPEAT_NUDGE = prompt("nudge_repeat")
@@ -398,9 +400,11 @@ class Agent:
                     self.on_event("todo", step=step, todos=list(getattr(self.toolbox, "todos", [])))
                 output = f"{output}\n(step {step} of {self.max_steps})"
                 left = self.max_steps - step
+                repo_edited = getattr(self.toolbox, "repo_edited", edited)
                 if 0 < left <= max(3, self.max_steps // LATE_FRACTION):
-                    repo_edited = getattr(self.toolbox, "repo_edited", edited)
                     output += " " + (LATE_EDITED if repo_edited else LATE_NO_EDIT).format(left=left)
+                elif step == self.max_steps // MID_FRACTION and not repo_edited and self.max_steps >= 10:
+                    output += " " + MID_NO_EDIT.format(left=left)
                 self.on_event("tool.result", step=step, name=name, output=output)
                 messages.append({"role": "tool", "tool_call_id": tc.id, "content": output})
                 call_names[tc.id] = name

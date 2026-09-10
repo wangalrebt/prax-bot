@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import difflib
 import json
 import re
@@ -66,6 +67,11 @@ class ReadFile(BaseModel):
     path: str = Field(..., description="File relative to the repository root")
     start_line: int = Field(1, ge=1)
     end_line: int = Field(0, ge=0, description="Last line to read; 0 means to the end (capped at 400 lines per call)")
+    symbol: str = Field(
+        "",
+        description="A function or class to read whole, by the name outline lists; Class.method for a method. "
+        "Overrides start_line and end_line.",
+    )
 
 
 class EditFile(BaseModel):
@@ -294,6 +300,58 @@ def _limited(lines: list[str], limit: int, truncated: bool, what: str) -> str:
     if truncated:
         note += "\n(the workspace truncated this output)"
     return "\n".join(shown) + note
+
+
+def definition_span(text: str, symbol: str) -> tuple[int, int] | list[str]:
+    """Line range (1-based, inclusive) of the function or class called symbol, decorators included.
+
+    Python files are parsed; other languages use the definition lines outline recognises and end a
+    definition where the next one at the same or a shallower indentation starts. When the name is not
+    found, or is ambiguous without its class, the candidates are returned instead of a range.
+    """
+    lines = text.splitlines()
+    wanted = symbol.strip().strip("()")
+    found: list[tuple[str, int, int]] = []  # (qualified name, start, end)
+    try:
+        tree = ast.parse(text)
+    except (SyntaxError, ValueError):
+        tree = None
+    if tree is not None:
+
+        def walk(node: ast.AST, prefix: str) -> None:
+            for child in ast.iter_child_nodes(node):
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    name = f"{prefix}{child.name}"
+                    start = min([child.lineno, *(d.lineno for d in child.decorator_list)])
+                    found.append((name, start, child.end_lineno or child.lineno))
+                    walk(child, f"{name}.")
+
+        walk(tree, "")
+    else:
+        starts = [(i + 1, line) for i, line in enumerate(lines) if re.match(DEFINITION_RE, line)]
+        for k, (ln, line) in enumerate(starts):
+            m = re.match(r"\s*\S+\s+([A-Za-z_][A-Za-z0-9_]*)", line)
+            if not m:
+                continue
+            indent = _indent(line)
+            end = len(lines)
+            for nxt, nxt_line in starts[k + 1 :]:
+                if _indent(nxt_line) <= indent:
+                    end = nxt - 1
+                    break
+            while end > ln and not lines[end - 1].strip():
+                end -= 1
+            found.append((m.group(1), ln, end))
+    exact = [f for f in found if f[0] == wanted]
+    if len(exact) == 1:
+        return exact[0][1], exact[0][2]
+    by_last = [f for f in found if f[0].rsplit(".", 1)[-1] == wanted.rsplit(".", 1)[-1]]
+    if len(by_last) == 1 and not exact:
+        return by_last[0][1], by_last[0][2]
+    if by_last:
+        return [f[0] for f in by_last]
+    close = [f[0] for f in found if wanted.lower() in f[0].rsplit(".", 1)[-1].lower()]
+    return close[:20]
 
 
 def number_lines(lines: list[str], start: int) -> str:
@@ -653,13 +711,20 @@ class ToolBox:
         total = len(lines)
         if total == 0:
             return f"{a.path} is empty"
-        if a.start_line > total:
-            return f"error: {a.path} has {total} lines; start_line {a.start_line} is past the end"
-        end = a.end_line or total
-        end = min(end, total, a.start_line + MAX_READ_LINES - 1)
-        body = number_lines(lines[a.start_line - 1 : end], a.start_line)
+        start, end, label = a.start_line, a.end_line or total, ""
+        if a.symbol:
+            span = definition_span(text, a.symbol)
+            if not isinstance(span, tuple):
+                hint = f"; did you mean {', '.join(span)}" if span else "; call outline to see what it defines"
+                return f"error: no definition named {a.symbol!r} in {a.path}{hint}"
+            start, end = span
+            label = f" ({a.symbol})"
+        if start > total:
+            return f"error: {a.path} has {total} lines; start_line {start} is past the end"
+        end = min(end, total, start + MAX_READ_LINES - 1)
+        body = number_lines(lines[start - 1 : end], start)
         note = "" if end == total else f"\n... {total - end} more lines; call read_file with start_line={end + 1}"
-        return f"{a.path} lines {a.start_line}-{end} of {total}\n{body}{note}"
+        return f"{a.path} lines {start}-{end} of {total}{label}\n{body}{note}"
 
     def _outline(self, a: Outline) -> str:
         self.ws.read(a.path)  # existence and path checks

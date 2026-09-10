@@ -1,1 +1,1 @@
-Read a file with line numbers, at most 400 lines per call. Read a region with start_line and end_line; for a large file, call outline first to find the region.
+Read a file with line numbers, at most 400 lines per call. Read one function or class whole with symbol (a name from outline; Class.method for a method), or a region with start_line and end_line. For a large file, call outline first, then read the definition you need by symbol.

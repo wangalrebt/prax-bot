@@ -93,3 +93,19 @@ def test_create_local_workspace_builds_baseline_and_venv(tmp_path: Path) -> None
     ws.run("mkdir -p pkg.egg-info __pycache__ && touch pkg.egg-info/PKG-INFO __pycache__/x.pyc real.txt")
     diff = ws.diff()
     assert "real.txt" in diff and "egg-info" not in diff and "pyc" not in diff
+
+
+def test_diff_leaves_out_binary_files_the_run_created(tmp_path: Path) -> None:
+    ws = workspace(tmp_path)
+    ws.write("fix.py", b"y = 2\n")
+    ws.run(
+        "printf '\\x80\\x00\\x01pickle' > sinus.pickle && printf '\\x89PNG\\x00' > out/plot.png 2>/dev/null || (mkdir out && printf '\\x89PNG\\x00' > out/plot.png)"
+    )
+    diff = ws.diff()
+    assert "fix.py" in diff and "sinus.pickle" not in diff and "plot.png" not in diff
+    assert ws.dropped_binary == ["out/plot.png", "sinus.pickle"]
+    # a tracked binary the task changes on purpose stays in the diff
+    ws.run("printf '\\x00\\x01' > blob.bin && git add blob.bin && git -c user.email=t@t -c user.name=t commit -qm blob")
+    ws.run("printf '\\x00\\x02' > blob.bin")
+    diff = ws.diff()
+    assert "blob.bin" in diff and ws.dropped_binary == ["out/plot.png", "sinus.pickle"]

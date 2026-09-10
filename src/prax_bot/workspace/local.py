@@ -27,6 +27,7 @@ from prax_bot.workspace.sandbox import (
     EventFn,
     WorkspaceError,
     _noop,
+    new_binary_files,
     pack_repo,
     repo_file_names,
     resolve_in_workdir,
@@ -59,6 +60,7 @@ class LocalWorkspace:
         self.total_cost = 0.0
         self.commands = 0
         self.dropped_scratch: list[str] = []
+        self.dropped_binary: list[str] = []
         for d in (self.snapshots, root / "home", root / "tmp"):
             d.mkdir(parents=True, exist_ok=True)
         self._checkpoint("baseline")
@@ -177,8 +179,11 @@ class LocalWorkspace:
 
     def diff(self) -> str:
         listing = self.run("git ls-files --others --exclude-standard", mutate=False)
-        self.dropped_scratch = scratch_files(listing.stdout.splitlines()) if listing.exit_code == 0 else []
-        excludes = " ".join(shlex.quote(f":(exclude){p}") for p in self.dropped_scratch)
+        untracked = listing.stdout.splitlines() if listing.exit_code == 0 else []
+        self.dropped_scratch = scratch_files(untracked)
+        stat = self.run("git add -A && git diff --cached --numstat --no-renames HEAD", mutate=False)
+        self.dropped_binary = new_binary_files(stat.stdout.splitlines(), untracked) if stat.exit_code == 0 else []
+        excludes = " ".join(shlex.quote(f":(exclude){p}") for p in [*self.dropped_scratch, *self.dropped_binary])
         r = self.run(
             f"git add -A && git diff --cached --binary HEAD -- . {excludes}",
             mutate=False,

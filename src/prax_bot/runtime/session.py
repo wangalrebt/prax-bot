@@ -255,6 +255,8 @@ def print_diff(diff: str, ws: Any, run_dir: Path, export: Path | None = None, ou
         out.print(
             f"[dim]left out of the diff, they look like scratch files: {escape(', '.join(ws.dropped_scratch))}[/]"
         )
+    if getattr(ws, "dropped_binary", []):
+        out.print(f"[dim]left out of the diff, binary files the run created: {escape(', '.join(ws.dropped_binary))}[/]")
     if not diff.strip():
         out.print("no changes to the repository")
         return

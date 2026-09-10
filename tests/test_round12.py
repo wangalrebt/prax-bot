@@ -53,6 +53,35 @@ def test_late_budget_nudge_tells_the_model_to_wrap_up() -> None:
     assert "Wrap up" in tool_results[2] and "no repository file" not in tool_results[2]
 
 
+def test_halfway_nudge_fires_once_when_nothing_is_edited() -> None:
+    reads = [reply(None, call("read_file", path=f"{i}.py")) for i in range(6)]
+    llm = FakeLLM(
+        [
+            *reads,
+            reply(None, call("edit_file", path="a.py", old="x", new="y")),
+            reply(None, call("finish", summary="done")),
+        ]
+    )
+    result = Agent(llm, FakeToolBox(), max_steps=10).run("fix it")
+    assert result.finished and result.steps == 8
+    tool_results = [m["content"] for m in llm.requests[-1][0] if m["role"] == "tool"]
+    assert "Half of the budget" not in tool_results[3], "step 4 of 10 is not halfway"
+    assert "Half of the budget" in tool_results[4] and "5 steps remain" in tool_results[4]
+    assert "Half of the budget" not in tool_results[5], "the halfway nudge is sent once"
+    assert "3 steps remain. Wrap up" in tool_results[6], "the late nudge still fires in the last fifth"
+    # nothing at halfway when an edit has already been made
+    llm = FakeLLM(
+        [
+            reply(None, call("edit_file", path="a.py", old="x", new="y")),
+            *reads[:5],
+            reply(None, call("finish", summary="done")),
+        ]
+    )
+    Agent(llm, FakeToolBox(), max_steps=10).run("fix it")
+    tool_results = [m["content"] for m in llm.requests[-1][0] if m["role"] == "tool"]
+    assert not any("Half of the budget" in r for r in tool_results)
+
+
 def test_protected_message_says_not_to_revert_for_stale_tests() -> None:
     ws = FakeWorkspace({"tests/test_a.py": "assert old\n", "a.py": "old\n"})
     box = ToolBox(ws, protected=("tests/*",))

@@ -61,7 +61,7 @@ What happens in a run:
 
 1. The working tree (tracked and untracked files, respecting `.gitignore`) is uploaded into a fresh sandbox built from `python:3.12` and committed there as the baseline.
 2. The optional `--setup` command runs once, for dependencies.
-3. Nemotron works through a small tool set: `list_files`, `search`, `read_file`, `outline`, `edit_file`, `write_file`, `run`, `restore`, `finish`. Every `run` and every edit produces a new immutable sandbox image, which is a checkpoint the model can `restore`.
+3. Nemotron works through a small tool set: `list_files`, `search`, `read_file` (a region, or one function or class whole by name), `outline`, `edit_file`, `write_file`, `run`, `restore`, `finish`. Every `run` and every edit produces a new immutable sandbox image, which is a checkpoint the model can `restore`.
 4. When the model calls `finish`, or the step budget ends, the diff against the baseline is pulled out of the sandbox and shown.
 5. You can type a follow-up instruction ("also handle the negative case"). The agent continues in the same sandbox, with the original task, its previous summary and the diff so far as context, and shows the new diff. Press Enter to stop.
 6. You choose whether to apply the diff. Applying changes the working tree only; nothing is committed.
@@ -107,7 +107,7 @@ Two rules keep a cloned repository from doing harm: its file cannot choose the b
 
 ### Prompts
 
-Every word the model sees is a text file, not a string in the code: the system prompt, the code-style rules appended to it (match the surrounding code, change only what the task needs, run the project's own linter, tests in the project's own style), the summariser used for compaction, the nudges the loop sends when the model stalls or nears its budget, the continuation and goal texts, the message on a protected file, and each tool's description. They ship with the package under `src/prax_bot/core/prompts/`, one file per prompt, with `{placeholders}` the code fills in.
+Every word the model sees is a text file, not a string in the code: the system prompt, the code-style rules appended to it (match the surrounding code, change only what the task needs, run the project's own linter, tests in the project's own style), the summariser used for compaction, the nudges the loop sends when the model stalls, is halfway through its budget with nothing edited, or nears the end of it, the continuation and goal texts, the message on a protected file, and each tool's description. They ship with the package under `src/prax_bot/core/prompts/`, one file per prompt, with `{placeholders}` the code fills in.
 
 ```bash
 prax prompt --list          # every prompt and where each comes from
@@ -132,7 +132,7 @@ The budget is a setting: `--context-budget`, `PRAXBOT_CONTEXT_BUDGET`, or `conte
 
 ## How the sandbox is used
 
-Token Factory Sandboxes are immutable images. Running a command on an image produces a new image. Prax Bot keeps the current image as the workspace state: mutating commands and file writes advance it, read-only commands run disposably and leave it alone. That gives free checkpoints, an exact record of every state the agent passed through, and a diff that is computed inside the sandbox with git. Build artifacts such as `*.egg-info/`, `__pycache__/`, and `.pytest_cache/` are kept out of the diff through the workspace's `.git/info/exclude`.
+Token Factory Sandboxes are immutable images. Running a command on an image produces a new image. Prax Bot keeps the current image as the workspace state: mutating commands and file writes advance it, read-only commands run disposably and leave it alone. That gives free checkpoints, an exact record of every state the agent passed through, and a diff that is computed inside the sandbox with git. Build artifacts such as `*.egg-info/`, `__pycache__/`, and `.pytest_cache/` are kept out of the diff through the workspace's `.git/info/exclude`. Binary files the run created, such as a pickle or a plot written by a reproduction script, are left out of the diff and listed; a tracked binary the task changed stays in.
 
 The local backend implements the same five operations over a temporary directory: commands run with a scrubbed environment inside a private Python 3.12 virtualenv, and checkpoints are directory clones. It is convenient for development and it is not isolation: model-generated commands execute on your machine.
 

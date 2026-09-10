@@ -1,0 +1,1 @@
+Half of the budget is gone ({left} steps remain) and no repository file has been changed. Stop reading: write your best hypothesis for the cause into the todo list, make the edit for it within the next five steps, and run the reproduction. The result will tell you whether to correct it. Runs that keep reading past this point end with nothing to show.

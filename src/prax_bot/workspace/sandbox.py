@@ -57,6 +57,21 @@ DIFF_EXCLUDES = (
 )
 
 
+def new_binary_files(numstat: list[str], untracked: list[str]) -> list[str]:
+    """Untracked binary files among the staged changes: git's numstat shows '-' counts for binaries.
+
+    A pickle or an image written by a reproduction script does not belong in a diff; a tracked binary
+    the task changed on purpose is kept.
+    """
+    new = set(untracked)
+    out = []
+    for line in numstat:
+        parts = line.split("\t", 2)
+        if len(parts) == 3 and parts[0] == parts[1] == "-" and parts[2] in new:
+            out.append(parts[2])
+    return out
+
+
 def git_exclude_command() -> str:
     """Shell snippet that appends DIFF_EXCLUDES to .git/info/exclude in the current directory."""
     body = "\\n".join(DIFF_EXCLUDES)
@@ -204,6 +219,7 @@ class Workspace:
         self.total_cost = 0.0
         self.commands = 0
         self.dropped_scratch: list[str] = []
+        self.dropped_binary: list[str] = []
         self._checkpoint("baseline")
 
     @property
@@ -320,8 +336,15 @@ class Workspace:
         for attempt in range(attempts):
             try:
                 listing = self.run("git ls-files --others --exclude-standard", mutate=False)
-                self.dropped_scratch = scratch_files(listing.stdout.splitlines()) if listing.exit_code == 0 else []
-                excludes = " ".join(shlex.quote(f":(exclude){p}") for p in self.dropped_scratch)
+                untracked = listing.stdout.splitlines() if listing.exit_code == 0 else []
+                self.dropped_scratch = scratch_files(untracked)
+                stat = self.run("git add -A && git diff --cached --numstat --no-renames HEAD", mutate=False)
+                self.dropped_binary = (
+                    new_binary_files(stat.stdout.splitlines(), untracked) if stat.exit_code == 0 else []
+                )
+                excludes = " ".join(
+                    shlex.quote(f":(exclude){p}") for p in [*self.dropped_scratch, *self.dropped_binary]
+                )
                 r = self.run(
                     f"git add -A && git diff --cached --binary HEAD -- . {excludes}",
                     mutate=False,
