@@ -1,0 +1,38 @@
+{
+  "args": {
+    "cmd": "reeval",
+    "ids": "psf__requests-2317,astropy__astropy-14309",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "1",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "psf__requests-2317",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "steps": 50,
+      "tokens": 651634,
+      "diff_lines": 13,
+      "agent_elapsed": 316.90048799989745,
+      "resolved": false,
+      "eval": "error: ContreeTransportError: ContreeTransportError(request=RequestInfo(url='https://api.tokenfactory.nebius.com/sandboxes/v1/operations/01a08924-347f-741e-af33-3fef5541d07e', method='GET'), response=None, error='', _raw=ReadError"
+    },
+    {
+      "instance_id": "astropy__astropy-14309",
+      "repo": "astropy/astropy",
+      "difficulty": "<15 min fix",
+      "steps": 9,
+      "tokens": 126661,
+      "diff_lines": 13,
+      "agent_elapsed": 51.092090541962534,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "141/141",
+      "eval": "resolved",
+      "eval_cost": 0.33757399
+    }
+  ]
+}

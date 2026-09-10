@@ -107,7 +107,7 @@ Two rules keep a cloned repository from doing harm: its file cannot choose the b
 
 ### Prompts
 
-Every word the model sees is a text file, not a string in the code: the system prompt, the summariser used for compaction, the nudges the loop sends when the model stalls or nears its budget, the continuation and goal texts, the message on a protected file, and each tool's description. They ship with the package under `src/prax_bot/core/prompts/`, one file per prompt, with `{placeholders}` the code fills in.
+Every word the model sees is a text file, not a string in the code: the system prompt, the code-style rules appended to it (match the surrounding code, change only what the task needs, run the project's own linter, tests in the project's own style), the summariser used for compaction, the nudges the loop sends when the model stalls or nears its budget, the continuation and goal texts, the message on a protected file, and each tool's description. They ship with the package under `src/prax_bot/core/prompts/`, one file per prompt, with `{placeholders}` the code fills in.
 
 ```bash
 prax prompt --list          # every prompt and where each comes from

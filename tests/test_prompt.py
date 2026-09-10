@@ -29,10 +29,40 @@ def test_the_built_in_prompt_is_the_packaged_file_and_says_the_important_things(
 def test_agent_uses_the_built_in_prompt_unless_given_another() -> None:
     llm = FakeLLM([reply(None, call("finish", summary="x")), reply(None, call("finish", summary="y"))])
     Agent(llm, FakeToolBox(), max_steps=3).run("t")
-    assert llm.requests[0][0][0] == {"role": "system", "content": SYSTEM_PROMPT}
+    system = llm.requests[0][0][0]
+    assert system["role"] == "system" and system["content"].startswith(SYSTEM_PROMPT)
+    assert "Code style:" in system["content"], "the code-style prompt is appended"
     llm = FakeLLM([reply(None, call("finish", summary="x")), reply(None, call("finish", summary="y"))])
     Agent(llm, FakeToolBox(), max_steps=3, system_prompt="You are a terse bot.").run("t")
-    assert llm.requests[0][0][0]["content"] == "You are a terse bot."
+    assert llm.requests[0][0][0]["content"].startswith("You are a terse bot.\n\nCode style:")
+
+
+def test_code_style_prompt_says_the_important_things_and_can_be_switched_off(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from prax_bot.core import prompts
+
+    style = prompts.prompt("code_style")
+    for phrase in (
+        "Match the surrounding code",
+        "No drive-by",
+        "Comments explain why",
+        "run it on the files you changed",
+        "add, do not break",
+    ):
+        assert phrase in style, phrase
+    assert len(style) < 1800
+    home = tmp_path / "home"
+    (home / "prompts").mkdir(parents=True)
+    (home / "prompts" / "code_style.md").write_text("\n")  # an empty override switches it off
+    monkeypatch.setenv("PRAXBOT_HOME", str(home))
+    prompts.clear_cache()
+    try:
+        llm = FakeLLM([reply(None, call("finish", summary="x")), reply(None, call("finish", summary="y"))])
+        Agent(llm, FakeToolBox(), max_steps=3, system_prompt="Terse.").run("t")
+        assert llm.requests[0][0][0]["content"] == "Terse."
+    finally:
+        prompts.clear_cache()
 
 
 def test_system_prompt_file_is_user_level_and_validated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

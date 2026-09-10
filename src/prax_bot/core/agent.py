@@ -234,13 +234,18 @@ class Agent:
         self._goal = goal
         self.tools = self._specs()
 
+    def system_message(self) -> str:
+        """The system prompt plus the code-style prompt; an empty code_style override drops the second part."""
+        style = prompt("code_style")
+        return f"{self.system_prompt}\n\n{style}" if style else self.system_prompt
+
     def _specs(self) -> list[dict[str, Any]]:
         specs = getattr(self.toolbox, "specs", None)
         return specs(goal=self._goal) if specs else tool_specs(goal=self._goal)
 
     def run(self, task: str) -> AgentResult:
         messages: list[dict[str, Any]] = [
-            {"role": "system", "content": self.system_prompt},
+            {"role": "system", "content": self.system_message()},
             {"role": "user", "content": task},
         ]
         instructions = getattr(self.toolbox, "project_instructions", None)
