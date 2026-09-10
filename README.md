@@ -118,7 +118,7 @@ prax prompt --path system   # where it comes from
 
 To change one, put a file with the same name under `~/.praxbot/prompts/`, for example `~/.praxbot/prompts/system.md` or `~/.praxbot/prompts/tools/run.md`, and it replaces the packaged text; `system_prompt_file` in the config does the same for the system prompt by pointing at any file. Only your own configuration can do this: a repository's config may not set it, because a cloned repository must not choose what the model is told. Rules that belong to a project go in its `AGENTS.md`, which the model reads at the start of every run.
 
-The system prompt is short by design, about 2,700 characters, and every rule in it traces to a failure seen in the benchmark logs: reproduce the report before editing, because the most common miss was a confident fix that made the visible tests pass and not the hidden ones; keep a fix when tests that assert the old behaviour fail, because two runs undid correct edits; restore is for one bad command, never for starting over, because two runs restored to the baseline and lost their work; and act once sure, because the budget is finite and every result says how much is left.
+The system prompt is short by design, about 2,700 characters, and every rule in it traces to a failure seen in the benchmark logs: reproduce the report before editing, because the most common miss was a confident fix that made the visible tests pass and not the hidden ones; keep a fix when tests that assert the old behaviour fail, because two runs undid correct edits; restore is for one bad command, never for starting over, because two runs restored to the baseline and lost their work; act once sure, because the budget is finite and every result says how much is left; and fix where the value is produced by extending the mechanism that already handles the nearest case, because five misses were a new branch beside a one-line upstream fix.
 
 ## How the context is managed
 
@@ -404,7 +404,31 @@ The count did not move: nine of twelve three times, with the third miss rotating
 
 A fourth run tried to bound that phase with one more rule, verify once and then stop: rerun the reproduction, then one test command found from the project's test layout, one correction allowed, then finish and say what was not run. It came back 8 of 12 at 4.63M tokens. Django-11880 fell from 49 steps to 14, but django-16899 missed for the first time in four runs, on an error-message string the hidden test compares exactly, and matplotlib-25122 still spent twenty steps after its fix. Ten percent cheaper and one task worse is not a rule to keep, so the prompt stays as described above, and the price of verification after the fix is the open item: the transcripts say the model does not know how to run a project's tests and guesses, which is something the harness can tell it rather than the prompt.
 
-On the full thirty-one, revised prompt and context management together: 22 of 31 at 12.2M tokens, against 23 of 31 at 14.2M for effort low alone. Two came up (sphinx-8621, sphinx-9591) and three went down (pytest-7521, sympy-17655, and requests-2317, whose patch passed all eight target tests and broke one of 133 that had passed). Of the four tasks the reproduce rule was written for, where the earlier runs had made one confident wrong edit, run the tests and finished, two resolved against one before. The ten-task suite was unchanged at 9 of 10, at 1.25M tokens against 1.40M.
+On the full thirty-one, revised prompt and context management together: 23 of 31 at 12.2M tokens, against 23 of 31 at 14.2M for effort low alone. Two came up (sphinx-8621, sphinx-9591) and two went down (pytest-7521, sympy-17655); requests-2317 counted as a miss for a day, its patch having passed all eight target tests and failed one of 133 regression tests, until the reason turned out to be the grading sandbox (next section). Of the four tasks the reproduce rule was written for, where the earlier runs had made one confident wrong edit, run the tests and finished, two resolved against one before. The ten-task suite was unchanged at 9 of 10, at 1.25M tokens against 1.40M.
+
+### What the misses say
+
+Thirteen tasks missed at least once across the six runs on this harness: five never resolve (matplotlib-20676, matplotlib-23476, pylint-4970, sphinx-9258, sympy-20916) and eight flip between runs. Reading their transcripts, the agent's patches and the upstream fixes gives four causes.
+
+**The grading sandbox, not the agent (requests-2317, requests-5414).** Both pass their target tests. Each then loses one regression test that connects to 10.255.255.1 expecting a timeout and gets "Network is unreachable" instead. Some sandbox hosts have no route out: the same image probed twice timed out correctly once and reported no route the next time, and the SDK offers no network setting. Requests-5414 had passed its target test in four of six gradings. The grader now grades again, up to three times, when a task is not resolved and the log shows that error. Requests-2317 resolved on the next grading, and in the run below requests-5414 needed three gradings before one landed on a host with a route.
+
+**Fixing where the error shows instead of where the value is produced (sympy-20916, sympy-17655, sphinx-9258, pytest-7521, pylint-4970, half of matplotlib-20676).** The upstream fixes are one to four lines that extend an existing mechanism. The agent writes a new branch upstream of it. Sympy-20916 edited the Greek-letter table in the pretty printer; the fix is the name-splitting regex, in a file the model read twice and never touched. Sympy-17655 special-cased products inside Point addition; the fix is a missing reflected-multiply method. Sphinx-9258 split on the pipe in the generic field code; the fix adds the pipe to a delimiter regex two lines from where "or" is already handled. Missed patches are 1.5 times the size of the upstream fix at the median, resolved ones 1.0, and the three worst are 5 to 9 times. Three rules went into the system prompt: fix where the wrong value is produced, not where it is noticed; extend the mechanism that already handles the nearest similar case, and cover every entry point; and when the report shows the expected output, produce exactly that.
+
+**Reading spirals.** Matplotlib-20676 spent 36 steps reading and searching one file before its first reproduction; matplotlib-23476 read for 45 steps and edited once, at step 46, after the late nudge at 40. Across the 31 transcripts, 27% of steps are file reads, about 60 lines each, the same file read up to 24 times. Two harness changes: `read_file` takes a `symbol` and returns that function or class whole, and at half the budget with nothing edited the tool result tells the model to commit to a hypothesis and edit.
+
+**A binary in the diff.** Matplotlib-23476's diff carried a 57 KB pickle that the reproduction script wrote into the repository root. Binary files the run creates are now dropped from the diff and listed.
+
+Matplotlib-23476 needs macOS and its hidden test drives a private method; matplotlib-20676's test checks handle positions the report never mentions. Those two stay.
+
+The three prompt rules were run on the twelve plus the five wrong-layer tasks, everything else as above:
+
+| set | final prompt | with the three rules |
+|---|---|---|
+| the twelve | 9 of 12, 5.17M | 9 of 12, 4.68M |
+| sympy-17655, sphinx-9258, pytest-7521, pylint-4970, matplotlib-20676 | 0 of 5 (in the 31-task run) | 1 of 5 |
+
+Pytest-7521 resolved in 21 steps where it had used 50; sympy-17655, sphinx-9258 and pylint-4970 made the same wrong-layer fix as before, rule or no rule, the issue's traceback pointing at the place the model edits. One task changed at no cost, so the rules stay, with the same caveat as the one-script rule: this model follows a rule in the prompt some of the time. The misses on the twelve were sympy-20916, matplotlib-23476 and django-16899, which wrote the same message format as in the run before and cited the rule about tests that assert old behaviour to excuse the failing ones.
+
 
 Thirty-one tasks is still a small sample and these are the easier tier of Verified, so this is not comparable to leaderboard numbers on the full 500. It is a genuine measurement on real GitHub issues with hidden tests, run once, with the harness frozen before the run.
 

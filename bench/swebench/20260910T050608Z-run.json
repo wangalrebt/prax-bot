@@ -1,0 +1,501 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "sympy__sympy-20916,django__django-11880,django__django-16899,matplotlib__matplotlib-25122,matplotlib__matplotlib-23476,sympy__sympy-15017,pytest-dev__pytest-5809,scikit-learn__scikit-learn-12585,psf__requests-5414,sphinx-doc__sphinx-8621,psf__requests-1142,pydata__xarray-4075,sympy__sympy-17655,sphinx-doc__sphinx-9258,pytest-dev__pytest-7521,pylint-dev__pylint-4970,matplotlib__matplotlib-20676",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "3",
+    "out": "bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "sympy__sympy-20916",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 685876,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 644747,
+          "completion_tokens": 41129
+        }
+      },
+      "sandbox_commands": 23,
+      "sandbox_cost": 0.06053859,
+      "diff_lines": 0,
+      "summary": "(no summary given)",
+      "agent_elapsed": 280.0694355838932,
+      "resolved": false,
+      "patch_applied": false,
+      "eval": "no diff produced",
+      "wall": 280.0694729590323
+    },
+    {
+      "instance_id": "django__django-11880",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 31,
+      "tokens": 411890,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 31,
+          "prompt_tokens": 403508,
+          "completion_tokens": 8382
+        }
+      },
+      "sandbox_commands": 25,
+      "sandbox_cost": 0.0830565,
+      "diff_lines": 12,
+      "summary": "Fixed the __deepcopy__ method of django.forms.fields.Field to deep copy the error_messages dictionary. Previously, error_messages was shallow copied, causing all instances of a field to share the same dictionary. The fix adds `result.error_messages = copy.deepcopy(self.error_messages, memo)` in the ",
+      "agent_elapsed": 131.40614583413117,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "114/114",
+      "eval": "resolved",
+      "eval_cost": 0.040001129999999996,
+      "grading_attempts": 1,
+      "wall": 140.25880229193717
+    },
+    {
+      "instance_id": "django__django-16899",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 14,
+      "tokens": 102933,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 14,
+          "prompt_tokens": 99490,
+          "completion_tokens": 3443
+        }
+      },
+      "sandbox_commands": 11,
+      "sandbox_cost": 0.02368603,
+      "diff_lines": 13,
+      "summary": "Modified django/contrib/admin/checks.py to include the field name in readonly_fields error messages. The change updates the label passed to _check_readonly_fields_item to include the field name in parentheses. Two existing tests now fail because they expect the old error message format; these failur",
+      "agent_elapsed": 58.16896458296105,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/2",
+      "p2p": "54/54",
+      "eval": "not resolved",
+      "eval_cost": 0.040013950000000006,
+      "grading_attempts": 1,
+      "wall": 67.86835400015116
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-25122",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 17,
+      "tokens": 157035,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 17,
+          "prompt_tokens": 148691,
+          "completion_tokens": 8344
+        }
+      },
+      "sandbox_commands": 15,
+      "sandbox_cost": 0.25892775,
+      "diff_lines": 17,
+      "summary": "Fixed the window correction in mlab._spectral_helper by removing unnecessary np.abs calls. Changed:\n- result /= (np.abs(window)**2).sum()  -> result /= (window**2).sum()\n- result /= np.abs(window).sum()**2   -> result /= window.sum()**2\nThis ensures correct scaling for windows with negative values (",
+      "agent_elapsed": 127.96078662504442,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "12/12",
+      "p2p": "2476/2476",
+      "eval": "resolved",
+      "eval_cost": 0.19222421,
+      "grading_attempts": 1,
+      "wall": 154.3480537920259
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23476",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 48,
+      "tokens": 629822,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 48,
+          "prompt_tokens": 604858,
+          "completion_tokens": 24964
+        }
+      },
+      "sandbox_commands": 32,
+      "sandbox_cost": 0.11001591000000001,
+      "diff_lines": 60,
+      "summary": "Fixed the DPI doubling issue on macOS backend by ensuring that when a new FigureCanvasMac is created (e.g., after unpickling), the figure's DPI is reset to the original DPI stored in _original_dpi. This prevents the resize method from incorrectly scaling the figure size based on an already-modified ",
+      "agent_elapsed": 215.28517137491144,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "104/104",
+      "eval": "not resolved",
+      "eval_cost": 0.19100014,
+      "grading_attempts": 1,
+      "wall": 234.427743665874
+    },
+    {
+      "instance_id": "sympy__sympy-15017",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 41,
+      "tokens": 469799,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 41,
+          "prompt_tokens": 460123,
+          "completion_tokens": 9676
+        }
+      },
+      "sandbox_commands": 20,
+      "sandbox_cost": 0.05200822000000001,
+      "diff_lines": 44,
+      "summary": "Fixed the __len__ method for rank-0 arrays in sympy.tensor.array.NDimArray by ensuring _loop_size is initialized to 1 for empty shape (rank-0) instead of 0. Changed both dense and sparse array constructors to use functools.reduce with initial value 1. Verified that len(sympy.Array(3)) now returns 1,",
+      "agent_elapsed": 133.1750221250113,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "14/14",
+      "eval": "resolved",
+      "eval_cost": 0.02349882,
+      "grading_attempts": 1,
+      "wall": 138.80760820908472
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5809",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 8,
+      "tokens": 71570,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 8,
+          "prompt_tokens": 68363,
+          "completion_tokens": 3207
+        }
+      },
+      "sandbox_commands": 7,
+      "sandbox_cost": 0.01097942,
+      "diff_lines": 13,
+      "summary": "Changed lexer from 'python3' to 'text' in src/_pytest/pastebin.py's create_new_paste function to avoid HTTP 400 errors when submitting to bpaste.net. Verified that the pastebin tests pass except for the expected failure in test_create_new_paste which asserts the old lexer value. This failure is expe",
+      "agent_elapsed": 39.194759584032,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "3/3",
+      "eval": "resolved",
+      "eval_cost": 0.0293904,
+      "grading_attempts": 1,
+      "wall": 46.536749416962266
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-12585",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 7,
+      "tokens": 50771,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 7,
+          "prompt_tokens": 49533,
+          "completion_tokens": 1238
+        }
+      },
+      "sandbox_commands": 7,
+      "sandbox_cost": 0.032726479999999995,
+      "diff_lines": 13,
+      "summary": "Fixed the clone function in sklearn/base.py to handle estimator types (classes) as parameters by adding a check for isinstance(estimator, type). The fix prevents the TypeError when get_params is called on a class. Verified by reproducing the issue and confirming the fix resolves it. Ran the sklearn/",
+      "agent_elapsed": 31.23645216692239,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "22/22",
+      "eval": "resolved",
+      "eval_cost": 0.03061631,
+      "grading_attempts": 1,
+      "wall": 37.06221191701479
+    },
+    {
+      "instance_id": "psf__requests-5414",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 38,
+      "tokens": 520210,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 38,
+          "prompt_tokens": 507402,
+          "completion_tokens": 12808
+        }
+      },
+      "sandbox_commands": 28,
+      "sandbox_cost": 0.05834657,
+      "diff_lines": 26,
+      "summary": "Fixed the issue where requesting a URL with an empty label (e.g., http://.example.com) raised a UnicodeError or LocationParseError. Now it raises requests.exceptions.InvalidURL with the message \"URL has an invalid label.\" by adding validation for empty labels and labels longer than 63 characters in ",
+      "agent_elapsed": 155.67471379204653,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "130/130",
+      "eval": "resolved",
+      "eval_cost": 0.01649842,
+      "grading_attempts": 3,
+      "wall": 170.56156816682778
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 44,
+      "tokens": 743231,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 44,
+          "prompt_tokens": 693360,
+          "completion_tokens": 49871
+        }
+      },
+      "sandbox_commands": 31,
+      "sandbox_cost": 0.11172910999999998,
+      "diff_lines": 48,
+      "summary": "Fixed the kbd role transformation in sphinx/builders/html/transforms.py to correctly handle standalone keystrokes that are separators ('-', '+', '^') and compound keystrokes containing these separators. The change avoids creating empty kbd tags by treating a separator as a keystroke when it is surro",
+      "agent_elapsed": 310.84048012504354,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "31/31",
+      "eval": "resolved",
+      "eval_cost": 0.03381008,
+      "grading_attempts": 1,
+      "wall": 319.2394137920346
+    },
+    {
+      "instance_id": "psf__requests-1142",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 690296,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 663290,
+          "completion_tokens": 27006
+        }
+      },
+      "sandbox_commands": 20,
+      "sandbox_cost": 0.02887162,
+      "diff_lines": 33,
+      "summary": "(no summary given)",
+      "agent_elapsed": 219.22109958296642,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "5/5",
+      "eval": "resolved",
+      "eval_cost": 0.016111180000000003,
+      "grading_attempts": 1,
+      "wall": 223.29876508307643
+    },
+    {
+      "instance_id": "pydata__xarray-4075",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 17,
+      "tokens": 147873,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 17,
+          "prompt_tokens": 144218,
+          "completion_tokens": 3655
+        }
+      },
+      "sandbox_commands": 11,
+      "sandbox_cost": 0.11778788000000001,
+      "diff_lines": 15,
+      "summary": "Fixed the issue where boolean weights were not properly normalized in weighted mean calculations.\nThe fix converts boolean weights to float in the _reduce method before performing the dot product.\nVerified with the provided MCVE and the full test suite for weighted operations passes.",
+      "agent_elapsed": 71.47025349992327,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "958/958",
+      "eval": "resolved",
+      "eval_cost": 0.08011479,
+      "grading_attempts": 1,
+      "wall": 85.08961591706611
+    },
+    {
+      "instance_id": "sympy__sympy-17655",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 34,
+      "tokens": 480394,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 34,
+          "prompt_tokens": 459055,
+          "completion_tokens": 21339
+        }
+      },
+      "sandbox_commands": 17,
+      "sandbox_cost": 0.061412570000000014,
+      "diff_lines": 57,
+      "summary": "Fixed the issue where multiplying a geometry.Point by a number on the left (e.g., 2.0 * point) raised an exception. The fix involved adding __rmul__ to Point (aliasing __mul__) and implementing as_coeff_Mul method so that Point objects can be treated as factors in Mul expressions. Verified that both",
+      "agent_elapsed": 184.8539681250695,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/2",
+      "p2p": "9/9",
+      "eval": "not resolved",
+      "eval_cost": 0.10494168000000001,
+      "grading_attempts": 1,
+      "wall": 199.01195608312264
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-9258",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 936170,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 918115,
+          "completion_tokens": 18055
+        }
+      },
+      "sandbox_commands": 43,
+      "sandbox_cost": 0.18649557,
+      "diff_lines": 28,
+      "summary": "(no summary given)",
+      "agent_elapsed": 241.47417733306065,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "45/45",
+      "eval": "not resolved",
+      "eval_cost": 0.040623240000000005,
+      "grading_attempts": 1,
+      "wall": 249.1831992920488
+    },
+    {
+      "instance_id": "pytest-dev__pytest-7521",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 21,
+      "tokens": 241240,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 21,
+          "prompt_tokens": 230738,
+          "completion_tokens": 10502
+        }
+      },
+      "sandbox_commands": 15,
+      "sandbox_cost": 0.07702101,
+      "diff_lines": 12,
+      "summary": "Fixed the issue where capfd.readouterr() was converting \\r to \\n by adding newline=\"\" to the EncodedFile constructor in FDCaptureBinary.__init__ in src/_pytest/capture.py. This ensures that carriage returns are preserved when capturing file descriptors. Verified with the provided reproducer and the ",
+      "agent_elapsed": 99.63412812491879,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "125/125",
+      "eval": "resolved",
+      "eval_cost": 0.07672505,
+      "grading_attempts": 1,
+      "wall": 112.17007895791903
+    },
+    {
+      "instance_id": "pylint-dev__pylint-4970",
+      "repo": "pylint-dev/pylint",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 26,
+      "tokens": 369098,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 26,
+          "prompt_tokens": 358625,
+          "completion_tokens": 10473
+        }
+      },
+      "sandbox_commands": 18,
+      "sandbox_cost": 0.05164993000000002,
+      "diff_lines": 17,
+      "summary": "Modified pylint/checkers/similar.py to disable duplicate code detection when min-similarity-lines <= 0 by adding an early return in the close() method. Verified that existing similarity tests still pass and that setting min-similarity-lines=0 in configuration prevents R0801 warnings. Tested with cus",
+      "agent_elapsed": 120.60407808283344,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "17/17",
+      "eval": "not resolved",
+      "eval_cost": 0.019120440000000002,
+      "grading_attempts": 1,
+      "wall": 125.68346524983644
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-20676",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 706445,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 678273,
+          "completion_tokens": 28172
+        }
+      },
+      "sandbox_commands": 24,
+      "sandbox_cost": 0.07859479999999999,
+      "diff_lines": 33,
+      "summary": "(no summary given)",
+      "agent_elapsed": 232.62139008310623,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/2",
+      "p2p": "0/32",
+      "eval": "not resolved",
+      "eval_cost": 0.048285629999999996,
+      "grading_attempts": 1,
+      "wall": 241.1719439169392
+    }
+  ]
+}
