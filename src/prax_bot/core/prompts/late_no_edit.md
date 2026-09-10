@@ -1,1 +1,1 @@
-Only {left} steps remain and no repository file has been changed. Stop investigating: make the most likely fix now, then call finish.
+Only {left} steps remain and no repository file has been changed. Investigation time is over: make the most likely fix now with edit_file, run the reproduction or the relevant test once, then call finish. An imperfect fix with a summary is worth more than a perfect diagnosis with no diff.

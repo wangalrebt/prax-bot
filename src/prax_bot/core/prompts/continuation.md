@@ -1,5 +1,5 @@
 You are continuing earlier work in this repository. The workspace already contains the changes below,
-uncommitted, relative to the baseline commit HEAD. Build on them; do not start over.
+uncommitted, relative to the baseline commit HEAD. Build on them: do not start over, and do not redo work the summary says is done. If you are unsure of the current state of a file, read it.
 
 Original task:
 {original_task}

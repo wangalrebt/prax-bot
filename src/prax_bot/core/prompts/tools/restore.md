@@ -1,1 +1,1 @@
-Restore the whole workspace to an earlier checkpoint, undoing later edits and commands. Use it only when your own edit broke something that worked before. Tests that were already failing before your edits are not a reason to restore. At most three restores per run.
+Restore the whole workspace to an earlier checkpoint, undoing every edit and command after it. Use it only when your own edit broke something that worked before, and go back only as far as that edit. Tests that were already failing are not a reason to restore. At most three restores per run.

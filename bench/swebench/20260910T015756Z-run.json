@@ -1,0 +1,152 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "scikit-learn__scikit-learn-12585,psf__requests-5414,sphinx-doc__sphinx-8621,psf__requests-1142,pydata__xarray-4075",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "3",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "scikit-learn__scikit-learn-12585",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 24,
+      "tokens": 237273,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 24,
+          "prompt_tokens": 225839,
+          "completion_tokens": 11434
+        }
+      },
+      "sandbox_commands": 19,
+      "sandbox_cost": 0.14333432000000002,
+      "diff_lines": 13,
+      "summary": "Fixed the clone function in sklearn/base.py to handle estimator types (classes) as parameters by adding an isinstance(estimator, type) check. The fix prevents attempting to call get_params on a class, which would raise a TypeError. Verified with the original reproduction case and comprehensive tests",
+      "agent_elapsed": 123.49477574997582,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "22/22",
+      "eval": "resolved",
+      "eval_cost": 0.03130932,
+      "wall": 130.4243901250884
+    },
+    {
+      "instance_id": "psf__requests-5414",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 594241,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 567758,
+          "completion_tokens": 26483
+        }
+      },
+      "sandbox_commands": 19,
+      "sandbox_cost": 0.030799420000000004,
+      "diff_lines": 32,
+      "summary": "(no summary given)",
+      "agent_elapsed": 215.67940487503074,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "120/130",
+      "eval": "not resolved",
+      "eval_cost": 0.02309042,
+      "wall": 221.57528029195964
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 841400,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 816925,
+          "completion_tokens": 24475
+        }
+      },
+      "sandbox_commands": 35,
+      "sandbox_cost": 0.10669039999999999,
+      "diff_lines": 35,
+      "summary": "(no summary given)",
+      "agent_elapsed": 226.4544838750735,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "31/31",
+      "eval": "resolved",
+      "eval_cost": 0.03205625,
+      "wall": 233.00346400006674
+    },
+    {
+      "instance_id": "psf__requests-1142",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 720604,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 685892,
+          "completion_tokens": 34712
+        }
+      },
+      "sandbox_commands": 34,
+      "sandbox_cost": 0.06047930000000001,
+      "diff_lines": 27,
+      "summary": "(no summary given)",
+      "agent_elapsed": 236.01577674993314,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "5/5",
+      "eval": "resolved",
+      "eval_cost": 0.016431920000000003,
+      "wall": 240.1610237909481
+    },
+    {
+      "instance_id": "pydata__xarray-4075",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 16,
+      "tokens": 135517,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 16,
+          "prompt_tokens": 128964,
+          "completion_tokens": 6553
+        }
+      },
+      "sandbox_commands": 11,
+      "sandbox_cost": 0.12356629,
+      "diff_lines": 13,
+      "summary": "Fixed the issue where boolean weights were not properly normalized in weighted mean calculations. The fix converts weights to float in the _sum_of_weights method before computing the dot product, ensuring that the sum of weights is a numeric value rather than a boolean. Verified with the original MC",
+      "agent_elapsed": 80.33290912490338,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "958/958",
+      "eval": "resolved",
+      "eval_cost": 0.08144623000000001,
+      "wall": 93.6626257498283
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+ "args": {
+  "cmd": "run",
+  "note": "revised system prompt; assembled from two halves after a session restart"
+ },
+ "results": [
+  {
+   "instance_id": "sympy__sympy-20916",
+   "resolved": false,
+   "steps": 50,
+   "tokens": 700855,
+   "eval": "no diff produced"
+  },
+  {
+   "instance_id": "django__django-11880",
+   "resolved": true,
+   "steps": 20,
+   "tokens": 211479,
+   "eval": "resolved"
+  },
+  {
+   "instance_id": "django__django-16899",
+   "resolved": true,
+   "steps": 16,
+   "tokens": 113032,
+   "eval": "resolved"
+  },
+  {
+   "instance_id": "matplotlib__matplotlib-25122",
+   "resolved": true,
+   "steps": 31,
+   "tokens": 329800,
+   "eval": "resolved"
+  },
+  {
+   "instance_id": "matplotlib__matplotlib-23476",
+   "resolved": false,
+   "steps": 47,
+   "tokens": 629640,
+   "eval": "not resolved"
+  },
+  {
+   "instance_id": "sympy__sympy-15017",
+   "resolved": true,
+   "steps": 48,
+   "tokens": 571476,
+   "eval": "resolved"
+  },
+  {
+   "instance_id": "pytest-dev__pytest-5809",
+   "resolved": true,
+   "steps": 12,
+   "tokens": 115303,
+   "eval": "resolved"
+  },
+  {
+   "instance_id": "scikit-learn__scikit-learn-12585",
+   "resolved": true,
+   "steps": 24,
+   "tokens": 237273,
+   "eval": "resolved"
+  },
+  {
+   "instance_id": "psf__requests-5414",
+   "resolved": false,
+   "steps": 50,
+   "tokens": 594241,
+   "eval": "not resolved"
+  },
+  {
+   "instance_id": "sphinx-doc__sphinx-8621",
+   "resolved": true,
+   "steps": 50,
+   "tokens": 841400,
+   "eval": "resolved"
+  },
+  {
+   "instance_id": "psf__requests-1142",
+   "resolved": true,
+   "steps": 50,
+   "tokens": 720604,
+   "eval": "resolved"
+  },
+  {
+   "instance_id": "pydata__xarray-4075",
+   "resolved": true,
+   "steps": 16,
+   "tokens": 135517,
+   "eval": "resolved"
+  }
+ ]
+}

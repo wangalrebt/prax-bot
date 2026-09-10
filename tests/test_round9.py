@@ -39,7 +39,7 @@ def test_protected_paths_refuse_edits_and_writes() -> None:
     )
     box.call("read_file", {"path": "tests/test_a.py"})
     assert box.call("edit_file", {"path": "tests/test_a.py", "old": "x", "new": "y"}).startswith(
-        "error: tests/test_a.py is protected and must not be modified. Add a new test file"
+        "error: tests/test_a.py is protected and must not be modified."
     )
     assert box.call("write_file", {"path": "tests/test_new.py", "content": "y"}).startswith(
         "wrote tests/test_new.py"

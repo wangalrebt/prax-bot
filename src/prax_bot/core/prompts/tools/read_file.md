@@ -1,1 +1,1 @@
-Read a file with line numbers. At most 400 lines per call; use start_line and end_line to read a region.
+Read a file with line numbers, at most 400 lines per call. Read a region with start_line and end_line; for a large file, call outline first to find the region.

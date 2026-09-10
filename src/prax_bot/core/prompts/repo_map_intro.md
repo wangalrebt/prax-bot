@@ -1,1 +1,1 @@
-Repository map, definitions with line numbers. Use it to decide what to read; read regions with start_line and end_line, and call outline for files not shown.
+Repository map: the files most likely to matter for this task, with the definitions each one holds and their line numbers. Use it to decide what to read; read regions with start_line and end_line rather than whole files, and call outline for a file that is not listed.

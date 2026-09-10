@@ -1,1 +1,1 @@
-Replace one exact occurrence of `old` with `new` in an existing file.
+Replace one exact occurrence of `old` with `new` in an existing file. `old` must match exactly once; on a miss the result shows the closest region so you can copy the exact lines. Read the file first, and again after any command that may have changed it.

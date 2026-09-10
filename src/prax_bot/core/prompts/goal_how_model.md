@@ -1,1 +1,1 @@
-You decide when the goal is met; verify it before saying so.
+You decide when the goal is met; verify it with a test or a script before saying so.

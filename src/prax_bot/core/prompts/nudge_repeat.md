@@ -1,1 +1,1 @@
-You have made the same call with the same arguments three times; its result will not change. Use the results you already have, try a different approach, or call finish and explain what is blocking you.
+You have made the same call with the same arguments three times; the result will not change. Use what you already have: read a different region, try another approach, or call finish and say what is blocking you.
