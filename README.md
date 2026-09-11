@@ -2,7 +2,7 @@
 
 A coding agent that works inside a [Nebius Token Factory Sandbox](https://docs.tokenfactory.nebius.com/sandboxes/overview), powered by [NVIDIA Nemotron](https://nebius.com/services/token-factory/nemotron) on Token Factory.
 
-Give it a task in a git repository. It uploads the repository into an isolated sandbox, then reads, edits, and runs commands there until the task is done and tested. Nothing executes on your machine. At the end you see a diff and decide whether to apply it.
+Give it a task in a git repository. By default it uploads the repository into an isolated sandbox, then reads, edits, and runs commands there. Configure test and lint commands to check its work after each round. At the end you see the results and a diff, and decide which files to apply. An optional local backend runs commands on your machine for development.
 
 Built for the Nebius x NVIDIA Global AI Hackathon, Track 1: agents that write, run, and test code in Token Factory Sandboxes.
 
@@ -55,14 +55,32 @@ uv run prax run "fix the failing test in tests/test_cache.py" --setup "pip insta
 
 Bare `praxbot` opens the web interface on localhost and points a browser at it. One page holds the whole session: a Chat view with each instruction, its tool calls grouped and expandable, the model's summary, and a foldable diff; a Trajectory view with the raw log; a sidebar with the session, the files changed so far, the to-dos and the rounds; and a slash-command menu when you type `/`. It binds to localhost with a token in the URL, and `--no-browser` prints the URL instead of opening one. Events stream to the page as they happen; there is nothing to install in the browser.
 
-For a terminal instead of a browser there are two other front ends on the same session: `praxbot ui`, a full-screen terminal interface, and `praxbot session`, a plain prompt for pipes and scripts. A session opens one sandbox and keeps taking instructions. Each one continues from the current state, and the diff is shown after every instruction. Inside it, `/diff` shows the pending changes, `/apply` puts them into your working tree and later diffs continue from there, `/undo` returns the sandbox to before the last instruction, `/goal` works in rounds toward an objective, `/resume` swaps in a past run's checkpoint, `/effort` changes how much the model reasons, and `/status` shows steps, tokens and what is not applied yet. `praxbot session --backend local --effort low` opens one with options.
+For a terminal instead of a browser there are two other front ends on the same session: `praxbot ui`, a full-screen terminal interface, and `praxbot session`, a plain prompt for pipes and scripts. A session opens one sandbox and keeps taking instructions. Each one continues from the current state, and the diff is shown after every instruction. `praxbot session --backend local --effort low` opens one with options.
+
+| Session command | Effect |
+|---|---|
+| `/diff` | Show pending changes and paths excluded by Git ignore rules |
+| `/apply [PATH ...]` | Apply all pending files, or only the named files; quote paths containing spaces |
+| `/undo` | Restore the workspace and task context to before the last round |
+| `/goal [--check CMD] [--rounds N] OBJECTIVE` | Work in rounds toward an objective |
+| `/resume RUN-ID [--from N]` | Load a checkpoint from the same repository and backend; use `prax resume RUN-ID` to open a different repository |
+| `/effort LEVEL` | Change reasoning effort while preserving the other settings |
+| `/verify` | Run the configured test and lint commands |
+| `/stop` | Stop after the current model or tool call finishes |
+| `/status` | Show usage, verification status and pending changes |
+
+The web sidebar has file checkboxes and an **Apply selected** button. Files left unselected remain pending. The **Stop** button works while a request is running; the terminal UI uses F5 for Stop and F6 for Verify. In a plain terminal, Ctrl+C interrupts the current round. Stopping saves the latest completed checkpoint and pending diff. A call already in progress must finish or time out before the web or terminal UI can stop.
+
+Applying refreshes the diff first, saves the patch and the affected files' before/after fingerprints, then updates the working tree and workspace baseline. If interrupted, retry `/apply` or reopen that run's latest checkpoint to recover. Recovery recognizes an already applied patch; if the files match neither recorded state, it preserves them and reports the conflict. `/undo` applies only to rounds since the last apply.
+
+`prax status` shows current status, the last recorded state, and the age of the event log separately. A process-held event-log lock establishes that a session is live. A stopped writer cannot leave a run permanently “in progress”; older runs without this tracking report unknown activity.
 
 What happens in a run:
 
 1. The working tree (tracked and untracked files, respecting `.gitignore`) is uploaded into a fresh sandbox built from `python:3.12` and committed there as the baseline.
 2. The optional `--setup` command runs once, for dependencies.
 3. Nemotron works through a small tool set: `list_files`, `search`, `read_file` (a region, or one function or class whole by name), `outline`, `edit_file`, `write_file`, `run`, `restore`, `finish`. Every `run` and every edit produces a new immutable sandbox image, which is a checkpoint the model can `restore`.
-4. When the model calls `finish`, or the step budget ends, the diff against the baseline is pulled out of the sandbox and shown.
+4. When the model calls `finish`, or the step budget ends, configured test/lint commands run against the current checkpoint. Their results and the diff against the baseline are shown.
 5. You can type a follow-up instruction ("also handle the negative case"). The agent continues in the same sandbox, with the original task, its previous summary and the diff so far as context, and shows the new diff. Press Enter to stop.
 6. You choose whether to apply the diff. Applying changes the working tree only; nothing is committed.
 
@@ -73,6 +91,8 @@ Options:
 | `--model` | `nvidia/nemotron-3-super-120b-a12b` | Any model id on Token Factory |
 | `--base-image` | `python:3.12` | OCI image for the sandbox; it needs `git` and `tar` |
 | `--setup` | none | Shell command run once after upload |
+| `--test-command` | none | Test command run by the harness after each round |
+| `--lint-command` | none | Lint command run by the harness after each round |
 | `--max-steps` | 40 | Model turns before the run stops |
 | `--backend` | `contree` | `contree` runs in a Token Factory Sandbox. `local` runs on this machine in a private virtualenv, for development only |
 | `--investigate-model` | none | A second model for the first investigation turns, for example Nemotron 3 Ultra, before switching to `--model` for edits |
@@ -82,7 +102,7 @@ Options:
 | `--export PATH` | none | Also write the diff to a file |
 | `--verbose` | off | Full tool outputs and checkpoint ids |
 
-Environment variables `PRAXBOT_MODEL`, `PRAXBOT_TEMPERATURE`, `PRAXBOT_TOP_P`, `PRAXBOT_EFFORT`, `PRAXBOT_BASE_IMAGE`, `PRAXBOT_SETUP`, `PRAXBOT_MAX_STEPS`, `PRAXBOT_COMMAND_TIMEOUT`, `PRAXBOT_SETUP_TIMEOUT`, `PRAXBOT_IMPORT_TIMEOUT`, and `PRAXBOT_HOME` set the same things.
+Environment variables `PRAXBOT_MODEL`, `PRAXBOT_TEMPERATURE`, `PRAXBOT_TOP_P`, `PRAXBOT_EFFORT`, `PRAXBOT_BASE_IMAGE`, `PRAXBOT_SETUP`, `PRAXBOT_TEST_COMMAND`, `PRAXBOT_LINT_COMMAND`, `PRAXBOT_MAX_STEPS`, `PRAXBOT_COMMAND_TIMEOUT`, `PRAXBOT_SETUP_TIMEOUT`, `PRAXBOT_IMPORT_TIMEOUT`, and `PRAXBOT_HOME` set the same things.
 
 ### Config files
 
@@ -90,8 +110,8 @@ Anything you would otherwise type as a flag every time can live in a file. Two f
 
 | File | For | May set |
 |---|---|---|
-| `~/.praxbot/config.toml` | you | model, effort, backend, base_image, setup, max_steps, temperature, top_p, investigate_model, timeouts, llm_base_url |
-| `<repo>/.praxbot/config.toml` | one repository, committed with it | model, effort, base_image, setup, max_steps, temperature, top_p, investigate_model |
+| `~/.praxbot/config.toml` | you | model, effort, backend, base_image, setup, test_command, lint_command, max_steps, temperature, top_p, investigate_model, investigate_steps, context_budget, timeouts, llm_base_url, system_prompt_file |
+| `<repo>/.praxbot/config.toml` | one repository, committed with it | model, effort, base_image, setup, test_command, lint_command, max_steps, temperature, top_p, investigate_model, context_budget |
 
 Precedence, highest first: a flag, a `PRAXBOT_*` environment variable, the repository's file, your file, the default. `prax config` prints every setting with where it came from; `prax config --init` and `prax config --init-repo` write starter files in which every line is a comment.
 
@@ -101,9 +121,17 @@ The usual reason for a repository file is the setup command, so nobody has to re
 # .praxbot/config.toml
 setup = "pip install -e . pytest"
 base_image = "python:3.12"
+test_command = "python -m pytest -q"
+# lint_command = "ruff check ."  # install the project's linter during setup
 ```
 
-Two rules keep a cloned repository from doing harm: its file cannot choose the backend or the model endpoint, and a setup command it provides only runs inside a sandbox. On the local backend it is ignored with a notice, and `--setup` runs whatever you pass yourself.
+The repository file cannot choose the backend or the model endpoint. Setup and verification commands it provides only run inside a sandbox. On the local backend they are ignored with a notice; pass `--setup`, `--test-command`, or `--lint-command` yourself, or configure them through your own environment or user config.
+
+### Verification
+
+The harness runs each configured check independently of the model, in a disposable copy of the current checkpoint. Commands start at the repository root and use `command_timeout`. Their output tail, exit code, elapsed time and tested image are saved in `run.json` and shown in the web interface and HTML reports. Check-created files do not become repository changes.
+
+**Agent finished** means the model called `finish`. **Checks passed** means every configured command exited successfully on the displayed checkpoint. Missing configuration, checks that have not run, incomplete checks, failures, and results from an older checkpoint have distinct statuses. Passing configured checks establishes only what those commands cover. `run`, `resume` and `goal` return a nonzero exit code for failed or incomplete checks; cancellation returns 130. Goal completion requires all configured checks to pass, and an identical `--check` command is reused instead of run twice. Model errors and cancellation stop the goal before success is considered. Applying creates a new baseline checkpoint, so the saved evidence becomes stale; the command's exit status reflects verification before applying.
 
 ### Prompts
 
@@ -118,7 +146,7 @@ prax prompt --path system   # where it comes from
 
 To change one, put a file with the same name under `~/.praxbot/prompts/`, for example `~/.praxbot/prompts/system.md` or `~/.praxbot/prompts/tools/run.md`, and it replaces the packaged text; `system_prompt_file` in the config does the same for the system prompt by pointing at any file. Only your own configuration can do this: a repository's config may not set it, because a cloned repository must not choose what the model is told. Rules that belong to a project go in its `AGENTS.md`, which the model reads at the start of every run.
 
-The system prompt is short by design, about 2,700 characters, and every rule in it traces to a failure seen in the benchmark logs: reproduce the report before editing, because the most common miss was a confident fix that made the visible tests pass and not the hidden ones; keep a fix when tests that assert the old behaviour fail, because two runs undid correct edits; restore is for one bad command, never for starting over, because two runs restored to the baseline and lost their work; act once sure, because the budget is finite and every result says how much is left; and fix where the value is produced by extending the mechanism that already handles the nearest case, because five misses were a new branch beside a one-line upstream fix.
+The system prompt is short by design, and every rule in it traces to a failure seen in the benchmark logs: reproduce the report before editing, because the most common miss was a confident fix that made the visible tests pass and not the hidden ones; keep a fix when tests that assert the old behaviour fail, because two runs undid correct edits; restore is for one bad command, never for starting over, because two runs restored to the baseline and lost their work; act once sure, because the budget is finite and every result says how much is left; and fix where the value is produced by extending the mechanism that already handles the nearest case, because five misses were a new branch beside a one-line upstream fix.
 
 ## How the context is managed
 
@@ -132,9 +160,9 @@ The budget is a setting: `--context-budget`, `PRAXBOT_CONTEXT_BUDGET`, or `conte
 
 ## How the sandbox is used
 
-Token Factory Sandboxes are immutable images. Running a command on an image produces a new image. Prax Bot keeps the current image as the workspace state: mutating commands and file writes advance it, read-only commands run disposably and leave it alone. That gives free checkpoints, an exact record of every state the agent passed through, and a diff that is computed inside the sandbox with git. Build artifacts such as `*.egg-info/`, `__pycache__/`, and `.pytest_cache/` are kept out of the diff through the workspace's `.git/info/exclude`. Binary files the run created, such as a pickle or a plot written by a reproduction script, are left out of the diff and listed; a tracked binary the task changed stays in.
+Token Factory Sandboxes are immutable images. Running a command on an image produces a new image. Prax Bot keeps the current image as the workspace state: mutating commands and file writes advance it, read-only commands run disposably and leave it alone. That gives free checkpoints, an exact record of every state the agent passed through, and a diff that is computed inside the sandbox with git. Build artifacts such as `*.egg-info/`, `__pycache__/`, and `.pytest_cache/` are kept out of the diff through the workspace's `.git/info/exclude`. New tests and binary files are included unless Git ignores them. Ignored paths are listed separately so you can review what was excluded. Throwaway reproduction scripts belong in `/tmp/praxbot/scratch`, outside the repository.
 
-The local backend implements the same five operations over a temporary directory: commands run with a scrubbed environment inside a private Python 3.12 virtualenv, and checkpoints are directory clones. It is convenient for development and it is not isolation: model-generated commands execute on your machine.
+The local backend implements the same workspace contract over a temporary directory: commands run with a scrubbed environment inside a private Python 3.12 virtualenv, and checkpoints are directory clones. It is convenient for development and it is not isolation: model-generated commands execute on your machine.
 
 ## A first run
 
@@ -155,7 +183,7 @@ Every sandbox command is one immutable image; the run above went from baseline i
 - One project type is tested: Python repositories using pytest. Other languages work if the base image has their toolchain.
 - Commands are stateless between calls. A background server started in one `run` is gone by the next.
 - The sandbox has network access, so a prompt injection inside a repository could exfiltrate repository contents. No credentials are ever placed in the sandbox.
-- The model verifies its own work by running tests. There are no independent gates yet.
+- Configured verification checks run independently of the model, on the workspace it edited. They cover only the commands you configure; they are not a hidden or protected test suite.
 
 ## Benchmark
 
@@ -445,14 +473,17 @@ The package is organised by role:
 ```
 src/prax_bot/
   settings.py   configuration from flags, environment and the sandbox auth file
-  core/         the agent loop and what it can call: agent, tools, llm, goal
-  workspace/    where the code runs: sandbox (Token Factory), local (this machine)
+  core/         agent, tools and typed results, llm, goal, verification; editing, navigation and context helpers
+  workspace/    shared types and repository operations; sandbox and local backends
   extensions/   what a repository or a user can add: skills, plugins
-  runtime/      what every front end shares: session, runs (records, status, reports), render
-  ui/           the front ends: cli, tui, web
+  runtime/      session factory and execution, apply recovery, run records and checkpoint recovery
+  ui/           CLI registration, tui, web; rendering, reports, packaged HTML/CSS/JavaScript
+    commands/   execution, history and configuration commands
 ```
 
-Every front end drives the same `runtime/session.py`; nothing in `runtime/` or below knows which one is calling. Imports are absolute, and the subpackage `__init__` files import nothing, so the module graph is only what the modules themselves declare.
+Every front end opens sessions through `runtime/factory.py` and drives `runtime/session.py`; the factory closes the event log if startup fails. Goal decisions consume the session's verification results. Runtime and core modules have no interface dependencies. Imports are absolute, and the subpackage `__init__` files import nothing, so the module graph is only what the modules themselves declare.
+
+Tool calls return `ToolResult(output, error)` from `core/tool_result.py`. The model receives the output text, while control flow and renderers use the explicit error flag. Plugin handlers may return a string for successful output, or `ToolResult("details", error=True)` for a failure. An `error:` prefix in successful output has no special meaning; old event logs retain their legacy interpretation.
 
 ## License
 

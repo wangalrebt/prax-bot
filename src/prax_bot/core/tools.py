@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import ast
-import difflib
 import json
 import re
 import shlex
@@ -13,35 +11,28 @@ from typing import Any
 from contree_sdk.sdk.exceptions import ContreeError
 from pydantic import BaseModel, Field, ValidationError
 
+from prax_bot.core.context import compact_tool_output
+from prax_bot.core.editing import apply_edit
+from prax_bot.core.navigation import (
+    DEFINITION_RE,
+    definition_span,
+    enclosing_definition,
+    number_lines,
+    rank_files,
+    references_in_output,
+)
 from prax_bot.core.prompts import prompt
-from prax_bot.workspace.sandbox import SCRATCH_DIR, Workspace, WorkspaceError, resolve_in_workdir
+from prax_bot.core.tool_result import ToolResult
+from prax_bot.workspace.repository import SCRATCH_DIR, resolve_in_workdir
+from prax_bot.workspace.types import Workspace, WorkspaceError
 
 SEARCH_EXCLUDED_DIRS = (".git", "node_modules", ".venv", "venv", "__pycache__", ".pytest_cache")
-DEFINITION_RE = r"^\s*(async def|def|class|function|func|fn|struct|impl|trait|interface|type|module)\s+[A-Za-z_]"
-SOURCE_SUFFIXES = (
-    ".py",
-    ".js",
-    ".ts",
-    ".tsx",
-    ".go",
-    ".rs",
-    ".java",
-    ".rb",
-    ".c",
-    ".h",
-    ".cpp",
-    ".cs",
-    ".kt",
-    ".swift",
-)
-TEST_PATH_RE = re.compile(r"(^|/)tests?(/|_)|_test\.py$|(^|/)test_|(^|/)conftest\.py$")
 REPO_MAP_BUDGET = 8_000
 MAX_RESTORES = 3
 OUTPUT_DIR = "${TMPDIR:-/tmp}/praxbot"
 OUTPUT_TAIL_BYTES = 20_000
 PYTEST_FAILED_RE = re.compile(r"^(?:FAILED|ERROR) (\S+?)(?: - .*)?$", re.MULTILINE)
 REPO_MAP_MAX_FILES = 60
-OUTPUT_REF_RE = re.compile(r'File "(?:/work/)?([\w./-]+\.py)", line (\d+)|(?<![\w/])([\w./-]+\.py):(\d+)')
 
 MAX_READ_LINES = 400
 MAX_TOOL_OUTPUT = 12_000
@@ -158,135 +149,6 @@ def tool_specs(*, goal: bool = False) -> list[dict[str, Any]]:
     return specs
 
 
-_LINE_PREFIX = re.compile(r"^\s*\d+\|\s?")
-
-
-def _indent(line: str) -> int:
-    return len(line) - len(line.lstrip())
-
-
-def _strip_line_numbers(old: str) -> str:
-    """If every line carries a read_file-style 'NNN| ' prefix, remove it."""
-    lines = old.split("\n")
-    if lines and all(_LINE_PREFIX.match(line) for line in lines if line.strip()):
-        return "\n".join(_LINE_PREFIX.sub("", line) for line in lines)
-    return old
-
-
-def _reindent(block: list[str], old_lines: list[str], new_lines: list[str]) -> list[str]:
-    """Rewrite `new_lines` so unchanged lines keep the file's exact text and changed lines
-    are shifted by the indentation difference between the file and what the model sent.
-
-    The model's text is assumed to be consistent with itself but possibly offset from the
-    file, and the offset may differ from line to line when it copied sloppily. So each
-    changed region borrows the offset of the nearest old line the model did send, which
-    is the most reliable local estimate of how far off it was.
-    """
-    stripped_old = [line.strip() for line in old_lines]
-    stripped_new = [line.strip() for line in new_lines]
-
-    def offset_at(k: int) -> int:
-        """File indent minus model indent for old line k, or the nearest non-blank line before it."""
-        for idx in range(min(k, len(old_lines) - 1), -1, -1):
-            if old_lines[idx].strip():
-                return _indent(block[idx]) - _indent(old_lines[idx])
-        for idx in range(len(old_lines)):
-            if old_lines[idx].strip():
-                return _indent(block[idx]) - _indent(old_lines[idx])
-        return 0
-
-    def shifted(line: str, delta: int) -> str:
-        return "" if not line.strip() else " " * max(0, _indent(line) + delta) + line.lstrip()
-
-    out: list[str] = []
-    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, stripped_old, stripped_new, autojunk=False).get_opcodes():
-        if tag == "equal":
-            for k, j in zip(range(i1, i2), range(j1, j2), strict=True):
-                # same text; if the model also changed its indentation, it moved the line into or
-                # out of a block, and the file's copy must follow
-                if _indent(old_lines[k]) == _indent(new_lines[j]):
-                    out.append(block[k])
-                else:
-                    out.append(shifted(new_lines[j], offset_at(k)))
-        elif tag in ("replace", "insert"):
-            anchor = i1 if tag == "replace" else max(0, i1 - 1)
-            delta = offset_at(anchor)
-            out.extend(shifted(line, delta) for line in new_lines[j1:j2])
-    return out
-
-
-def closest_region(text: str, old: str, context: int = 2) -> str:
-    """Lines of the file around the best match for the first non-empty line of `old`."""
-    file_lines = text.split("\n")
-    probe = next((line.strip() for line in old.split("\n") if line.strip()), "")
-    if not probe:
-        return ""
-    best, best_i = 0.0, -1
-    for i, line in enumerate(file_lines):
-        ratio = difflib.SequenceMatcher(None, probe, line.strip(), autojunk=False).ratio()
-        if ratio > best:
-            best, best_i = ratio, i
-    if best_i < 0 or best < 0.5:
-        return ""
-    lo, hi = max(0, best_i - context), min(len(file_lines), best_i + len(old.split("\n")) + context)
-    width = len(str(hi))
-    return "\n".join(f"{n + 1:>{width}}| {file_lines[n]}" for n in range(lo, hi))
-
-
-def apply_edit(text: str, old: str, new: str, *, replace_all: bool = False) -> tuple[str, str | None]:
-    """Return (new_text, error). Matching is exact first, then tolerant of trailing
-    whitespace, then tolerant of indentation, as long as the match is unique.
-    With replace_all, every exact occurrence is replaced and no fuzzy matching is used."""
-    if not old:
-        return text, "old must not be empty"
-    old = _strip_line_numbers(old)
-
-    count = text.count(old)
-    if replace_all:
-        if count == 0:
-            return text, "old text was not found in the file. Read the file and copy the exact text."
-        return text.replace(old, new), None
-    if count == 1:
-        return text.replace(old, new, 1), None
-    if count > 1:
-        return (
-            text,
-            f"old text occurs {count} times; include more surrounding context so it matches exactly once, or set replace_all.",
-        )
-
-    file_lines = text.split("\n")
-    old_lines = old.split("\n")
-    if old_lines and old_lines[-1] == "":
-        old_lines = old_lines[:-1]
-    new_lines = new.split("\n")
-    if new_lines and new_lines[-1] == "" and old.endswith("\n"):
-        new_lines = new_lines[:-1]
-    n = len(old_lines)
-
-    def find(norm):
-        target = [norm(line) for line in old_lines]
-        return [i for i in range(len(file_lines) - n + 1) if [norm(line) for line in file_lines[i : i + n]] == target]
-
-    for label, norm in (("trailing whitespace", str.rstrip), ("indentation", str.strip)):
-        hits = find(norm)
-        if len(hits) > 1:
-            return text, f"old text matches {len(hits)} places when ignoring {label}; include more surrounding context."
-        if len(hits) == 1:
-            i = hits[0]
-            block = file_lines[i : i + n]
-            replacement = new_lines if label == "trailing whitespace" else _reindent(block, old_lines, new_lines)
-            merged = file_lines[:i] + replacement + file_lines[i + n :]
-            return "\n".join(merged), None
-
-    region = closest_region(text, old)
-    hint = "old text was not found in the file, even ignoring indentation."
-    if region:
-        hint += f" The closest region is:\n{region}\nCopy the exact lines from there."
-    else:
-        hint += " Read the file and copy the exact text."
-    return text, hint
-
-
 def clip(text: str, limit: int = MAX_TOOL_OUTPUT) -> str:
     if len(text) <= limit:
         return text
@@ -300,134 +162,6 @@ def _limited(lines: list[str], limit: int, truncated: bool, what: str) -> str:
     if truncated:
         note += "\n(the workspace truncated this output)"
     return "\n".join(shown) + note
-
-
-def definition_span(text: str, symbol: str) -> tuple[int, int] | list[str]:
-    """Line range (1-based, inclusive) of the function or class called symbol, decorators included.
-
-    Python files are parsed; other languages use the definition lines outline recognises and end a
-    definition where the next one at the same or a shallower indentation starts. When the name is not
-    found, or is ambiguous without its class, the candidates are returned instead of a range.
-    """
-    lines = text.splitlines()
-    wanted = symbol.strip().strip("()")
-    found: list[tuple[str, int, int]] = []  # (qualified name, start, end)
-    try:
-        tree = ast.parse(text)
-    except (SyntaxError, ValueError):
-        tree = None
-    if tree is not None:
-
-        def walk(node: ast.AST, prefix: str) -> None:
-            for child in ast.iter_child_nodes(node):
-                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                    name = f"{prefix}{child.name}"
-                    start = min([child.lineno, *(d.lineno for d in child.decorator_list)])
-                    found.append((name, start, child.end_lineno or child.lineno))
-                    walk(child, f"{name}.")
-
-        walk(tree, "")
-    else:
-        starts = [(i + 1, line) for i, line in enumerate(lines) if re.match(DEFINITION_RE, line)]
-        for k, (ln, line) in enumerate(starts):
-            m = re.match(r"\s*\S+\s+([A-Za-z_][A-Za-z0-9_]*)", line)
-            if not m:
-                continue
-            indent = _indent(line)
-            end = len(lines)
-            for nxt, nxt_line in starts[k + 1 :]:
-                if _indent(nxt_line) <= indent:
-                    end = nxt - 1
-                    break
-            while end > ln and not lines[end - 1].strip():
-                end -= 1
-            found.append((m.group(1), ln, end))
-    exact = [f for f in found if f[0] == wanted]
-    if len(exact) == 1:
-        return exact[0][1], exact[0][2]
-    by_last = [f for f in found if f[0].rsplit(".", 1)[-1] == wanted.rsplit(".", 1)[-1]]
-    if len(by_last) == 1 and not exact:
-        return by_last[0][1], by_last[0][2]
-    if by_last:
-        return [f[0] for f in by_last]
-    close = [f[0] for f in found if wanted.lower() in f[0].rsplit(".", 1)[-1].lower()]
-    return close[:20]
-
-
-def number_lines(lines: list[str], start: int) -> str:
-    width = len(str(start + len(lines)))
-    return "\n".join(f"{start + i:>{width}}| {line}" for i, line in enumerate(lines))
-
-
-def rank_files(paths: list[str], task: str) -> list[str]:
-    """Source files first, files the task mentions before others, tests last unless mentioned."""
-    words = {w.lower() for w in re.findall(r"[A-Za-z_][A-Za-z0-9_]{2,}", task)}
-
-    def score(path: str) -> tuple:
-        lower = path.lower()
-        stem = lower.rsplit("/", 1)[-1].rsplit(".", 1)[0]
-        mentioned = path in task or (stem in words and stem not in {"test", "tests", "init"})
-        hits = sum(1 for w in words if len(w) > 3 and w in lower)
-        is_test = bool(TEST_PATH_RE.search(path))
-        return (not mentioned, is_test and not mentioned, -hits, path.count("/"), path)
-
-    return sorted((p for p in paths if p.endswith(SOURCE_SUFFIXES)), key=score)
-
-
-def enclosing_definition(defs: list[tuple[int, str]], line: int) -> tuple[int, str] | None:
-    best = None
-    for start, text in defs:
-        if start <= line:
-            best = (start, text)
-        else:
-            break
-    return best
-
-
-def references_in_output(output: str) -> list[tuple[str, int]]:
-    """Repository file:line references in a command's output, in order, without duplicates."""
-    seen: list[tuple[str, int]] = []
-    for m in OUTPUT_REF_RE.finditer(output):
-        path = m.group(1) or m.group(3)
-        line = int(m.group(2) or m.group(4))
-        if path.startswith(("/", "site-packages", "usr/")) or "site-packages" in path or "/.venv/" in path:
-            continue
-        ref = (path.lstrip("./"), line)
-        if ref not in seen:
-            seen.append(ref)
-    return seen
-
-
-def compact_tool_output(name: str, output: str, defs_for: Callable[[str], list[tuple[int, str]]] | None = None) -> str:
-    """A short stand-in for an old tool result: enough to remember what it was, not what it said."""
-    lines = output.splitlines()
-    if name == "read_file":
-        header = lines[0] if lines else output[:80]
-        m = re.match(r"(\S+) lines (\d+)-(\d+) of (\d+)", header)
-        summary = f"[compacted] {header}"
-        if m and defs_for is not None:
-            lo, hi = int(m.group(2)), int(m.group(3))
-            names = [f"{ln}:{text.strip()[:50]}" for ln, text in defs_for(m.group(1)) if lo <= ln <= hi][:12]
-            if names:
-                summary += "; definitions in that range: " + ", ".join(names)
-        return summary + ". Read it again if you need the text."
-    if name == "run":
-        head = lines[0] if lines else ""
-        tail = [line for line in lines[1:] if line.strip()][-3:]
-        return f"[compacted] {head}" + (" | " + " | ".join(t.strip()[:100] for t in tail) if tail else "")
-    if name == "search":
-        refs = [line.split(":", 2)[:2] for line in lines if re.match(r"[^:]+:\d+:", line)]
-        shown = ", ".join(":".join(r) for r in refs[:8])
-        return f"[compacted] search: {len(refs)} matches" + (
-            f" at {shown}" if shown else f"; {lines[0][:80] if lines else ''}"
-        )
-    if name == "list_files":
-        return f"[compacted] list_files: {len(lines)} entries, first: " + ", ".join(line.strip() for line in lines[:12])
-    if name == "outline":
-        return "\n".join(lines[:25]) + (
-            f"\n[compacted] … {len(lines) - 25} more definitions" if len(lines) > 25 else ""
-        )
-    return output if len(output) <= 300 else "[compacted] " + output[:280]
 
 
 def _digest(text: str) -> str:
@@ -459,8 +193,7 @@ class ToolBox:
         self._skills: dict[str, Any] = {sk.name: sk for sk in skills}
         self._extra: dict[str, Any] = {t.name: t for t in plugins}
         self._shown_instructions: set[str] = set()  # nested AGENTS.md files already shown to the model
-        self._first_failures: list[str] | None = None  # failing tests seen in the first test run
-        self._edited = False
+        self._reported_failures: dict[tuple[str, str], list[str]] = {}
         self._observed: dict[str, str] = {}  # path -> digest of the content the model last saw
         self._outputs = 0
         self.todos: list[dict[str, str]] = []
@@ -516,10 +249,12 @@ class ToolBox:
             self._skills.setdefault(sk.name, sk)
         return overview(list(self._skills.values()))
 
-    def _load_skill(self, ws: Any, a: LoadSkill) -> str:
+    def _load_skill(self, ws: Any, a: LoadSkill) -> str | ToolResult:
         sk = self._skills.get(a.name.strip())
         if sk is None:
-            return f"error: no skill named {a.name!r}. Available: {', '.join(self._skills) or 'none'}"
+            return ToolResult(
+                f"error: no skill named {a.name!r}. Available: {', '.join(self._skills) or 'none'}", error=True
+            )
         return prompt("skill_loaded", name=sk.name, source=sk.source, text=sk.text())
 
     def nested_instructions(self, path: str, limit: int = 3_000) -> str:
@@ -602,53 +337,55 @@ class ToolBox:
                 lines.append(f"  {path}:{line} is inside {enclosing[1].strip()[:70]} (line {enclosing[0]})")
         return "code referenced above:\n" + "\n".join(lines) if lines else ""
 
-    def call(self, name: str, raw_args: str | dict[str, Any] | None) -> str:
+    def call(self, name: str, raw_args: str | dict[str, Any] | None) -> ToolResult:
         extra = self._extra.get(name)
         model = extra.model if extra else TOOL_MODELS.get(name)
         if model is None or name == "finish":
             available = list(TOOL_MODELS) + list(self._extra)
-            return f"error: unknown tool {name!r}. Available tools: {', '.join(available)}"
+            return ToolResult(f"error: unknown tool {name!r}. Available tools: {', '.join(available)}", error=True)
         try:
             args = json.loads(raw_args) if isinstance(raw_args, str) else (raw_args or {})
             if not isinstance(args, dict):
                 raise TypeError("arguments must be a JSON object")
             parsed = model.model_validate(args)
         except (json.JSONDecodeError, TypeError, ValueError, ValidationError) as e:
-            return f"error: invalid arguments for {name}: {e}"
+            return ToolResult(f"error: invalid arguments for {name}: {e}", error=True)
         if extra:
-            handler: Callable[[Any], str] = lambda a: str(extra.handler(self.ws, a))  # noqa: E731
+            handler: Callable[[Any], str | ToolResult] = lambda a: extra.handler(self.ws, a)  # noqa: E731
         else:
             handler = getattr(self, f"_{name}")
         try:
-            output = handler(parsed)
+            returned = handler(parsed)
+            result = returned if isinstance(returned, ToolResult) else ToolResult(returned)
             path = getattr(parsed, "path", None)
-            if path and name in ("read_file", "edit_file", "write_file", "outline") and not output.startswith("error:"):
-                output += self.nested_instructions(path)
-            return output
+            if path and name in ("read_file", "edit_file", "write_file", "outline") and not result.error:
+                result = ToolResult(result.output + self.nested_instructions(path))
+            return result
         except FileNotFoundError as e:
-            return f"error: file not found: {e}"
+            return ToolResult(f"error: file not found: {e}", error=True)
         except IsADirectoryError as e:
-            return f"error: {e} is a directory, not a file"
+            return ToolResult(f"error: {e} is a directory, not a file", error=True)
         except (ValueError, WorkspaceError) as e:
-            return f"error: {e}"
+            return ToolResult(f"error: {e}", error=True)
         except (ContreeError, OSError) as e:
-            return (
+            return ToolResult(
                 f"error: the workspace backend failed ({type(e).__name__}: {str(e)[:300]}). "
-                "Try the call again; if it keeps failing, call finish and say so."
+                "Try the call again; if it keeps failing, call finish and say so.",
+                error=True,
             )
 
-    def _list_files(self, a: ListFiles) -> str:
+    def _list_files(self, a: ListFiles) -> str | ToolResult:
         path = a.path.strip() or "."
         resolve_in_workdir(path, self.ws.workdir)
         r = self.ws.run(f"git ls-files -co --exclude-standard -- {shlex.quote(path)}", timeout=60, mutate=False)
         if r.exit_code != 0:
-            return f"error: {r.stderr.strip() or 'listing failed'}"
+            return ToolResult(f"error: {r.stderr.strip() or 'listing failed'}", error=True)
         lines = r.stdout.splitlines()
         if not lines:
             return f"(no files under {path})"
         return _limited(lines, a.max_entries, r.truncated, "entries; narrow the path or raise max_entries")
 
-    def _search(self, a: Search) -> str:
+    def _search(self, a: Search) -> str | ToolResult:
         path = a.path.strip() or "."
         resolve_in_workdir(path, self.ws.workdir)
         excludes = " ".join(f"--exclude-dir={d}" for d in SEARCH_EXCLUDED_DIRS)
@@ -672,7 +409,7 @@ class ToolBox:
                 if "No such file" in r.stderr and self._paths:
                     tops = sorted({p.split("/", 1)[0] for p in self._paths if "/" in p})
                     hint = f" The repository's top-level directories are: {', '.join(tops[:25])}."
-                return f"error: {r.stderr.strip() or 'search failed'}.{hint}"
+                return ToolResult(f"error: {r.stderr.strip() or 'search failed'}.{hint}", error=True)
             return (
                 "no matches. Do not guess names: search for a shorter substring, set ignore_case, "
                 "or call outline on the file to see what it defines." + note
@@ -704,7 +441,7 @@ class ToolBox:
             return False
         return True
 
-    def _read_file(self, a: ReadFile) -> str:
+    def _read_file(self, a: ReadFile) -> str | ToolResult:
         text = self.ws.read(a.path).decode("utf-8", "replace")
         self._observe(a.path, text)
         lines = text.splitlines()
@@ -716,11 +453,11 @@ class ToolBox:
             span = definition_span(text, a.symbol)
             if not isinstance(span, tuple):
                 hint = f"; did you mean {', '.join(span)}" if span else "; call outline to see what it defines"
-                return f"error: no definition named {a.symbol!r} in {a.path}{hint}"
+                return ToolResult(f"error: no definition named {a.symbol!r} in {a.path}{hint}", error=True)
             start, end = span
             label = f" ({a.symbol})"
         if start > total:
-            return f"error: {a.path} has {total} lines; start_line {start} is past the end"
+            return ToolResult(f"error: {a.path} has {total} lines; start_line {start} is past the end", error=True)
         end = min(end, total, start + MAX_READ_LINES - 1)
         body = number_lines(lines[start - 1 : end], start)
         note = "" if end == total else f"\n... {total - end} more lines; call read_file with start_line={end + 1}"
@@ -734,22 +471,25 @@ class ToolBox:
         lines = [f"{ln}:{text}" for ln, text in entries]
         return f"{a.path}: {len(lines)} definitions\n" + _limited(lines, 300, False, "definitions")
 
-    def _edit_file(self, a: EditFile) -> str:
+    def _edit_file(self, a: EditFile) -> str | ToolResult:
         if self._protected(a.path):
-            return f"error: {a.path} {self.PROTECTED_MSG}"
+            return ToolResult(f"error: {a.path} {self.PROTECTED_MSG}", error=True)
         text = self.ws.read(a.path).decode("utf-8", "replace")
         if not self._fresh(a.path, text):
-            return f"error: read {a.path} before editing it. " + (
-                "It has changed since you last read it."
-                if a.path in self._observed
-                else "You have not read it in this session."
+            return ToolResult(
+                f"error: read {a.path} before editing it. "
+                + (
+                    "It has changed since you last read it."
+                    if a.path in self._observed
+                    else "You have not read it in this session."
+                ),
+                error=True,
             )
         new_text, error = apply_edit(text, a.old, a.new, replace_all=a.replace_all)
         if error:
-            return f"error: {error}"
+            return ToolResult(f"error: {error}", error=True)
         self.ws.write(a.path, new_text.encode("utf-8"))
         self._defs.pop(a.path, None)
-        self._edited = True
         self._note_repo_edit(a.path)
         self._observe(a.path, new_text)
         return (
@@ -757,23 +497,22 @@ class ToolBox:
             f" (checkpoint {self.ws.current_step})"
         )
 
-    def _write_file(self, a: WriteFile) -> str:
+    def _write_file(self, a: WriteFile) -> str | ToolResult:
         if self._protected(a.path):
-            return f"error: {a.path} {self.PROTECTED_MSG}"
+            return ToolResult(f"error: {a.path} {self.PROTECTED_MSG}", error=True)
         try:
             self.ws.read(a.path)
         except FileNotFoundError:
             pass
         else:
-            return f"error: {a.path} already exists; use edit_file to change it"
+            return ToolResult(f"error: {a.path} already exists; use edit_file to change it", error=True)
         self.ws.write(a.path, a.content.encode("utf-8"))
         self._defs.pop(a.path, None)
-        self._edited = True
         self._note_repo_edit(a.path)
         self._observe(a.path, a.content)
         return f"wrote {a.path} ({len(a.content)} characters, checkpoint {self.ws.current_step})"
 
-    def _run(self, a: Run) -> str:
+    def _run(self, a: Run) -> str | ToolResult:
         workdir = a.workdir.strip() or "."
         resolve_in_workdir(workdir, self.ws.workdir)
         self._outputs += 1
@@ -814,10 +553,10 @@ class ToolBox:
             referenced = ""
         if referenced:
             parts.append(referenced)
-        note = self._note_preexisting_failures(output + "\n" + r.stderr)
+        note = self._note_test_observations(output + "\n" + r.stderr, command=a.command, workdir=workdir)
         if note:
             parts.append(note)
-        return "\n".join(parts)
+        return ToolResult("\n".join(parts), error=r.exit_code != 0 or r.timed_out)
 
     def _todo_write(self, a: TodoWrite) -> str:
         self.todos = [t.model_dump() for t in a.todos]
@@ -829,39 +568,22 @@ class ToolBox:
             + "\n".join(lines)
         )
 
-    def _note_preexisting_failures(self, output: str) -> str:
-        """Remember which tests failed before any edit; later, point out failures that are not new."""
+    def _note_test_observations(self, output: str, *, command: str, workdir: str) -> str:
+        """Compare observations from the same command without inferring unreported passes."""
         failures = pytest_failures(output)
-        if "passed" not in output and "failed" not in output and "error" not in output.lower():
-            return ""
-        if self._first_failures is None:
-            if self._edited:
-                return ""
-            self._first_failures = failures
-            return (
-                (
-                    f"note: {len(failures)} tests fail before any edit; failures in this list later are not caused by your changes: "
-                    + ", ".join(failures[:12])
-                    + (" …" if len(failures) > 12 else "")
-                )
-                if failures
-                else ""
-            )
-        old = [f for f in failures if f in self._first_failures]
-        new = [f for f in failures if f not in self._first_failures]
-        fixed = [f for f in self._first_failures if f not in failures]
-        bits = []
-        if old:
-            bits.append(
-                f"{len(old)} of these failures were already failing before your edits: "
-                + ", ".join(old[:8])
-                + (" …" if len(old) > 8 else "")
-            )
-        if new:
-            bits.append("new failures since the baseline: " + ", ".join(new[:8]))
-        if fixed:
-            bits.append("now passing that failed before: " + ", ".join(fixed[:8]))
-        return ("note: " + "; ".join(bits)) if bits else ""
+        scope = (command, workdir)
+        previous = self._reported_failures.get(scope, [])
+        passed = set(re.findall(r"^(?:PASSED (\S+)|(\S+) PASSED(?:\s|$))", output, re.MULTILINE))
+        passed_ids = {name for pair in passed for name in pair if name}
+        repeated = [name for name in failures if name in previous]
+        confirmed = [name for name in previous if name in passed_ids]
+        self._reported_failures[scope] = list(dict.fromkeys([*previous, *failures]))
+        notes = []
+        if repeated:
+            notes.append("also reported failing by this command earlier: " + ", ".join(repeated[:8]))
+        if confirmed:
+            notes.append("explicitly reported passing now: " + ", ".join(confirmed[:8]))
+        return "note: " + "; ".join(notes) if notes else ""
 
     def _note_repo_edit(self, path: str) -> None:
         if not resolve_in_workdir(path, self.ws.workdir).startswith(SCRATCH_DIR):
@@ -872,18 +594,20 @@ class ToolBox:
         """Whether any repository file has been changed and the change is still in the workspace."""
         return bool(self._edit_steps)
 
-    def _restore(self, a: Restore) -> str:
+    def _restore(self, a: Restore) -> str | ToolResult:
         if self._restores >= MAX_RESTORES:
-            return (
+            return ToolResult(
                 f"error: restore limit of {MAX_RESTORES} reached for this run. Keep the current state; "
-                "if tests fail for reasons unrelated to your change, say so in finish."
+                "if tests fail for reasons unrelated to your change, say so in finish.",
+                error=True,
             )
         if self._edit_steps and all(s > a.step for s in self._edit_steps):
             kept = ", ".join(str(s) for s in self._edit_steps)
-            return (
+            return ToolResult(
                 f"error: restoring to checkpoint {a.step} would discard every change you have made to the repository "
                 f"(your edits are checkpoints {kept}). Keep them: restore to a later checkpoint, or undo the one change "
-                "that is wrong with edit_file. Unrelated test failures are not a reason to start over."
+                "that is wrong with edit_file. Unrelated test failures are not a reason to start over.",
+                error=True,
             )
         self._restores += 1
         target = self.ws.restore(a.step)

@@ -3,7 +3,7 @@
 Precedence, highest first: a command-line flag, an environment variable (PRAXBOT_*), the repository's
 .praxbot/config.toml, the user's ~/.praxbot/config.toml, the built-in default. Every value remembers where
 it came from, which `prax config` shows. A repository's file cannot choose the backend or the model
-endpoint, and a setup command it provides only ever runs inside a sandbox, never on this machine.
+endpoint, and setup or verification commands it provides only run inside a sandbox.
 """
 
 from __future__ import annotations
@@ -40,6 +40,8 @@ USER_KEYS: dict[str, type] = {
     "import_timeout": int,
     "context_budget": int,
     "system_prompt_file": str,
+    "test_command": str,
+    "lint_command": str,
 }
 TYPE_WORDS = {str: "a string", int: "an integer", float: "a number"}
 REPO_KEYS = (
@@ -52,6 +54,8 @@ REPO_KEYS = (
     "temperature",
     "top_p",
     "context_budget",
+    "test_command",
+    "lint_command",
 )
 
 
@@ -159,6 +163,8 @@ class Settings:
     backend: str = "contree"
     context_budget: int = 80_000  # tokens of context per model call before the transcript is summarised
     system_prompt_file: str | None = None  # a file whose text replaces the built-in system prompt; user-level only
+    test_command: str | None = None
+    lint_command: str | None = None
     sources: dict[str, str] = field(default_factory=dict)  # setting -> flag, env, repo config, user config, default
     warnings: list[str] = field(default_factory=list)  # things a config file got wrong, worth one line each
     config_files: list[Path] = field(default_factory=list)
@@ -178,6 +184,8 @@ class Settings:
         backend: str | None = None,
         context_budget: int | None = None,
         system_prompt_file: str | None = None,
+        test_command: str | None = None,
+        lint_command: str | None = None,
         repo_root: Path | None = None,
     ) -> Settings:
         env = os.environ
@@ -196,6 +204,8 @@ class Settings:
             "backend": backend,
             "context_budget": context_budget,
             "system_prompt_file": system_prompt_file,
+            "test_command": test_command,
+            "lint_command": lint_command,
         }
 
         def pick(key: str, default: Any, cast: Any = str) -> Any:
@@ -233,6 +243,17 @@ class Settings:
         prompt_file = pick("system_prompt_file", None)
         if prompt_file:
             read_prompt_file(prompt_file)  # fail now, with the file named, not in the middle of a run
+        checks = {}
+        for key in ("test_command", "lint_command"):
+            value = pick(key, None)
+            if backend == "local" and sources.get(key) == "repo config":
+                warnings.append(
+                    f"the repository's {key} only runs inside a sandbox; "
+                    f"on the local backend pass --{key.replace('_', '-')} yourself"
+                )
+                value = None
+                sources[key] = "ignored"
+            checks[key] = value or None
         return cls(
             temperature=float(pick("temperature", 1.0, float)),
             top_p=None if top_p_value is None else float(top_p_value),
@@ -258,6 +279,7 @@ class Settings:
             import_timeout=int(pick("import_timeout", 900, int)),
             context_budget=int(pick("context_budget", 80_000, int)),
             system_prompt_file=str(prompt_file) if prompt_file else None,
+            **checks,
             home=home,
             sources=sources,
             warnings=warnings,

@@ -3,27 +3,16 @@
 from __future__ import annotations
 
 import json
-import subprocess
 from pathlib import Path
 
 import pytest
+from rich.console import Console
 
-from prax_bot.runtime.runs import load_run, reopen_workspace
-from prax_bot.runtime.session import Session, new_run
-from tests.test_agent import FakeLLM, call, reply
-from tests.test_resume import make_snapshot
-from tests.test_runs import make_run, settings
-
-
-def git_repo(path: Path) -> Path:
-    path.mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=path, check=True)
-    (path / "a.py").write_text("x\n")
-    subprocess.run(["git", "add", "-A"], cwd=path, check=True)
-    subprocess.run(
-        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "baseline"], cwd=path, check=True
-    )
-    return path
+from prax_bot.runtime.runs import load_run, new_run, reopen_workspace
+from prax_bot.runtime.session import Session
+from prax_bot.ui.session import session_loop
+from tests.fakes import FakeLLM, call, reply
+from tests.helpers import git_repo, make_run, make_snapshot, settings
 
 
 def test_session_runs_instructions_undoes_applies_and_records(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -60,7 +49,7 @@ def test_session_runs_instructions_undoes_applies_and_records(tmp_path: Path, mo
             "/quit",
         ]
     )
-    run_id, run_dir, events_file, on_event = new_run(s, verbose=False)
+    run_id, run_dir, events_file, on_event = new_run(s)
     session = Session(
         s,
         ws,
@@ -71,9 +60,8 @@ def test_session_runs_instructions_undoes_applies_and_records(tmp_path: Path, mo
         events_file=events_file,
         on_event=on_event,
         protect=[],
-        read_line=lambda: next(lines, None),
     )
-    session.loop()
+    session_loop(session, Console(), lambda: next(lines, None))
 
     assert (root / "b.py").read_text() == "1\n" and not (root / "c.py").exists(), (
         "/undo dropped c before /apply, so only b was applied"
@@ -115,7 +103,7 @@ def test_session_goal_command_parses_check_and_rounds(tmp_path: Path, monkeypatc
     )
     monkeypatch.setattr(prax_bot.core.llm, "LLM", lambda settings: llm)
     lines = iter(['/goal --rounds 3 "b and c exist"', "/quit"])
-    run_id, run_dir, events_file, on_event = new_run(s, verbose=False)
+    run_id, run_dir, events_file, on_event = new_run(s)
     session = Session(
         s,
         ws,
@@ -126,9 +114,8 @@ def test_session_goal_command_parses_check_and_rounds(tmp_path: Path, monkeypatc
         events_file=events_file,
         on_event=on_event,
         protect=[],
-        read_line=lambda: next(lines, None),
     )
-    session.loop()
+    session_loop(session, Console(), lambda: next(lines, None))
     info = json.loads((run_dir / "run.json").read_text())
     assert info["session"]["rounds"] == 2 and info["task"] == "b and c exist" and info["summary"] == "done"
     assert "b.py" in ws.diff() and "c.py" in ws.diff()

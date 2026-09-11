@@ -8,32 +8,26 @@ from __future__ import annotations
 
 import io
 import os
-import shlex
 import shutil
 import signal
 import subprocess
 import sys
 import tarfile
 import time
+from collections.abc import Sequence
 from pathlib import Path
 
 from prax_bot.settings import WORKDIR, Settings
-from prax_bot.workspace.sandbox import (
+from prax_bot.workspace.repository import (
     DIFF_EXCLUDES,
-    DIFF_OUTPUT_LIMIT,
     SCRATCH_DIR,
-    Checkpoint,
-    CommandResult,
-    EventFn,
-    WorkspaceError,
-    _noop,
-    new_binary_files,
+    collect_changes,
     pack_repo,
     repo_file_names,
     resolve_in_workdir,
-    scratch_files,
     suspicious_files,
 )
+from prax_bot.workspace.types import Changes, Checkpoint, CommandResult, EventFn, WorkspaceError, noop
 
 DEFAULT_TRUNCATE = 65_535
 
@@ -55,12 +49,10 @@ class LocalWorkspace:
         self.venv = root / "venv"
         self.workdir = WORKDIR
         self.command_timeout = command_timeout
-        self.on_event = on_event or _noop
+        self.on_event = on_event or noop
         self.checkpoints: list[Checkpoint] = []
         self.total_cost = 0.0
         self.commands = 0
-        self.dropped_scratch: list[str] = []
-        self.dropped_binary: list[str] = []
         for d in (self.snapshots, root / "home", root / "tmp"):
             d.mkdir(parents=True, exist_ok=True)
         self._checkpoint("baseline")
@@ -177,23 +169,11 @@ class LocalWorkspace:
         self._checkpoint(f"restore: step {step}")
         return target
 
+    def changes(self, paths: Sequence[str] | None = None) -> Changes:
+        return collect_changes(self, paths)
+
     def diff(self) -> str:
-        listing = self.run("git ls-files --others --exclude-standard", mutate=False)
-        untracked = listing.stdout.splitlines() if listing.exit_code == 0 else []
-        self.dropped_scratch = scratch_files(untracked)
-        stat = self.run("git add -A && git diff --cached --numstat --no-renames HEAD", mutate=False)
-        self.dropped_binary = new_binary_files(stat.stdout.splitlines(), untracked) if stat.exit_code == 0 else []
-        excludes = " ".join(shlex.quote(f":(exclude){p}") for p in [*self.dropped_scratch, *self.dropped_binary])
-        r = self.run(
-            f"git add -A && git diff --cached --binary HEAD -- . {excludes}",
-            mutate=False,
-            truncate_output_at=DIFF_OUTPUT_LIMIT,
-        )
-        if r.exit_code != 0:
-            raise WorkspaceError(f"git diff failed: {r.stderr.strip()}")
-        if r.truncated:
-            raise WorkspaceError(f"the diff is larger than {DIFF_OUTPUT_LIMIT // (1024 * 1024)} MiB and was truncated")
-        return r.stdout
+        return self.changes().patch
 
 
 def create_local_workspace(
@@ -202,7 +182,7 @@ def create_local_workspace(
     on_event: EventFn | None = None,
     run_id: str = "dev",
 ) -> LocalWorkspace:
-    emit = on_event or _noop
+    emit = on_event or noop
     started = time.monotonic()
     root = settings.home / "local" / run_id
     if root.exists():

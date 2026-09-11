@@ -2,26 +2,12 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 import pytest
 
 from prax_bot.core.llm import LLM, MAX_COMPLETION_TOKENS, XHIGH_COMPLETION_TOKENS
 from prax_bot.settings import Settings
-from tests.test_runs import settings as base_settings
-
-
-class FakeClient:
-    def __init__(self) -> None:
-        self.calls: list[dict] = []
-        self.chat = SimpleNamespace(completions=SimpleNamespace(create=self._create))
-
-    def _create(self, **kw):
-        self.calls.append(kw)
-        return SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content="ok", tool_calls=None), finish_reason="stop")],
-            usage=SimpleNamespace(prompt_tokens=3, completion_tokens=1),
-        )
+from tests.fakes import FakeClient
+from tests.helpers import settings as base_settings
 
 
 def with_sampling(tmp_path, **kw) -> Settings:

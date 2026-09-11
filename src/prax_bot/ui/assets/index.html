@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Prax Bot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/assets/app.css" />
+  </head>
+  <body>
+    <header>
+      <div class="logo">&#10095;</div>
+      <span class="name">Prax Bot</span>
+      <span class="chip"><span id="hrepo"></span></span>
+      <span class="chip"
+        ><span class="k">backend</span><span id="hbackend"></span
+      ></span>
+      <span class="chip"
+        ><span class="k">model</span><span id="hmodel"></span
+      ></span>
+      <span class="spacer"></span>
+      <label
+        >effort
+        <span id="effort" class="seg"
+          ><button data-v="off">off</button><button data-v="low">low</button
+          ><button data-v="high">high</button
+          ><button data-v="xhigh">xhigh</button></span
+        ></label
+      >
+      <span class="seg"
+        ><button id="tabchat" class="on">Chat</button
+        ><button id="tabtraj">Trajectory</button></span
+      >
+    </header>
+    <main>
+      <aside>
+        <div class="slabel">Session</div>
+        <div id="sinfo" class="path"></div>
+        <div class="slabel">Changes</div>
+        <div id="sfiles"><div class="dim">none pending</div></div>
+        <div class="slabel">Excluded by Git ignore rules</div>
+        <div id="sexcluded" class="path"></div>
+        <div class="slabel">Workspace checks</div>
+        <div id="schecks"></div>
+        <div class="slabel">To-dos</div>
+        <div id="stodos"><div class="dim">none</div></div>
+        <div class="slabel">Rounds</div>
+        <div id="srounds"><div class="dim">none yet</div></div>
+      </aside>
+      <div class="content">
+        <section id="chat" class="on">
+          <div id="empty">
+            <h2>Ready when you are</h2>
+            <p>
+              Describe a change and press Enter. Prax Bot works in the workspace
+              and shows you the diff.
+            </p>
+            <div class="hint">
+              <span>fix the failing test in tests/test_cache.py</span
+              ><span>/goal all tests pass&nbsp;&nbsp;--check "pytest -q"</span
+              ><span
+                >/apply&nbsp;&nbsp;/undo&nbsp;&nbsp;/diff&nbsp;&nbsp;/effort&nbsp;&nbsp;/help</span
+              >
+            </div>
+          </div>
+        </section>
+        <section id="traj"></section>
+      </div>
+    </main>
+    <footer>
+      <div class="wrap">
+        <div class="composer">
+          <div id="menu"></div>
+          <textarea
+            id="input"
+            rows="1"
+            placeholder="Describe a change, or type / for commands"
+          ></textarea>
+          <button id="apply" class="btn" title="Apply the selected files">
+            Apply selected</button
+          ><button id="undo" class="btn" title="/undo">Undo</button
+          ><button id="verify" class="btn" title="Run configured checks">
+            Verify</button
+          ><button id="stop" class="btn" title="Stop after the current call">
+            Stop</button
+          ><button id="send" class="btn primary">Send</button>
+        </div>
+      </div>
+      <div class="statusbar">
+        <span id="dot" class="dot"></span><span id="sstatus">starting</span
+        ><span class="grow"></span><span id="sround"></span
+        ><span id="stoks"></span><span id="spend"></span
+        ><span id="squeue"></span>
+      </div>
+    </footer>
+    <script>
+      window.PRAX_TOKEN = "__TOKEN__";
+    </script>
+    <script src="/assets/app.js"></script>
+  </body>
+</html>

@@ -23,7 +23,15 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     h = tmp_path / "home"
     h.mkdir()
     monkeypatch.setenv("PRAXBOT_HOME", str(h))
-    for var in ("PRAXBOT_MODEL", "PRAXBOT_EFFORT", "PRAXBOT_SETUP", "PRAXBOT_BACKEND", "PRAXBOT_MAX_STEPS"):
+    for var in (
+        "PRAXBOT_MODEL",
+        "PRAXBOT_EFFORT",
+        "PRAXBOT_SETUP",
+        "PRAXBOT_BACKEND",
+        "PRAXBOT_MAX_STEPS",
+        "PRAXBOT_TEST_COMMAND",
+        "PRAXBOT_LINT_COMMAND",
+    ):
         monkeypatch.delenv(var, raising=False)
     return h
 
@@ -87,6 +95,25 @@ def test_bad_values_are_named_with_their_file(home: Path) -> None:
         Settings.from_env()
     (home / "config.toml").write_text("temperature = 1\n")  # an int where a float is wanted is fine
     assert Settings.from_env().temperature == 1.0
+
+
+def test_verification_commands_follow_precedence_and_the_local_execution_rule(
+    home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (home / "config.toml").write_text('test_command = "user tests"\n')
+    assert Settings.from_env(backend="local").test_command == "user tests"
+    r = repo(tmp_path / "r")
+    (r / ".praxbot").mkdir()
+    (r / ".praxbot" / "config.toml").write_text('test_command = "repo tests"\nlint_command = "repo lint"\n')
+    sandboxed = Settings.from_env(repo_root=r)
+    assert sandboxed.test_command == "repo tests" and sandboxed.lint_command == "repo lint"
+    local = Settings.from_env(repo_root=r, backend="local")
+    assert local.test_command is None and local.lint_command is None
+    assert local.sources["test_command"] == local.sources["lint_command"] == "ignored"
+    monkeypatch.setenv("PRAXBOT_TEST_COMMAND", "env tests")
+    explicit = Settings.from_env(repo_root=r, backend="local", lint_command="flag lint")
+    assert explicit.test_command == "env tests" and explicit.lint_command == "flag lint"
+    assert explicit.sources["test_command"] == "env" and explicit.sources["lint_command"] == "flag"
 
 
 def test_config_command_shows_sources_and_writes_starters(

@@ -7,27 +7,50 @@ from pathlib import Path
 from contree_sdk.sdk.exceptions import ContreeError
 
 from prax_bot.core.agent import REPEAT_NUDGE, Agent
+from prax_bot.core.tool_result import ToolResult
 from prax_bot.core.tools import ToolBox
-from prax_bot.runtime.session import json_safe
+from prax_bot.runtime.runs import Run, json_safe
 from prax_bot.workspace.local import LocalWorkspace
-from prax_bot.workspace.sandbox import CommandResult, suspicious_files
-from tests.test_agent import FakeLLM, FakeToolBox, call, reply
-from tests.test_local import make_repo
-from tests.test_tools import FakeWorkspace
+from prax_bot.workspace.repository import suspicious_files
+from tests.fakes import FakeLLM, FakeToolBox, FakeWorkspace, ShellFakeWorkspace, call, reply
+from tests.helpers import make_local_repo as make_repo
 
 
-class ShellFakeWorkspace(FakeWorkspace):
-    """FakeWorkspace plus a scripted `run`, so list/search error paths can be exercised."""
+def test_error_prefix_in_a_filename_stays_successful_through_events_and_history(tmp_path: Path) -> None:
+    ws = FakeWorkspace({"error:notes.txt": "ordinary content\n"})
+    box = ToolBox(ws)
+    result = box.call("read_file", {"path": "error:notes.txt"})
+    assert not result.error and result.output.startswith("error:notes.txt")
+    llm = FakeLLM(
+        [
+            reply(None, call("read_file", path="error:notes.txt")),
+            reply(None, call("finish", summary="read it")),
+            reply(None, call("finish", summary="read it")),
+        ]
+    )
+    events = []
+    Agent(llm, box, max_steps=4, on_event=lambda kind, **payload: events.append({"kind": kind, **payload})).run("read")
+    output = next(e for e in events if e["kind"] == "tool.result" and e["name"] == "read_file")
+    assert output["error"] is False and "ordinary content" in output["output"]
+    assert Run("test", tmp_path, {}, events).tool_calls[0]["error"] is False
 
-    def __init__(self, files=None, *, results=None):
-        super().__init__(files)
-        self.results = list(results or [])
-        self.commands: list[str] = []
 
-    def run(self, command, *, timeout=None, mutate=True, truncate_output_at=None):
-        self.commands.append(command)
-        exit_code, stdout, stderr, truncated = self.results.pop(0)
-        return CommandResult(command, exit_code, stdout, stderr, 0.01, truncated, False, None, 0.0)
+def test_plugin_results_can_report_errors_without_a_text_prefix() -> None:
+    from pydantic import BaseModel
+
+    from prax_bot.extensions.plugins import ExtraTool
+
+    class Args(BaseModel):
+        pass
+
+    tools = [
+        ExtraTool("text", "Return text", Args, lambda ws, args: "error: is ordinary text"),
+        ExtraTool("failure", "Return failure", Args, lambda ws, args: ToolResult("unavailable", error=True)),
+    ]
+    box = ToolBox(FakeWorkspace(), plugins=tools)
+    assert box.call("text", {}) == ToolResult("error: is ordinary text")
+    assert box.call("failure", {}) == ToolResult("unavailable", error=True)
+    assert box.call("read_file", {"path": "missing"}).error
 
 
 def test_backend_errors_become_tool_errors_instead_of_crashing() -> None:
@@ -35,7 +58,7 @@ def test_backend_errors_become_tool_errors_instead_of_crashing() -> None:
         def read(self, path):
             raise ContreeError.__new__(ContreeError)
 
-    out = ToolBox(Broken()).call("read_file", {"path": "x.py"})
+    out = ToolBox(Broken()).call("read_file", {"path": "x.py"}).output
     assert out.startswith("error: the workspace backend failed (ContreeError")
 
 
@@ -44,7 +67,7 @@ def test_reading_a_directory_is_reported_as_such(tmp_path: Path) -> None:
     (root / "current").mkdir(parents=True)
     make_repo(root / "current")
     (root / "current" / "pkg").mkdir()
-    out = ToolBox(LocalWorkspace(root, command_timeout=5)).call("read_file", {"path": "pkg"})
+    out = ToolBox(LocalWorkspace(root, command_timeout=5)).call("read_file", {"path": "pkg"}).output
     assert out == "error: pkg is a directory, not a file"
 
 
@@ -59,13 +82,13 @@ def test_list_and_search_handle_empty_paths_errors_and_limits() -> None:
         ]
     )
     box = ToolBox(ws)
-    out = box.call("list_files", {"path": "  ", "max_entries": 2})
+    out = box.call("list_files", {"path": "  ", "max_entries": 2}).output
     assert out == "a.py\nb.py\n... 1 more entries; narrow the path or raise max_entries"
     assert ws.commands[0].endswith("-- .") and "head" not in ws.commands[0]
 
-    assert box.call("search", {"pattern": "("}).startswith("error: grep: Unmatched")
-    assert box.call("search", {"pattern": "zzz"}).startswith("no matches. Do not guess names")
-    out = box.call("search", {"pattern": "x", "max_results": 1})
+    assert box.call("search", {"pattern": "("}).output.startswith("error: grep: Unmatched")
+    assert box.call("search", {"pattern": "zzz"}).output.startswith("no matches. Do not guess names")
+    out = box.call("search", {"pattern": "x", "max_results": 1}).output
     assert out.startswith("a.py:1:x\n... 1 more matches") and out.endswith("(the workspace truncated this output)")
     assert "--exclude-dir=node_modules" in ws.commands[-1] and "|" not in ws.commands[-1]
 

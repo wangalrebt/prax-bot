@@ -23,8 +23,10 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Header, Input, Label, RichLog, Static
 
-from prax_bot.runtime.session import SESSION_HELP, Session, new_run, open_workspace
+from prax_bot.runtime.session import Session
 from prax_bot.settings import Settings
+from prax_bot.ui.common import create_session
+from prax_bot.ui.session import SESSION_HELP, handle_line
 
 FILE_RE = re.compile(r"^diff --git a/(\S+) b/", re.MULTILINE)
 
@@ -98,6 +100,8 @@ class PraxApp(App[None]):
         Binding("f2", "toggle_diff", "Diff"),
         Binding("f3", "apply", "Apply"),
         Binding("f4", "undo", "Undo"),
+        Binding("f5", "stop", "Stop", priority=True),
+        Binding("f6", "verify", "Verify"),
         Binding("ctrl+q", "quit_app", "Quit", priority=True),
     ]
 
@@ -109,10 +113,11 @@ class PraxApp(App[None]):
         self.make_session = make_session
         self.session: Any = None
         self.out = Console(file=PaneFile(self), force_terminal=True, color_system="truecolor", width=100)
-        self.busy = False
+        self.busy = True
         self.rounds: list[tuple[str, int]] = []
         self.pending_lines: list[str] = []
         self.current_step = ""
+        self._quit_after_work = False
 
     # ---- composition ----
     def compose(self) -> ComposeResult:
@@ -121,6 +126,7 @@ class PraxApp(App[None]):
             with Vertical(id="sidebar"):
                 yield Static(id="info")
                 yield Static(id="changes")
+                yield Static(id="checks")
                 yield Static(id="rounds")
             with Vertical(id="main"):
                 yield RichLog(id="log", wrap=False, min_width=20, highlight=False, markup=False)
@@ -191,7 +197,7 @@ class PraxApp(App[None]):
             self.session = self.make_session(self.out, self.session_event)
         except Exception as e:
             self.out.print(f"[red]✗ could not start: {type(e).__name__}: {escape(str(e)[:300])}[/]")
-            self.call_from_thread(self.set_status, "failed to start · ctrl+q to quit")
+            self.call_from_thread(self.finish_work, "failed to start · ctrl+q to quit")
             return
         self.out.print("[dim]type an instruction, or F1 for help[/]")
         self.call_from_thread(self.finish_work, "idle")
@@ -200,19 +206,23 @@ class PraxApp(App[None]):
         self.fit_console()
         self.busy = False
         inp = self.query_one("#input", Input)
-        inp.disabled = False
-        inp.focus()
+        inp.disabled = self.session is None
+        if self.session is not None:
+            inp.focus()
         self.render_sidebar()
         self.render_diff()
         self.set_status(status or self.idle_status())
+        if self._quit_after_work:
+            self._quit_after_work = False
+            self.action_quit_app()
 
     def idle_status(self) -> str:
         if self.session is None:
             return "idle"
         s = self.session
-        pending = FILE_RE.findall(s.last_diff or "")
+        pending = s.changes.files if s.changes else ()
         context = int(getattr(s.llm, "last_prompt_tokens", 0) or 0)
-        return f"idle · {s.rounds} rounds · {s.steps} steps · {s.llm.usage.total_tokens:,} tokens · context {context:,} · {len(pending)} files pending · effort {s.settings.effort}"
+        return f"idle · {s.rounds} rounds · {s.steps} steps · {s.llm.usage.total_tokens:,} tokens · context {context:,} · {len(pending)} files pending · checks {s.verification_status}"
 
     def render_sidebar(self) -> None:
         s = self.settings
@@ -223,9 +233,15 @@ class PraxApp(App[None]):
             f"{self.backend} · effort {self.session.settings.effort if self.session else s.effort}",
         )
         self.query_one("#info", Static).update(info)
-        files = FILE_RE.findall(self.session.last_diff) if self.session else []
+        files = self.session.changes.files if self.session and self.session.changes else []
         changes = Text.assemble(("changes\n", "bold"), "\n".join(files) if files else ("none pending", "dim"))
         self.query_one("#changes", Static).update(changes)
+        checks = Text.assemble(
+            ("workspace checks\n", "bold"), self.session.verification_status if self.session else "not run"
+        )
+        if self.session and self.session.changes and self.session.changes.excluded:
+            checks.append("\n\nignored by Git:\n" + "\n".join(self.session.changes.excluded))
+        self.query_one("#checks", Static).update(checks)
         rounds = Text("rounds\n", style="bold")
         for text, steps in self.rounds[-12:]:
             rounds.append(f"{steps:>3}  {text[:26]}\n")
@@ -268,7 +284,7 @@ class PraxApp(App[None]):
         steps_before = self.session.steps
         keep_going = True
         try:
-            keep_going = self.session.handle_line(line)
+            keep_going = handle_line(self.session, line, self.out)
         except Exception as e:
             self.out.print(f"[red]✗ {type(e).__name__}: {escape(str(e)[:300])}[/]")
         if self.session.rounds > before:
@@ -292,27 +308,47 @@ class PraxApp(App[None]):
         if self.session and not self.busy:
             self.start_work("/undo")
 
+    def action_stop(self) -> None:
+        if self.session and self.busy:
+            self.session.request_stop()
+            self.set_status("stop requested · waiting for current call")
+
+    def action_verify(self) -> None:
+        if self.session and not self.busy:
+            self.start_work("/verify")
+
     def action_help(self) -> None:
         self.out.print(SESSION_HELP.replace("[", "\\["))
-        self.out.print("keys: F2 diff pane · F3 apply · F4 undo · ctrl+q quit")
+        self.out.print("keys: F2 diff pane · F3 apply · F4 undo · F5 stop · F6 verify · ctrl+q quit")
 
     def action_quit_app(self) -> None:
-        if self.session is None or self.busy:
+        if self.busy:
+            self._quit_after_work = True
+            self.action_stop()
+            return
+        if self.session is None:
             self.exit()
             return
         pending = (self.session.last_diff or "").strip()
         if not pending:
-            self.session.close()
-            self.exit()
+            self.close_session()
             return
 
         def done(apply: bool | None) -> None:
             if apply:
-                self.session.apply()
-            self.session.close()
-            self.exit()
+                self._quit_after_work = True
+                self.start_work("/apply")
+            else:
+                self.close_session()
 
         self.push_screen(ConfirmScreen("Apply the pending changes to the working tree before leaving?"), done)
+
+    @work(thread=True, group="close")
+    def close_session(self) -> None:
+        try:
+            self.session.close()
+        finally:
+            self.call_from_thread(self.exit)
 
 
 def run_ui(
@@ -320,29 +356,9 @@ def run_ui(
 ) -> None:
     """Open the interface; the sandbox is created after the screen is up so its progress is visible."""
 
-    def make_session(out: Console, hook: Callable[..., None]) -> Any:
-        run_id, run_dir, events_file, on_event = new_run(settings, verbose, out=out)
-
-        def on_event_with_hook(kind: str, **payload: Any) -> None:
-            on_event(kind, **payload)
-            hook(kind, **payload)
-
-        out.print(f"[bold]sandbox[/] {settings.base_image}" if backend == "contree" else "[bold]local workspace[/]")
-        ws = open_workspace(settings, backend, root, run_id, on_event_with_hook, out=out)
-        return Session(
-            settings,
-            ws,
-            root,
-            backend=backend,
-            run_id=run_id,
-            run_dir=run_dir,
-            events_file=events_file,
-            on_event=on_event_with_hook,
-            protect=protect,
-            skills=skills,
-            plugins=plugins,
-            read_line=lambda: None,
-            out=out,
+    def make_session(out: Console, hook: Callable[..., None]) -> Session:
+        return create_session(
+            settings, root, verbose=verbose, out=out, hook=hook, protect=protect, skills=skills, plugins=plugins
         )
 
     PraxApp(settings, root, backend, make_session).run()

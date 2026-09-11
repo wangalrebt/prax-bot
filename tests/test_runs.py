@@ -1,80 +1,12 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
 
-from prax_bot.runtime.runs import checkpoint_diff, list_runs, load_run, render_html
-from prax_bot.settings import Settings
-
-
-def make_run(home: Path, run_id: str, *, backend: str = "local") -> Path:
-    d = home / "runs" / run_id
-    d.mkdir(parents=True)
-    (d / "run.json").write_text(
-        json.dumps(
-            {
-                "run_id": run_id,
-                "task": "fix <it>",
-                "repo": "/r",
-                "model": "m",
-                "backend": backend,
-                "finished": True,
-                "reason": "finish",
-                "steps": 2,
-                "summary": "done & dusted",
-                "model_calls": 2,
-                "prompt_tokens": 100,
-                "completion_tokens": 20,
-                "sandbox_commands": 1,
-                "sandbox_cost": 0.0,
-                "baseline_image": "local:snap-0",
-                "final_image": "local:snap-1",
-                "checkpoints": [
-                    {"step": 0, "image": "local:snap-0", "label": "baseline"},
-                    {"step": 1, "image": "local:snap-1", "label": "write: a.py"},
-                ],
-                "elapsed_s": 3.2,
-                "usage_by_model": {"m": {"calls": 2, "prompt_tokens": 100, "completion_tokens": 20}},
-            }
-        )
-    )
-    (d / "events.jsonl").write_text(
-        "\n".join(
-            json.dumps(e)
-            for e in [
-                {"kind": "tool.call", "step": 1, "name": "read_file", "args": json.dumps({"path": "a.py"})},
-                {"kind": "tool.result", "step": 1, "name": "read_file", "output": "a.py lines 1-2 of 2\n1| x"},
-                {
-                    "kind": "tool.call",
-                    "step": 2,
-                    "name": "edit_file",
-                    "args": json.dumps({"path": "a.py", "old": "x", "new": "y"}),
-                },
-                {"kind": "tool.result", "step": 2, "name": "edit_file", "output": "error: old text was not found"},
-            ]
-        )
-        + "\n"
-    )
-    (d / "diff.patch").write_text("diff --git a/a.py b/a.py\n-x\n+y\n")
-    return d
-
-
-def settings(home: Path) -> Settings:
-    return Settings(
-        api_key="k",
-        project_id="p",
-        model="m",
-        llm_base_url="u",
-        base_image="i",
-        setup=None,
-        max_steps=5,
-        command_timeout=5,
-        setup_timeout=5,
-        import_timeout=5,
-        home=home,
-    )
+from prax_bot.runtime.runs import checkpoint_diff, list_runs, load_run
+from prax_bot.ui.report import render_html
+from tests.helpers import make_run, settings
 
 
 def test_list_and_load_runs(tmp_path: Path) -> None:

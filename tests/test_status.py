@@ -10,9 +10,9 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from prax_bot.runtime.runs import ago, run_started, status_summary
+from prax_bot.runtime.runs import ago, load_run, run_started, run_status, status_summary
 from prax_bot.ui.cli import app
-from tests.test_runs import make_run, settings
+from tests.helpers import make_run, make_session, settings
 
 
 def make_in_progress(home: Path, run_id: str, *, age_s: int = 0) -> Path:
@@ -53,10 +53,9 @@ def test_status_summary_classifies_runs(tmp_path: Path) -> None:
     assert by_id["20260902T000000Z-bbb"].kind == "goal" and by_id["20260902T000000Z-bbb"].applied is True
     assert by_id["20260903T000000Z-ccc"].kind == "resume" and by_id["20260903T000000Z-ccc"].state == "stopped: budget"
     assert (
-        by_id["20260904T000000Z-ddd"].state == "in progress"
-        and by_id["20260904T000000Z-ddd"].last_tool == "run (step 7)"
+        by_id["20260904T000000Z-ddd"].state == "unknown" and by_id["20260904T000000Z-ddd"].last_tool == "run (step 7)"
     )
-    assert by_id["20260904T000100Z-eee"].state == "abandoned"
+    assert by_id["20260904T000100Z-eee"].state == "unknown"
     assert run_started("20260904T000000Z-ddd") == datetime(2026, 9, 4, tzinfo=UTC)
 
 
@@ -74,9 +73,34 @@ def test_status_command_renders(tmp_path: Path) -> None:
     env = {"PRAXBOT_HOME": str(tmp_path), "NEBIUS_API_KEY": "k", "NEBIUS_PROJECT_ID": "p", "COLUMNS": "200"}
     result = CliRunner().invoke(app, ["status"], env=env)
     assert result.exit_code == 0, result.output
-    assert (
-        "in progress" in result.output and "20260904T000000Z-ddd" in result.output and "run (step 7)" in result.output
-    )
+    assert "unknown" in result.output and "20260904T000000Z-ddd" in result.output
     assert "fix <it>" in result.output and "finished" in result.output and "2 under" in result.output
     empty = CliRunner().invoke(app, ["status"], env={**env, "PRAXBOT_HOME": str(tmp_path / "none")})
     assert empty.exit_code == 0 and "no runs yet" in empty.output
+
+
+def test_old_working_record_is_not_proof_of_a_live_run(tmp_path: Path) -> None:
+    directory = make_in_progress(tmp_path, "20260904T000000Z-old", age_s=48 * 3600)
+    (directory / "run.json").write_text(json.dumps({"state": "working", "finished": False}))
+    status = run_status(load_run(directory.name, settings(tmp_path)))
+    assert status.state == "unknown" and status.last_recorded_state == "working" and status.live is None
+
+
+def test_live_status_tracks_the_writer_lock_and_keeps_the_recorded_state(tmp_path: Path) -> None:
+    session = make_session(tmp_path)
+    try:
+        session.active = True
+        session.record()
+        saved = load_run(session.run_id, session.settings)
+        # Log age does not override direct evidence that the writer is alive.
+        stamp = time.time() - 48 * 3600
+        os.utime(session.run_dir / "events.jsonl", (stamp, stamp))
+        status = run_status(saved)
+        assert status.state == "in progress" and status.live is True
+        session.events_file.close()  # simulate a dead writer without updating its record
+        status = run_status(saved)
+        assert status.state == "inactive" and status.live is False
+        assert status.last_recorded_state == "working"
+    finally:
+        session.active = False
+        session.close()

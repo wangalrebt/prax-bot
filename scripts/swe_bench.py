@@ -32,7 +32,9 @@ from prax_bot.core.agent import Agent  # noqa: E402
 from prax_bot.core.llm import LLM  # noqa: E402
 from prax_bot.core.tools import ToolBox  # noqa: E402
 from prax_bot.settings import Settings  # noqa: E402
-from prax_bot.workspace.sandbox import DIFF_OUTPUT_LIMIT, Workspace, git_exclude_command, make_client  # noqa: E402
+from prax_bot.workspace.repository import DIFF_OUTPUT_LIMIT, git_exclude_command  # noqa: E402
+from prax_bot.workspace.sandbox import SandboxWorkspace as Workspace  # noqa: E402
+from prax_bot.workspace.sandbox import make_client  # noqa: E402
 
 TESTBED = "/testbed"
 ENV_PREFIX = "export HOME=${HOME:-/root}; "

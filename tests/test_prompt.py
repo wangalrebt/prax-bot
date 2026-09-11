@@ -10,7 +10,7 @@ from typer.testing import CliRunner
 from prax_bot.core.agent import DEFAULT_SYSTEM_PROMPT_PATH, SYSTEM_PROMPT, Agent
 from prax_bot.settings import Settings
 from prax_bot.ui.cli import app
-from tests.test_agent import FakeLLM, FakeToolBox, call, reply
+from tests.fakes import FakeLLM, FakeToolBox, call, reply
 
 
 def test_the_built_in_prompt_is_the_packaged_file_and_says_the_important_things() -> None:

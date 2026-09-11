@@ -6,8 +6,7 @@ import json
 
 from prax_bot.core.agent import Agent
 from prax_bot.core.tools import ToolBox
-from tests.test_agent import FakeLLM, FakeToolBox, call, reply
-from tests.test_tools import FakeWorkspace
+from tests.fakes import FakeLLM, FakeToolBox, FakeWorkspace, call, reply
 
 
 def test_restore_refuses_to_discard_every_repository_edit() -> None:
@@ -15,7 +14,7 @@ def test_restore_refuses_to_discard_every_repository_edit() -> None:
     box = ToolBox(ws)
     assert box.repo_edited is False
     box.call("read_file", json.dumps({"path": "a.py"}))
-    assert box.call("edit_file", json.dumps({"path": "a.py", "old": "x", "new": "z"})).startswith(
+    assert box.call("edit_file", json.dumps({"path": "a.py", "old": "x", "new": "z"})).output.startswith(
         "edited"
     )  # checkpoint 1
     box.call(
@@ -23,17 +22,21 @@ def test_restore_refuses_to_discard_every_repository_edit() -> None:
     )  # checkpoint 2, scratch
     assert box.repo_edited is True
 
-    refused = box.call("restore", json.dumps({"step": 0}))
+    refused = box.call("restore", json.dumps({"step": 0})).output
     assert refused.startswith("error:") and "discard every change" in refused and "checkpoints 1" in refused
     assert ws.current_step == 2, "nothing was restored"
 
-    assert box.call("restore", json.dumps({"step": 1})).startswith("restored")  # keeps the edit; checkpoint 3
+    assert box.call("restore", json.dumps({"step": 1})).output.startswith("restored")  # keeps the edit; checkpoint 3
     box.call("read_file", json.dumps({"path": "b.py"}))
-    assert box.call("edit_file", json.dumps({"path": "b.py", "old": "y", "new": "w"})).startswith(
+    assert box.call("edit_file", json.dumps({"path": "b.py", "old": "y", "new": "w"})).output.startswith(
         "edited"
     )  # checkpoint 4
-    assert box.call("restore", json.dumps({"step": 2})).startswith("restored"), "one edit survives, so this is allowed"
-    assert "discard every change" in box.call("restore", json.dumps({"step": 0})), "the surviving edit is still tracked"
+    assert box.call("restore", json.dumps({"step": 2})).output.startswith("restored"), (
+        "one edit survives, so this is allowed"
+    )
+    assert "discard every change" in box.call("restore", json.dumps({"step": 0})).output, (
+        "the surviving edit is still tracked"
+    )
 
 
 def test_late_budget_nudge_tells_the_model_to_wrap_up() -> None:
@@ -86,5 +89,5 @@ def test_protected_message_says_not_to_revert_for_stale_tests() -> None:
     ws = FakeWorkspace({"tests/test_a.py": "assert old\n", "a.py": "old\n"})
     box = ToolBox(ws, protected=("tests/*",))
     box.call("read_file", json.dumps({"path": "tests/test_a.py"}))
-    out = box.call("edit_file", json.dumps({"path": "tests/test_a.py", "old": "old", "new": "new"}))
+    out = box.call("edit_file", json.dumps({"path": "tests/test_a.py", "old": "old", "new": "new"})).output
     assert out.startswith("error:") and "keep your fix" in out and "Do not revert" in out

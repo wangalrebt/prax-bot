@@ -3,30 +3,13 @@
 from __future__ import annotations
 
 import json
-import subprocess
-import time
 from pathlib import Path
 
 import pytest
 
 from prax_bot.runtime.runs import continuation_task, load_run, reopen_workspace
-from tests.test_agent import FakeLLM, call, reply
-from tests.test_runs import make_run, settings
-
-
-def make_snapshot(home: Path, run_id: str, step: int, *, changed: bool = True) -> Path:
-    """A local snapshot that looks like the output of a run: a git baseline plus an uncommitted change."""
-    snap = home / "local" / run_id / "snapshots" / f"snap-{step}"
-    snap.mkdir(parents=True)
-    subprocess.run(["git", "init", "-q"], cwd=snap, check=True)
-    (snap / "a.py").write_text("x\n")
-    subprocess.run(["git", "add", "-A"], cwd=snap, check=True)
-    subprocess.run(
-        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "baseline"], cwd=snap, check=True
-    )
-    if changed:
-        (snap / "a.py").write_text("y\n")
-    return snap
+from tests.fakes import FakeLLM, call, reply
+from tests.helpers import make_run, make_snapshot, settings
 
 
 def test_continuation_task_carries_task_summary_diff_and_instruction() -> None:
@@ -67,8 +50,9 @@ def test_solve_continues_on_the_same_workspace_after_a_followup(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     import prax_bot.core.llm
-    from prax_bot.runtime.session import new_run
-    from prax_bot.ui import cli
+    from prax_bot.runtime.runs import new_run
+    from prax_bot.runtime.session import Session
+    from prax_bot.ui.commands import execution
 
     s = settings(tmp_path)
     make_run(tmp_path, "20260901T000000Z-aaa")
@@ -86,21 +70,15 @@ def test_solve_continues_on_the_same_workspace_after_a_followup(
     )
     monkeypatch.setattr(prax_bot.core.llm, "LLM", lambda settings: llm)
     answers = iter(["also add c", ""])
-    run_id, run_dir, events_file, on_event = new_run(s, verbose=False)
-    cli._solve(
-        s,
-        ws,
-        tmp_path,
+    run_id, run_dir, events_file, on_event = new_run(s)
+    session = Session(
+        s, ws, tmp_path, backend="local", run_id=run_id, run_dir=run_dir, events_file=events_file, on_event=on_event
+    )
+    execution._solve(
+        session,
         "add b",
-        backend="local",
-        run_id=run_id,
-        run_dir=run_dir,
-        events_file=events_file,
-        on_event=on_event,
         yes=False,
         export=None,
-        protect=[],
-        started=time.monotonic(),
         ask_followup=lambda: next(answers),
     )
 

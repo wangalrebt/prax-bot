@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from prax_bot.core.agent import FORCE_FINISH, MAX_NUDGES, Agent
-from tests.test_agent import FakeLLM, FakeToolBox, call, reply
+from tests.fakes import FakeLLM, FakeToolBox, call, reply
 
 
 def test_blank_replies_are_retried_before_counting_as_stalls() -> None:

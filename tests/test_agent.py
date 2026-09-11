@@ -1,41 +1,10 @@
 from __future__ import annotations
 
-import json
 from types import SimpleNamespace
 
-from prax_bot.core.agent import FORCE_FINISH, Agent, assistant_message, elide_old_tool_results
-from prax_bot.core.llm import Usage
-
-
-def call(name: str, **args: object) -> SimpleNamespace:
-    return SimpleNamespace(id=f"call-{name}", function=SimpleNamespace(name=name, arguments=json.dumps(args)))
-
-
-def reply(content: str | None = None, *calls: SimpleNamespace) -> SimpleNamespace:
-    return SimpleNamespace(content=content, tool_calls=list(calls))
-
-
-class FakeLLM:
-    def __init__(self, replies: list[SimpleNamespace]) -> None:
-        self.replies = list(replies)
-        self.requests: list[tuple[list[dict], object]] = []
-        self.usage = Usage()
-
-    def complete(self, messages, tools, *, tool_choice="auto", temperature=0.2, model=None):
-        self.requests.append(([dict(m) for m in messages], tool_choice))
-        self.usage.calls += 1
-        if not self.replies:
-            return reply("nothing left to say")
-        return self.replies.pop(0)
-
-
-class FakeToolBox:
-    def __init__(self) -> None:
-        self.calls: list[tuple[str, str]] = []
-
-    def call(self, name: str, raw_args: str) -> str:
-        self.calls.append((name, raw_args))
-        return f"ok {name}"
+from prax_bot.core.agent import FORCE_FINISH, Agent, assistant_message
+from prax_bot.core.context import elide_old_tool_results
+from tests.fakes import FakeLLM, FakeToolBox, call, reply
 
 
 def test_tool_calls_are_dispatched_until_finish() -> None:

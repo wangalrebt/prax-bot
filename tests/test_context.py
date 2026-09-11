@@ -7,20 +7,19 @@ from types import SimpleNamespace
 
 import pytest
 
-from prax_bot.core.agent import (
+from prax_bot.core.agent import Agent
+from prax_bot.core.context import (
     COMPACT_KEEP_TURNS,
     COMPACT_MIN_GAP,
     KEEP_FULL,
-    Agent,
     compact_transcript,
     prune_by_age,
     render_for_summary,
 )
 from prax_bot.core.llm import LLM
 from prax_bot.settings import Settings
-from tests.test_agent import FakeLLM, FakeToolBox, call, reply
-from tests.test_runs import settings as base_settings
-from tests.test_sampling import FakeClient
+from tests.fakes import FakeClient, FakeLLM, FakeToolBox, call, reply
+from tests.helpers import settings as base_settings
 
 
 def tool_messages(n: int, size: int) -> list[dict]:

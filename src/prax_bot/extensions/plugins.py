@@ -1,7 +1,8 @@
 """Plugins: Python files under ~/.praxbot/plugins/ that add tools to the agent.
 
 A plugin defines register(add), and calls add(name, description, model, handler) for each tool: model is a
-pydantic class for the arguments, handler(workspace, args) returns the text the model sees. Handlers run on
+pydantic class for the arguments, handler(workspace, args) returns successful text or a ToolResult with an
+explicit error flag. Handlers run on
 this machine, not in the sandbox, which is why plugins are loaded only from the home directory and never
 from the repository being worked on.
 """
@@ -17,6 +18,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from prax_bot.core.tool_result import ToolResult
+
 NAME_RE = re.compile(r"^[a-z][a-z0-9_]{0,40}$")
 
 
@@ -25,7 +28,7 @@ class ExtraTool:
     name: str
     description: str
     model: type[BaseModel]
-    handler: Callable[[Any, BaseModel], str]
+    handler: Callable[[Any, BaseModel], str | ToolResult]
     source: str = ""
 
     def spec(self) -> dict[str, Any]:
@@ -41,7 +44,9 @@ def _load_one(path: Path, taken: set[str]) -> list[ExtraTool]:
     """Import one plugin file and collect the tools it registers. Raises on any problem."""
     added: list[ExtraTool] = []
 
-    def add(name: str, description: str, model: type[BaseModel], handler: Callable[[Any, BaseModel], str]) -> None:
+    def add(
+        name: str, description: str, model: type[BaseModel], handler: Callable[[Any, BaseModel], str | ToolResult]
+    ) -> None:
         if not NAME_RE.match(name):
             raise ValueError(f"tool name {name!r} must be lowercase letters, digits and underscores")
         if name in taken or any(t.name == name for t in added):

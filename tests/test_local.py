@@ -1,21 +1,12 @@
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
 
 import pytest
 
 from prax_bot.settings import Settings
 from prax_bot.workspace.local import LocalWorkspace, create_local_workspace
-
-
-def make_repo(root: Path) -> Path:
-    root.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
-    (root / "a.py").write_text("print(1)\n")
-    subprocess.run(["git", "add", "-A"], cwd=root, check=True)
-    subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init"], cwd=root, check=True)
-    return root
+from tests.helpers import make_local_repo as make_repo
 
 
 def workspace(tmp_path: Path) -> LocalWorkspace:
@@ -95,17 +86,18 @@ def test_create_local_workspace_builds_baseline_and_venv(tmp_path: Path) -> None
     assert "real.txt" in diff and "egg-info" not in diff and "pyc" not in diff
 
 
-def test_diff_leaves_out_binary_files_the_run_created(tmp_path: Path) -> None:
+def test_diff_includes_new_binary_assets_and_root_tests(tmp_path: Path) -> None:
     ws = workspace(tmp_path)
     ws.write("fix.py", b"y = 2\n")
     ws.run(
         "printf '\\x80\\x00\\x01pickle' > sinus.pickle && printf '\\x89PNG\\x00' > out/plot.png 2>/dev/null || (mkdir out && printf '\\x89PNG\\x00' > out/plot.png)"
     )
     diff = ws.diff()
-    assert "fix.py" in diff and "sinus.pickle" not in diff and "plot.png" not in diff
-    assert ws.dropped_binary == ["out/plot.png", "sinus.pickle"]
+    assert "fix.py" in diff and "sinus.pickle" in diff and "plot.png" in diff
+    ws.write("test_added.py", b"def test_new():\n    assert True\n")
+    assert "test_added.py" in ws.changes().files
     # a tracked binary the task changes on purpose stays in the diff
     ws.run("printf '\\x00\\x01' > blob.bin && git add blob.bin && git -c user.email=t@t -c user.name=t commit -qm blob")
     ws.run("printf '\\x00\\x02' > blob.bin")
     diff = ws.diff()
-    assert "blob.bin" in diff and ws.dropped_binary == ["out/plot.png", "sinus.pickle"]
+    assert "blob.bin" in diff and "sinus.pickle" in diff and "plot.png" in diff

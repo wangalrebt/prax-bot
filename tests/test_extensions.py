@@ -11,8 +11,7 @@ from prax_bot.core.agent import Agent
 from prax_bot.core.tools import ToolBox
 from prax_bot.extensions.plugins import load_plugins
 from prax_bot.extensions.skills import Skill, home_skills, overview, parse_skill, repo_skills
-from tests.test_agent import FakeLLM, call, reply
-from tests.test_tools import FakeWorkspace
+from tests.fakes import FakeLLM, FakeWorkspace, call, reply
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -58,11 +57,11 @@ def test_toolbox_advertises_skills_and_loads_them_on_demand() -> None:
     names = {s["function"]["name"] for s in box.specs()}
     assert "load_skill" in names and "finish" in names
     assert (
-        box.call("load_skill", json.dumps({"name": "deploy"}))
+        box.call("load_skill", json.dumps({"name": "deploy"})).output
         == "Skill deploy (~/.praxbot/skills/deploy):\n1. tag\n2. push"
     )
-    assert box.call("load_skill", json.dumps({"name": "release"})).endswith("run make release")
-    assert box.call("load_skill", json.dumps({"name": "nope"})).startswith(
+    assert box.call("load_skill", json.dumps({"name": "release"})).output.endswith("run make release")
+    assert box.call("load_skill", json.dumps({"name": "nope"})).output.startswith(
         "error: no skill named 'nope'. Available: deploy, release"
     )
 
@@ -78,11 +77,11 @@ def test_nested_instructions_are_shown_once_per_directory() -> None:
         }
     )
     box = ToolBox(ws)
-    first = box.call("read_file", json.dumps({"path": "pkg/a.py"}))
+    first = box.call("read_file", json.dumps({"path": "pkg/a.py"})).output
     assert "Instructions from pkg/AGENTS.md apply here:\nUse tabs here." in first
-    second = box.call("read_file", json.dumps({"path": "pkg/b.py"}))
+    second = box.call("read_file", json.dumps({"path": "pkg/b.py"})).output
     assert "Instructions from" not in second, "shown once per directory"
-    assert "Instructions from" not in box.call("read_file", json.dumps({"path": "top.py"})), (
+    assert "Instructions from" not in box.call("read_file", json.dumps({"path": "top.py"})).output, (
         "the root file is handled at the start, not here"
     )
 
@@ -109,9 +108,12 @@ def test_plugins_load_from_home_and_broken_ones_are_skipped(tmp_path: Path) -> N
 
     box = ToolBox(WS({"a.py": "import os\n"}), plugins=tools)
     assert "lint" in {s["function"]["name"] for s in box.specs()}
-    out = box.call("lint", json.dumps({"path": "a.py"}))
+    out = box.call("lint", json.dumps({"path": "a.py"})).output
     assert out.startswith("ruff check a.py: exit 1") and "F401" in out
-    assert box.call("nope", "{}").startswith("error: unknown tool 'nope'") and "lint" in box.call("nope", "{}")
+    assert (
+        box.call("nope", "{}").output.startswith("error: unknown tool 'nope'")
+        and "lint" in box.call("nope", "{}").output
+    )
 
 
 def test_agent_uses_toolbox_specs_and_advertises_skills() -> None:

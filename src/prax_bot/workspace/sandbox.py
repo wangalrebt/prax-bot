@@ -6,15 +6,10 @@ commands run disposably and leave the current image untouched.
 
 from __future__ import annotations
 
-import io
 import posixpath
-import re
 import shlex
-import subprocess
-import tarfile
 import time
-from collections.abc import Callable
-from dataclasses import dataclass
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -31,72 +26,24 @@ from contree_sdk.sdk.exceptions import (
 )
 
 from prax_bot.settings import WORKDIR, Settings
+from prax_bot.workspace.repository import (
+    collect_changes,
+    git_exclude_command,
+    pack_repo,
+    repo_file_names,
+    resolve_in_workdir,
+    suspicious_files,
+)
+from prax_bot.workspace.types import Changes, Checkpoint, CommandResult, EventFn, WorkspaceError, noop
 
-EventFn = Callable[..., None]
-MAX_REPO_BYTES = 200 * 1024 * 1024
 UPLOAD_TMP = "/tmp/praxbot.upload"
-DIFF_OUTPUT_LIMIT = 8 * 1024 * 1024  # the sandbox API rejects truncate_output_at of 10 MiB or more
 
 # Build artifacts that installs and test runs create inside the workspace. They are kept out
 # of diffs through .git/info/exclude, which lives outside the working tree.
-DIFF_EXCLUDES = (
-    "__pycache__/",
-    "*.pyc",
-    "*.egg-info/",
-    ".pytest_cache/",
-    ".mypy_cache/",
-    ".ruff_cache/",
-    "build/",
-    "dist/",
-    ".venv/",
-    "venv/",
-    "node_modules/",
-    ".tox/",
-    ".coverage",
-    "htmlcov/",
-)
-
-
-def new_binary_files(numstat: list[str], untracked: list[str]) -> list[str]:
-    """Untracked binary files among the staged changes: git's numstat shows '-' counts for binaries.
-
-    A pickle or an image written by a reproduction script does not belong in a diff; a tracked binary
-    the task changed on purpose is kept.
-    """
-    new = set(untracked)
-    out = []
-    for line in numstat:
-        parts = line.split("\t", 2)
-        if len(parts) == 3 and parts[0] == parts[1] == "-" and parts[2] in new:
-            out.append(parts[2])
-    return out
-
-
-def git_exclude_command() -> str:
-    """Shell snippet that appends DIFF_EXCLUDES to .git/info/exclude in the current directory."""
-    body = "\\n".join(DIFF_EXCLUDES)
-    return f"mkdir -p .git/info && printf '%b\\n' '{body}' >> .git/info/exclude"
 
 
 # Untracked files that are commonly secrets. They are not ignored by git, so they would be
 # uploaded with the repository; the CLI warns before that happens.
-SUSPICIOUS_PATTERNS = (
-    ".env",
-    ".env.*",
-    "*.pem",
-    "*.key",
-    "*.p12",
-    "*.pfx",
-    "id_rsa*",
-    "id_ed25519*",
-    "id_ecdsa*",
-    "*.keystore",
-    ".npmrc",
-    ".pypirc",
-    ".netrc",
-    "credentials*.json",
-    "service-account*.json",
-)
 
 
 TRANSPORT_TIMEOUT_S = 180.0  # per HTTP request; the SDK default of 10 s fails on multi-megabyte uploads
@@ -107,100 +54,7 @@ def make_client() -> ContreeSync:
     return ContreeSync(ContreeConfig(transport_timeout=TRANSPORT_TIMEOUT_S))
 
 
-def _noop(kind: str, **payload: Any) -> None:
-    return None
-
-
-class WorkspaceError(RuntimeError):
-    pass
-
-
-@dataclass
-class CommandResult:
-    command: str
-    exit_code: int
-    stdout: str
-    stderr: str
-    elapsed_s: float
-    truncated: bool
-    timed_out: bool
-    image: str | None
-    cost: float
-
-
-@dataclass
-class Checkpoint:
-    step: int
-    image: str
-    label: str
-
-
-SCRATCH_DIR = "/tmp/praxbot/scratch"  # throwaway scripts live here, outside the repository and the diff
-SCRATCH_NAME_RE = re.compile(r"^(reproduce|repro|scratch|debug|tmp|temp)[^/]*$|^test_[^/]*\.py$|^[^/]*_test\.py$")
-
-
-def resolve_in_workdir(path: str, workdir: str = WORKDIR) -> str:
-    """Map a model-supplied path onto an absolute path inside the sandbox workdir or the scratch dir.
-
-    Raises ValueError for paths that would escape both.
-    """
-    raw = (path or ".").strip()
-    candidate = posixpath.normpath(raw if raw.startswith("/") else posixpath.join(workdir, raw))
-    for root in (workdir, SCRATCH_DIR):
-        if candidate == root or candidate.startswith(root + "/"):
-            return candidate
-    raise ValueError(f"path {path!r} is outside the repository ({workdir}); throwaway files belong in {SCRATCH_DIR}")
-
-
-def scratch_files(new_paths: list[str]) -> list[str]:
-    """New repository-root files that look like reproduction or debugging scripts."""
-    return [p for p in new_paths if "/" not in p and SCRATCH_NAME_RE.match(p)]
-
-
-def repo_file_names(repo_root: Path) -> list[str]:
-    """Tracked files plus untracked files that are not ignored, as git sees them."""
-    out = subprocess.run(
-        ["git", "ls-files", "-z", "-co", "--exclude-standard"],
-        cwd=repo_root,
-        capture_output=True,
-        check=True,
-    ).stdout
-    return [n for n in out.decode("utf-8", "surrogateescape").split("\0") if n]
-
-
-def suspicious_files(names: list[str]) -> list[str]:
-    """Names that look like credentials, matched on the file's basename."""
-    import fnmatch
-
-    found = []
-    for name in names:
-        base = posixpath.basename(name)
-        if any(fnmatch.fnmatch(base, pat) for pat in SUSPICIOUS_PATTERNS):
-            found.append(name)
-    return found
-
-
-def pack_repo(repo_root: Path) -> bytes:
-    """Tar the working tree: tracked files plus untracked files that are not ignored.
-
-    The .git directory is not included; the sandbox creates its own baseline commit.
-    """
-    names = repo_file_names(repo_root)
-    buf = io.BytesIO()
-    with tarfile.open(fileobj=buf, mode="w") as tar:
-        for name in names:
-            p = repo_root / name
-            if p.is_symlink() or p.is_file():
-                tar.add(p, arcname=name, recursive=False)
-    data = buf.getvalue()
-    if len(data) > MAX_REPO_BYTES:
-        raise WorkspaceError(
-            f"repository is {len(data) / 1e6:.0f} MB; Prax Bot uploads at most {MAX_REPO_BYTES / 1e6:.0f} MB"
-        )
-    return data
-
-
-class Workspace:
+class SandboxWorkspace:
     def __init__(
         self,
         client: ContreeSync,
@@ -214,12 +68,10 @@ class Workspace:
         self.image = image
         self.workdir = workdir
         self.command_timeout = command_timeout
-        self.on_event = on_event or _noop
+        self.on_event = on_event or noop
         self.checkpoints: list[Checkpoint] = []
         self.total_cost = 0.0
         self.commands = 0
-        self.dropped_scratch: list[str] = []
-        self.dropped_binary: list[str] = []
         self._checkpoint("baseline")
 
     @property
@@ -326,43 +178,22 @@ class Workspace:
         self._checkpoint(f"restore: step {step}")
         return target
 
-    def diff(self, *, attempts: int = 3) -> str:
-        """Unified diff of the current state against the baseline commit, new files included.
-
-        The current image is immutable, so a transient API failure here is retried rather
-        than losing the run's work.
-        """
+    def changes(self, paths: Sequence[str] | None = None, *, attempts: int = 3) -> Changes:
+        """Collect a complete patch; immutable images make failed reads safe to retry."""
         last: Exception | None = None
         for attempt in range(attempts):
             try:
-                listing = self.run("git ls-files --others --exclude-standard", mutate=False)
-                untracked = listing.stdout.splitlines() if listing.exit_code == 0 else []
-                self.dropped_scratch = scratch_files(untracked)
-                stat = self.run("git add -A && git diff --cached --numstat --no-renames HEAD", mutate=False)
-                self.dropped_binary = (
-                    new_binary_files(stat.stdout.splitlines(), untracked) if stat.exit_code == 0 else []
-                )
-                excludes = " ".join(
-                    shlex.quote(f":(exclude){p}") for p in [*self.dropped_scratch, *self.dropped_binary]
-                )
-                r = self.run(
-                    f"git add -A && git diff --cached --binary HEAD -- . {excludes}",
-                    mutate=False,
-                    truncate_output_at=DIFF_OUTPUT_LIMIT,
-                )
-                break
-            except ContreeError as e:
-                last = e
-                time.sleep(5 * (attempt + 1))
-        else:
-            raise WorkspaceError(
-                f"could not read the diff after {attempts} attempts: {type(last).__name__}: {str(last)[:200]}"
-            )
-        if r.exit_code != 0:
-            raise WorkspaceError(f"git diff failed in the sandbox: {r.stderr.strip()}")
-        if r.truncated:
-            raise WorkspaceError(f"the diff is larger than {DIFF_OUTPUT_LIMIT // (1024 * 1024)} MiB and was truncated")
-        return r.stdout
+                return collect_changes(self, paths)
+            except ContreeError as error:
+                last = error
+                if attempt < attempts - 1:
+                    time.sleep(5 * (attempt + 1))
+        raise WorkspaceError(
+            f"could not read the diff after {attempts} attempts: {type(last).__name__}: {str(last)[:200]}"
+        )
+
+    def diff(self) -> str:
+        return self.changes().patch
 
 
 CREATE_ATTEMPTS = 3
@@ -392,9 +223,9 @@ def create_workspace(
     settings: Settings,
     repo_root: Path,
     on_event: EventFn | None = None,
-) -> Workspace:
+) -> SandboxWorkspace:
     """Upload the repository into a fresh sandbox image and commit it as the baseline."""
-    emit = on_event or _noop
+    emit = on_event or noop
     started = time.monotonic()
     archive = pack_repo(repo_root)
     emit("sandbox.pack", bytes=len(archive), suspicious=suspicious_files(repo_file_names(repo_root)))
@@ -422,7 +253,7 @@ def create_workspace(
     )
     if image.exit_code != 0:
         raise WorkspaceError(f"sandbox bootstrap failed (exit {image.exit_code}): {str(image.stderr or '')[-2000:]}")
-    ws = Workspace(client, image, workdir=wd, command_timeout=settings.command_timeout, on_event=on_event)
+    ws = SandboxWorkspace(client, image, workdir=wd, command_timeout=settings.command_timeout, on_event=on_event)
     ws.total_cost += image.result.cost
     emit("sandbox.ready", image=ws.image_id, elapsed=time.monotonic() - started)
 

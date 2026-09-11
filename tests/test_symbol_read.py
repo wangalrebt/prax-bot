@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import json
 
-from prax_bot.core.tools import ToolBox, definition_span, tool_specs
-from tests.test_tools import FakeWorkspace
+from prax_bot.core.navigation import definition_span
+from prax_bot.core.tools import ToolBox, tool_specs
+from tests.fakes import FakeWorkspace
 
 PY_SOURCE = '''import os
 
@@ -63,12 +64,12 @@ def test_definition_span_falls_back_to_indentation_for_other_languages() -> None
 
 def test_read_file_by_symbol_returns_the_definition_and_explains_misses() -> None:
     box = ToolBox(FakeWorkspace({"t.py": PY_SOURCE}))
-    out = box.call("read_file", json.dumps({"path": "t.py", "symbol": "Table.render"}))
+    out = box.call("read_file", json.dumps({"path": "t.py", "symbol": "Table.render"})).output
     assert out.startswith("t.py lines 8-9 of 20 (Table.render)\n")
     assert "8|" in out and "def render" in out and "def pad" not in out
-    out = box.call("read_file", json.dumps({"path": "t.py", "symbol": "Tab"}))
+    out = box.call("read_file", json.dumps({"path": "t.py", "symbol": "Tab"})).output
     assert out.startswith("error: no definition named 'Tab' in t.py; did you mean Table")
-    out = box.call("read_file", json.dumps({"path": "t.py", "symbol": "zzz"}))
+    out = box.call("read_file", json.dumps({"path": "t.py", "symbol": "zzz"})).output
     assert out == "error: no definition named 'zzz' in t.py; call outline to see what it defines"
     spec = next(s for s in tool_specs() if s["function"]["name"] == "read_file")
     assert "symbol" in spec["function"]["parameters"]["properties"]

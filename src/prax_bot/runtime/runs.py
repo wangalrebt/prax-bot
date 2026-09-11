@@ -1,19 +1,26 @@
-"""Past runs: listing, inspecting the checkpoint chain, diffs per checkpoint, and an HTML report."""
+"""Run records, event logs, checkpoint recovery, and status data."""
 
 from __future__ import annotations
 
-import html
+import dataclasses
+import fcntl
 import json
 import shutil
 import subprocess
+import time
+import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from threading import Lock
+from typing import Any, TextIO
 
 from prax_bot.core.prompts import prompt
+from prax_bot.runtime.apply import ApplyTransaction
+from prax_bot.runtime.storage import write_json
 from prax_bot.settings import Settings
-from prax_bot.workspace.sandbox import DIFF_OUTPUT_LIMIT
+from prax_bot.workspace.repository import DIFF_OUTPUT_LIMIT
+from prax_bot.workspace.types import EventFn, Workspace
 
 
 @dataclass
@@ -33,6 +40,10 @@ class Run:
         return list(self.info.get("checkpoints") or [])
 
     @property
+    def pending_apply(self) -> ApplyTransaction | None:
+        return ApplyTransaction.load(self.directory, self.info)
+
+    @property
     def tool_calls(self) -> list[dict[str, Any]]:
         """Tool calls paired with the first line of their result, in order."""
         calls: list[dict[str, Any]] = []
@@ -42,7 +53,7 @@ class Run:
             elif e.get("kind") == "tool.result" and calls:
                 out = str(e.get("output") or "")
                 calls[-1]["result"] = out.splitlines()[0] if out else ""
-                calls[-1]["error"] = out.startswith("error:")
+                calls[-1]["error"] = e.get("error", out.startswith("error:"))  # fallback for older event logs
         return calls
 
 
@@ -89,7 +100,8 @@ def checkpoint_diff(run: Run, step: int, settings: Settings | None = None) -> st
     command = "git add -A && git diff --cached --binary HEAD"
     if image.startswith("local:"):
         settings = settings or Settings.from_env()
-        snap = settings.home / "local" / run.run_id / "snapshots" / image.split(":", 1)[1]
+        root = Path(run.info.get("workspace_root") or settings.home / "local" / run.run_id)
+        snap = root / "snapshots" / image.split(":", 1)[1]
         if not snap.is_dir():
             raise FileNotFoundError(f"local snapshot {snap} no longer exists")
         r = subprocess.run(["bash", "-c", command], cwd=snap, capture_output=True, text=True, check=False)
@@ -127,7 +139,9 @@ def continuation_task(original_task: str, summary: str | None, diff: str, instru
     )
 
 
-def reopen_workspace(run: Run, step: int, settings: Settings, on_event: Any = None, new_run_id: str = "resume") -> Any:
+def reopen_workspace(
+    run: Run, step: int, settings: Settings, on_event: EventFn | None = None, new_run_id: str = "resume"
+) -> Workspace:
     """A live workspace rebuilt from one checkpoint of a past run.
 
     Sandboxes are immutable images, so the contree backend simply starts from that image.
@@ -136,11 +150,14 @@ def reopen_workspace(run: Run, step: int, settings: Settings, on_event: Any = No
     checkpoints = run.checkpoints
     if not 0 <= step < len(checkpoints):
         raise ValueError(f"run {run.run_id} has checkpoints 0 to {len(checkpoints) - 1}")
+    pending = run.pending_apply
+    if pending is not None and step != len(checkpoints) - 1:
+        raise ValueError("resume the last checkpoint to finish recording this run's applied patch first")
     image = checkpoints[step]["image"]
     if image.startswith("local:"):
         from prax_bot.workspace.local import LocalWorkspace, clone_dir
 
-        old_root = settings.home / "local" / run.run_id
+        old_root = Path(run.info.get("workspace_root") or settings.home / "local" / run.run_id)
         snap = old_root / "snapshots" / image.split(":", 1)[1]
         if not snap.is_dir():
             raise FileNotFoundError(f"local snapshot {snap} no longer exists")
@@ -151,14 +168,17 @@ def reopen_workspace(run: Run, step: int, settings: Settings, on_event: Any = No
         clone_dir(snap, root / "current")
         if (old_root / "venv").is_dir():
             clone_dir(old_root / "venv", root / "venv")
-        return LocalWorkspace(root, command_timeout=settings.command_timeout, on_event=on_event)
-    from prax_bot.workspace.sandbox import Workspace, make_client
+        workspace = LocalWorkspace(root, command_timeout=settings.command_timeout, on_event=on_event)
+    else:
+        from prax_bot.workspace.sandbox import SandboxWorkspace, make_client
 
-    client = make_client()
-    return Workspace(client, client.images.use(image), command_timeout=settings.command_timeout, on_event=on_event)
-
-
-IN_PROGRESS_WINDOW_S = 30 * 60  # a run without a record whose log moved within this window is still running
+        client = make_client()
+        workspace = SandboxWorkspace(
+            client, client.images.use(image), command_timeout=settings.command_timeout, on_event=on_event
+        )
+    if pending is not None:
+        pending.finish(Path(run.info["repo"]), workspace)
+    return workspace
 
 
 @dataclass
@@ -166,7 +186,7 @@ class RunStatus:
     run_id: str
     kind: str  # run, resume, goal, session
     task: str
-    state: str  # finished, stopped: <reason>, in progress, abandoned
+    state: str  # finished, stopped: <reason>, in progress, idle, inactive, unknown
     started: datetime | None
     last_activity: datetime | None
     steps: int | None
@@ -174,6 +194,8 @@ class RunStatus:
     cost: float | None
     files_changed: int
     applied: bool | None
+    last_recorded_state: str | None = None
+    live: bool | None = None
     last_tool: str | None = None
     goal: dict[str, Any] | None = None
 
@@ -185,15 +207,25 @@ def run_started(run_id: str) -> datetime | None:
         return None
 
 
-def run_status(run: Run, now: datetime | None = None) -> RunStatus:
+def run_status(run: Run) -> RunStatus:
     """What one run is, what it did, and whether it is still going."""
-    now = now or datetime.now(UTC)
     info = run.info
     events_path = run.directory / "events.jsonl"
     last_activity = None
     if events_path.exists():
         last_activity = datetime.fromtimestamp(events_path.stat().st_mtime, tz=UTC)
-    kind = (
+    live = None
+    if events_path.exists():
+        with events_path.open() as log:
+            try:
+                fcntl.flock(log, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                live = True
+            else:
+                fcntl.flock(log, fcntl.LOCK_UN)
+                if info.get("activity_tracking") == "event_lock":
+                    live = False
+    kind = info.get("kind") or (
         "session"
         if info.get("session")
         else "goal"
@@ -204,12 +236,15 @@ def run_status(run: Run, now: datetime | None = None) -> RunStatus:
     )
     calls = [e for e in run.events if e.get("kind") == "tool.call"]
     last_tool = f"{calls[-1].get('name')} (step {calls[-1].get('step')})" if calls else None
-    if "finished" in info:
+    recorded_state = info.get("state")
+    if live:
+        state = "in progress" if recorded_state == "working" else "idle" if recorded_state == "idle" else "starting"
+    elif recorded_state in ("working", "idle"):
+        state = "inactive" if live is False else "unknown"
+    elif "finished" in info:
         state = "finished" if info.get("finished") else f"stopped: {info.get('reason', '')}"
-    elif last_activity and (now - last_activity).total_seconds() < IN_PROGRESS_WINDOW_S:
-        state = "in progress"
     else:
-        state = "abandoned"
+        state = "unknown"
     diff = run.diff
     tokens = None
     if "prompt_tokens" in info:
@@ -226,6 +261,8 @@ def run_status(run: Run, now: datetime | None = None) -> RunStatus:
         cost=info.get("sandbox_cost"),
         files_changed=diff.count("diff --git "),
         applied=info.get("applied"),
+        last_recorded_state=recorded_state,
+        live=live,
         last_tool=last_tool,
         goal=info.get("goal"),
     )
@@ -265,64 +302,103 @@ def ago(when: datetime | None, now: datetime | None = None) -> str:
     return f"{seconds // 86400}d ago"
 
 
-def _short_args(name: str, raw: str) -> str:
-    from prax_bot.runtime.render import describe_call
+def json_safe(value: Any) -> Any:
+    """A JSON-serialisable view of an event payload: dataclasses, containers, plain objects, or their repr."""
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
+        return dataclasses.asdict(value)
+    if isinstance(value, (list, tuple)):
+        return [json_safe(v) for v in value]
+    if isinstance(value, dict):
+        return {str(k): json_safe(v) for k, v in value.items()}
+    if hasattr(value, "__dict__"):
+        return {k: json_safe(v) for k, v in vars(value).items() if not k.startswith("_")}
+    return str(value)
 
-    return describe_call(name, raw)
+
+def build_record(
+    *,
+    run_id: str,
+    task: str,
+    followups: list[str],
+    repo: Path,
+    settings: Settings,
+    llm: Any,
+    ws: Workspace,
+    backend: str,
+    base_image: str | None,
+    result: Any,
+    steps: int,
+    summary: str,
+    elapsed_s: float,
+    resumed_from: dict[str, Any] | None = None,
+    diff_error: str | None = None,
+    applied: bool | None = None,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """The run.json record: what was asked, what the model and sandbox did, and where it ended up.
+
+    One shape for every front end, so `praxbot status`, `inspect` and `report` read all runs the same way.
+    """
+    return {
+        "run_id": run_id,
+        "task": task,
+        "followups": list(followups),
+        "resumed_from": resumed_from,
+        "repo": str(repo),
+        "model": settings.model,
+        "temperature": settings.temperature,
+        "top_p": settings.top_p,
+        "effort": settings.effort,
+        "investigate_model": settings.investigate_model,
+        "usage_by_model": llm.usage.by_model,
+        "backend": backend,
+        "base_image": base_image,
+        "finished": bool(result and result.finished),
+        "reason": result.reason if result else "session",
+        "steps": steps,
+        "summary": summary,
+        "model_calls": llm.usage.calls,
+        "prompt_tokens": llm.usage.prompt_tokens,
+        "completion_tokens": llm.usage.completion_tokens,
+        "sandbox_commands": ws.commands,
+        "sandbox_cost": ws.total_cost,
+        "baseline_image": ws.checkpoints[0].image,
+        "final_image": ws.image_id,
+        "checkpoints": [dataclasses.asdict(c) for c in ws.checkpoints],
+        "elapsed_s": elapsed_s,
+        "diff_error": diff_error,
+        "applied": applied,
+        **(extra or {}),
+    }
 
 
-def render_html(run: Run) -> str:
-    """A self-contained HTML report for one run."""
-    info = run.info
-    e = html.escape
-    usage = info.get("usage_by_model") or {}
-    rows = "".join(
-        f"<tr class='{'err' if c.get('error') else ''}'><td>{c['step']}</td><td>{e(str(c['name']))}</td>"
-        f"<td>{e(_short_args(str(c['name']), str(c['args'])))}</td><td>{e(str(c['result'])[:160])}</td></tr>"
-        for c in run.tool_calls
-    )
-    cps = "".join(
-        f"<tr><td>{c['step']}</td><td><code>{e(str(c['image']))}</code></td><td>{e(str(c['label']))}</td></tr>"
-        for c in run.checkpoints
-    )
-    by_model = "".join(
-        f"<tr><td><code>{e(m)}</code></td><td>{u.get('calls', 0)}</td><td>{u.get('prompt_tokens', 0):,}</td><td>{u.get('completion_tokens', 0):,}</td></tr>"
-        for m, u in usage.items()
-    )
-    status = "finished" if info.get("finished") else f"stopped: {info.get('reason', '')}"
-    diff = run.diff
-    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Prax Bot run {e(run.run_id)}</title>
-<style>
-body{{font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;padding:32px;max-width:1100px;color:#1a2321;background:#f6f8f7}}
-h1{{font-size:22px;margin:0 0 4px}} h2{{font-size:17px;margin:28px 0 8px}} code,pre{{font:13px/1.45 ui-monospace,Menlo,monospace}}
-table{{border-collapse:collapse;width:100%;font-size:14px}} td,th{{text-align:left;vertical-align:top;padding:5px 10px 5px 0;border-bottom:1px solid #d9dfdc}}
-th{{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#6b7772}} tr.err td{{color:#a33d2a}}
-pre{{background:#17211e;color:#dfe6e2;padding:14px;overflow:auto;border-radius:4px}} .kv td:first-child{{color:#6b7772;width:140px}}
-.summary{{background:#fff;border-left:3px solid #0f6a86;padding:10px 14px;white-space:pre-wrap}}
-</style></head><body>
-<h1>Prax Bot run {e(run.run_id)}</h1>
-<div>{e(str(info.get("task", "")))}</div>
-<h2>Run</h2>
-<table class="kv">
-<tr><td>result</td><td>{e(status)}</td></tr>
-<tr><td>repository</td><td><code>{e(str(info.get("repo", "")))}</code></td></tr>
-<tr><td>backend</td><td>{e(str(info.get("backend", "")))}{(" · image " + e(str(info.get("base_image")))) if info.get("base_image") else ""}</td></tr>
-<tr><td>model</td><td><code>{e(str(info.get("model", "")))}</code>{(" · investigation " + e(str(info.get("investigate_model")))) if info.get("investigate_model") else ""}</td></tr>
-<tr><td>steps</td><td>{info.get("steps", "")}</td></tr>
-<tr><td>tokens</td><td>{(info.get("prompt_tokens") or 0) + (info.get("completion_tokens") or 0):,} in {info.get("model_calls", "")} calls</td></tr>
-<tr><td>sandbox</td><td>{info.get("sandbox_commands", "")} commands · {len(run.checkpoints)} checkpoints · cost {info.get("sandbox_cost", 0):.4f}</td></tr>
-<tr><td>images</td><td><code>{e(str(info.get("baseline_image", "")))}</code> → <code>{e(str(info.get("final_image", "")))}</code></td></tr>
-<tr><td>elapsed</td><td>{int(info.get("elapsed_s") or 0)} s</td></tr>
-</table>
-{("<h2>Usage by model</h2><table><tr><th>model</th><th>calls</th><th>prompt</th><th>completion</th></tr>" + by_model + "</table>") if by_model else ""}
-<h2>Summary</h2>
-<div class="summary">{e(str(info.get("summary", "")))}</div>
-<h2>Steps</h2>
-<table><tr><th>step</th><th>tool</th><th>arguments</th><th>result</th></tr>{rows}</table>
-<h2>Checkpoints</h2>
-<p>Every command and edit produced an immutable state. Any of them can be diffed or restored with <code>praxbot inspect {e(run.run_id)} --diff N</code>.</p>
-<table><tr><th>step</th><th>image</th><th>label</th></tr>{cps}</table>
-<h2>Diff</h2>
-<pre>{e(diff) if diff.strip() else "(no changes)"}</pre>
-</body></html>
-"""
+def new_run(settings: Settings, on_event: EventFn | None = None) -> tuple[str, Path, TextIO, EventFn]:
+    """Create an event log; observers receive the same events after they are persisted."""
+    run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:6]
+    directory = settings.home / "runs" / run_id
+    directory.mkdir(parents=True)
+    events_file = (directory / "events.jsonl").open("a", encoding="utf-8")
+    try:
+        fcntl.flock(events_file, fcntl.LOCK_EX)
+    except BaseException:
+        events_file.close()
+        raise
+
+    lock = Lock()
+
+    def emit(kind: str, **payload: Any) -> None:
+        record = {"t": time.time(), "kind": kind, **{k: json_safe(v) for k, v in payload.items()}}
+        with lock:
+            events_file.write(json.dumps(record) + "\n")
+            events_file.flush()
+        if on_event is not None:
+            on_event(kind, **payload)
+
+    return run_id, directory, events_file, emit
+
+
+def write_record(run_dir: Path, record: dict[str, Any]) -> None:
+    """Replace the record atomically so status readers never see half-written JSON."""
+    write_json(run_dir / "run.json", record)

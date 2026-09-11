@@ -1,123 +1,26 @@
 from __future__ import annotations
 
 import io
-import subprocess
 import tarfile
-from datetime import timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from contree_sdk.sdk.exceptions import ContreeError, NotFoundError
+from contree_sdk.sdk.exceptions import ContreeError
 
-from prax_bot.settings import Settings
-from prax_bot.workspace.sandbox import Workspace, WorkspaceError, create_workspace, pack_repo
-
-
-def git(*args: str, cwd: Path) -> None:
-    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True)
-
-
-def make_repo(root: Path) -> Path:
-    git("init", "-q", cwd=root)
-    (root / "a.py").write_text("print(1)\n")
-    (root / ".gitignore").write_text("ignored.txt\n")
-    (root / "ignored.txt").write_text("no")
-    (root / "sub").mkdir()
-    (root / "sub" / "new.txt").write_text("untracked")
-    git("add", "a.py", ".gitignore", cwd=root)
-    git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init", cwd=root)
-    return root
+from prax_bot.workspace.repository import pack_repo
+from prax_bot.workspace.sandbox import SandboxWorkspace as Workspace
+from prax_bot.workspace.sandbox import create_workspace
+from prax_bot.workspace.types import WorkspaceError
+from tests.fakes import base, fake_client
+from tests.helpers import make_sandbox_repo as make_repo
+from tests.helpers import sandbox_settings as settings
 
 
 def test_pack_repo_includes_tracked_and_untracked_but_not_ignored(tmp_path: Path) -> None:
     data = pack_repo(make_repo(tmp_path))
     with tarfile.open(fileobj=io.BytesIO(data)) as tar:
         assert sorted(tar.getnames()) == [".gitignore", "a.py", "sub/new.txt"]
-
-
-class FakeImage:
-    """Mimics the ConTree SDK image object: run() prepares, wait() executes and yields a new image."""
-
-    counter = 0
-    registry: dict[str, dict[str, bytes]] = {}
-
-    def __init__(self, uuid: str | None, fs: dict[str, bytes], log: list) -> None:
-        self.uuid = uuid
-        self.tag = None
-        self.fs = dict(fs)
-        self.log = log
-        self._pending: dict | None = None
-        self.exit_code = 0
-        self.stdout = ""
-        self.stderr = ""
-        self.fail_bootstrap = False
-
-    def run(self, *, shell, cwd=None, timeout=None, disposable=True, truncate_output_at=None, files=None):
-        child = FakeImage(None, self.fs, self.log)
-        child.fail_bootstrap = self.fail_bootstrap
-        child._pending = {
-            "shell": shell,
-            "cwd": cwd,
-            "timeout": timeout,
-            "disposable": disposable,
-            "files": dict(files or {}),
-            "truncate_output_at": truncate_output_at,
-        }
-        return child
-
-    def wait(self):
-        p = self._pending
-        assert p is not None
-        self.log.append(p)
-        for path, content in p["files"].items():
-            self.fs[path] = content
-        self.stdout, self.exit_code = self._exec(p["shell"])
-        FakeImage.counter += 1
-        self.uuid = None if p["disposable"] else f"img-{FakeImage.counter}"
-        if self.uuid:
-            FakeImage.registry[self.uuid] = dict(self.fs)
-        self.result = SimpleNamespace(
-            cost=0.001,
-            elapsed_time=timedelta(seconds=0.5),
-            truncated=False,
-            _raw=SimpleNamespace(result=SimpleNamespace(state=SimpleNamespace(timed_out=False))),
-        )
-        return self
-
-    def _exec(self, shell: str) -> tuple[str, int]:
-        if shell.startswith("mkdir -p /work && tar -xf"):
-            return ("", 1) if self.fail_bootstrap else ("", 0)
-        if shell.startswith("mkdir -p") and " && mv -f /tmp/praxbot.upload " in shell:
-            target = shell.split(" && mv -f /tmp/praxbot.upload ")[1].strip().strip("'")
-            self.fs[target] = self.fs.pop("/tmp/praxbot.upload")
-            return "", 0
-        if shell.startswith("git add -A && git diff"):
-            return "diff --git a/x b/x\n", 0
-        if shell == "touch marker":
-            self.fs["/work/marker"] = b""
-            return "", 0
-        if shell == "fail":
-            return "", 3
-        return "ok\n", 0
-
-    def read(self, path: str) -> bytes:
-        if path not in self.fs:
-            raise NotFoundError.__new__(NotFoundError)
-        return self.fs[path]
-
-
-def fake_client(log: list):
-    def use(ref: str):
-        return FakeImage(ref, FakeImage.registry[ref], log)
-
-    return SimpleNamespace(images=SimpleNamespace(use=use, oci=lambda ref, timeout=None: base(log)))
-
-
-def base(log: list) -> FakeImage:
-    img = FakeImage("base", {"/work/a.py": b"print(1)\n"}, log)
-    FakeImage.registry["base"] = dict(img.fs)
-    return img
 
 
 def make_workspace(log: list) -> Workspace:
@@ -184,22 +87,6 @@ def test_paths_cannot_escape_the_workdir() -> None:
         ws.read("../etc/passwd")
     with pytest.raises(ValueError):
         ws.write("/etc/cron.d/x", b"")
-
-
-def settings(tmp_path: Path, setup: str | None = None) -> Settings:
-    return Settings(
-        api_key="k",
-        project_id="p",
-        model="m",
-        llm_base_url="u",
-        base_image="python:3.12",
-        setup=setup,
-        max_steps=5,
-        command_timeout=10,
-        setup_timeout=20,
-        import_timeout=30,
-        home=tmp_path,
-    )
 
 
 def test_create_workspace_bootstraps_and_runs_setup(tmp_path: Path) -> None:

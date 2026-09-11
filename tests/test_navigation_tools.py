@@ -2,15 +2,14 @@ from __future__ import annotations
 
 from prax_bot.core.agent import REPEAT_NUDGE, Agent
 from prax_bot.core.tools import ToolBox, tool_specs
-from tests.test_agent import FakeLLM, FakeToolBox, call, reply
-from tests.test_review_fixes import ShellFakeWorkspace
+from tests.fakes import FakeLLM, FakeToolBox, ShellFakeWorkspace, call, reply
 
 
 def test_outline_lists_definitions_with_line_numbers() -> None:
     ws = ShellFakeWorkspace(
         {"big.py": "x"}, results=[(0, "big.py:12:def _padleft(width, s):\nbig.py:40:class Table:\n", "", False)]
     )
-    out = ToolBox(ws).call("outline", {"path": "big.py"})
+    out = ToolBox(ws).call("outline", {"path": "big.py"}).output
     assert out == "big.py: 2 definitions\n12:def _padleft(width, s):\n40:class Table:"
     assert "grep -nHE" in ws.commands[0] and ws.commands[0].endswith("-- big.py")
     assert "outline" in {s["function"]["name"] for s in tool_specs()}
@@ -19,8 +18,8 @@ def test_outline_lists_definitions_with_line_numbers() -> None:
 def test_search_no_match_hint_and_ignore_case() -> None:
     ws = ShellFakeWorkspace(results=[(1, "", "", False), (0, "a.py:3:Width = 1\n", "", False)])
     box = ToolBox(ws)
-    assert box.call("search", {"pattern": "def _col_widths"}).startswith("no matches. Do not guess names")
-    assert box.call("search", {"pattern": "width", "ignore_case": True}) == "a.py:3:Width = 1"
+    assert box.call("search", {"pattern": "def _col_widths"}).output.startswith("no matches. Do not guess names")
+    assert box.call("search", {"pattern": "width", "ignore_case": True}).output == "a.py:3:Width = 1"
     assert " -rnIi " in ws.commands[1] and " -rnI " in ws.commands[0]
 
 

@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from prax_bot.core.agent import FORCE_FINISH, Agent
 from prax_bot.core.tools import ToolBox
-from tests.test_agent import FakeLLM, FakeToolBox, call, reply
-from tests.test_review_fixes import ShellFakeWorkspace
+from tests.fakes import FakeLLM, FakeToolBox, ShellFakeWorkspace, call, reply
 
 
 def test_turns_without_tool_calls_do_not_consume_the_budget() -> None:
@@ -36,7 +35,7 @@ def test_invalid_regex_falls_back_to_a_literal_search() -> None:
             (0, "tabulate/__init__.py:1207:def _align_column(\n", "", False),
         ]
     )
-    out = ToolBox(ws).call("search", {"pattern": "_align_column("})
+    out = ToolBox(ws).call("search", {"pattern": "_align_column("}).output
     assert out.startswith("tabulate/__init__.py:1207:def _align_column(")
     assert out.endswith("(the pattern was not a valid regular expression, so it was searched for literally)")
     assert " -E " in ws.commands[0] and " -F " in ws.commands[1]

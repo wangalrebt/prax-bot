@@ -10,7 +10,9 @@ from contree_sdk.sdk.exceptions import ApiStatusCodeError, ContreeTransportError
 
 import prax_bot.workspace.sandbox as sandbox
 from prax_bot.workspace.sandbox import create_workspace, transient
-from tests.test_sandbox import FakeImage, base, make_repo, settings
+from tests.fakes import FakeImage, base
+from tests.helpers import make_sandbox_repo as make_repo
+from tests.helpers import sandbox_settings as settings
 
 
 def test_transient_classifies_gateway_failures() -> None:

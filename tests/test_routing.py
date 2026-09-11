@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from prax_bot.core.agent import Agent
+from prax_bot.core.context import compact_tool_output
 from prax_bot.core.llm import Usage
-from prax_bot.core.tools import ToolBox, compact_tool_output, rank_files, references_in_output
-from tests.test_agent import FakeToolBox, call, reply
-from tests.test_review_fixes import ShellFakeWorkspace
+from prax_bot.core.navigation import rank_files, references_in_output
+from prax_bot.core.tools import ToolBox
+from tests.fakes import FakeToolBox, ShellFakeWorkspace, call, reply
 
 
 class RoutingFakeLLM:
