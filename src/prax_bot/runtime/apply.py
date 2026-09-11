@@ -91,8 +91,8 @@ class ApplyTransaction:
         if journal.exists():
             data = json.loads(journal.read_text(encoding="utf-8"))
             changes = data.pop("changes")
-            changes["files"] = tuple(changes["files"])
-            changes["excluded"] = tuple(changes.get("excluded", ()))
+            for key in ("files", "excluded", "scratch", "binary"):
+                changes[key] = tuple(changes.get(key, ()))
             return cls(directory, Changes(**changes), **data)
         # Older runs wrote their pending patch only after updating the host.
         legacy = record.get("pending_apply")

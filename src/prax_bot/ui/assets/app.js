@@ -167,9 +167,12 @@ function renderState(s) {
   });
   $("#sinfo").textContent = s.repo;
   const files = s.files || [],
-    sf = $("#sfiles");
+    sf = $("#sfiles"),
+    flagged = new Map();
+  (s.scratch || []).forEach((f) => flagged.set(f, "scratch?"));
+  (s.binary || []).forEach((f) => flagged.set(f, "binary"));
   files.forEach((f) => {
-    if (!knownFiles.has(f)) selectedFiles.add(f);
+    if (!knownFiles.has(f) && !flagged.has(f)) selectedFiles.add(f);
   });
   [...knownFiles].forEach((f) => {
     if (!files.includes(f)) selectedFiles.delete(f);
@@ -189,6 +192,13 @@ function renderState(s) {
       updateApplyButton();
     };
     row.append(checkbox, document.createTextNode(f));
+    if (flagged.has(f)) {
+      row.title =
+        flagged.get(f) === "binary"
+          ? "a binary file the run created; not applied unless selected"
+          : "named like a reproduction script; not applied unless selected";
+      row.appendChild(el("span", "tag", flagged.get(f)));
+    }
     sf.appendChild(row);
   });
   if (!files.length)

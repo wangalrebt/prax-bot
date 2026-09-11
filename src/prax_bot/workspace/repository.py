@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import posixpath
+import re
 import shlex
 import subprocess
 import tarfile
@@ -64,6 +65,12 @@ SUSPICIOUS_PATTERNS = (
 
 
 SCRATCH_DIR = "/tmp/praxbot/scratch"  # throwaway scripts live here, outside the repository and the diff
+SCRATCH_NAME_RE = re.compile(r"^(reproduce|repro|scratch|debug|tmp|temp)[^/]*$|^test_[^/]*\.py$|^[^/]*_test\.py$")
+
+
+def scratch_files(new_paths: Sequence[str]) -> list[str]:
+    """New repository-root files that look like reproduction or debugging scripts."""
+    return [p for p in new_paths if "/" not in p and SCRATCH_NAME_RE.match(p)]
 
 
 def resolve_in_workdir(path: str, workdir: str = WORKDIR) -> str:
@@ -123,10 +130,12 @@ def pack_repo(repo_root: Path) -> bytes:
 
 
 def collect_changes(workspace: Workspace, paths: Sequence[str] | None = None) -> Changes:
-    """Read Git's changes without guessing whether a new file belongs to the task.
+    """Read Git's changes; only Git's ignore rules exclude files.
 
-    Only Git's ignore rules exclude files. Explicit path selection must name files in
-    the current diff; literal pathspecs keep filenames from being interpreted as globs.
+    New root-level files named like reproduction scripts, and new binary files, stay in the
+    diff but are flagged: an apply leaves them out unless they are named. Explicit path
+    selection must name files in the current diff; literal pathspecs keep filenames from
+    being interpreted as globs.
     """
     image = workspace.image_id
 
@@ -138,17 +147,30 @@ def collect_changes(workspace: Workspace, paths: Sequence[str] | None = None) ->
             raise WorkspaceError(f"changes exceed the {DIFF_OUTPUT_LIMIT // (1024 * 1024)} MiB output limit")
         return result.stdout
 
-    metadata = read("git add -A && git rev-parse HEAD && git diff --cached --name-only -z --no-renames HEAD")
-    base, separator, names = metadata.partition("\n")
+    metadata = read("git add -A && git rev-parse HEAD && git diff --cached --name-status -z --no-renames HEAD")
+    base, separator, listing = metadata.partition("\n")
     if not separator or not base or any(c not in "0123456789abcdef" for c in base):
         raise WorkspaceError("could not read the Git baseline")
-    files = tuple(name for name in names.split("\0") if name)
+    entries = [e for e in listing.split("\0") if e]
+    files = tuple(entries[1::2])
+    added = {name for status, name in zip(entries[0::2], entries[1::2], strict=True) if status == "A"}
+    binary: tuple[str, ...] = ()
+    if added:
+        numstat = read("git add -A && git diff --cached --numstat -z --no-renames HEAD")
+        binary = tuple(
+            parts[2]
+            for line in numstat.split("\0")
+            if len(parts := line.split("\t", 2)) == 3 and parts[0] == parts[1] == "-" and parts[2] in added
+        )
+    scratch = tuple(scratch_files(sorted(added)))
     if paths is not None:
         unknown = set(paths) - set(files)
         if unknown:
             raise ValueError(f"these files have no pending changes: {', '.join(sorted(unknown))}")
         selected = set(paths)
         files = tuple(name for name in files if name in selected)
+        scratch = tuple(name for name in scratch if name in selected)
+        binary = tuple(name for name in binary if name in selected)
     excluded = tuple(
         name for name in read("git ls-files --others --ignored --exclude-standard --directory -z").split("\0") if name
     )
@@ -158,7 +180,7 @@ def collect_changes(workspace: Workspace, paths: Sequence[str] | None = None) ->
         patch = read(f"git add -A && git --literal-pathspecs diff --cached --binary --no-renames HEAD -- {arguments}")
     if workspace.image_id != image:
         raise WorkspaceError("the workspace changed while collecting the diff; refresh it before applying")
-    return Changes(patch=patch, base=base, image=image, files=files, excluded=excluded)
+    return Changes(patch=patch, base=base, image=image, files=files, excluded=excluded, scratch=scratch, binary=binary)
 
 
 def advance_baseline(workspace: Workspace, changes: Changes) -> None:

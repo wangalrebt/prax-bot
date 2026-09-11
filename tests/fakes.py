@@ -147,7 +147,7 @@ class FakeImage:
             self.fs[target] = self.fs.pop("/tmp/praxbot.upload")
             return "", 0
         if shell.startswith("git add -A && git rev-parse HEAD"):
-            return "0" * 40 + "\nx\0", 0
+            return "0" * 40 + "\nM\0x\0", 0  # name-status: one modified file
         if shell.startswith("git ls-files --others --ignored"):
             return "", 0
         if shell.startswith("git add -A && git --literal-pathspecs diff"):

@@ -160,7 +160,7 @@ The budget is a setting: `--context-budget`, `PRAXBOT_CONTEXT_BUDGET`, or `conte
 
 ## How the sandbox is used
 
-Token Factory Sandboxes are immutable images. Running a command on an image produces a new image. Prax Bot keeps the current image as the workspace state: mutating commands and file writes advance it, read-only commands run disposably and leave it alone. That gives free checkpoints, an exact record of every state the agent passed through, and a diff that is computed inside the sandbox with git. Build artifacts such as `*.egg-info/`, `__pycache__/`, and `.pytest_cache/` are kept out of the diff through the workspace's `.git/info/exclude`. New tests and binary files are included unless Git ignores them. Ignored paths are listed separately so you can review what was excluded. Throwaway reproduction scripts belong in `/tmp/praxbot/scratch`, outside the repository.
+Token Factory Sandboxes are immutable images. Running a command on an image produces a new image. Prax Bot keeps the current image as the workspace state: mutating commands and file writes advance it, read-only commands run disposably and leave it alone. That gives free checkpoints, an exact record of every state the agent passed through, and a diff that is computed inside the sandbox with git. Build artifacts such as `*.egg-info/`, `__pycache__/`, and `.pytest_cache/` are kept out of the diff through the workspace's `.git/info/exclude`. New tests and binary files are included unless Git ignores them. Ignored paths are listed separately so you can review what was excluded. Throwaway reproduction scripts belong in `/tmp/praxbot/scratch`, outside the repository; a new root-level file named like one (`reproduce.py`, `debug_*.py`, `test_*.py`) or a new binary file stays in the diff but is flagged, and an apply leaves it out unless you name it.
 
 The local backend implements the same workspace contract over a temporary directory: commands run with a scrubbed environment inside a private Python 3.12 virtualenv, and checkpoints are directory clones. It is convenient for development and it is not isolation: model-generated commands execute on your machine.
 
@@ -281,7 +281,7 @@ Twelve tasks rated "under 15 minutes", at most two per repository, chosen with a
 
 Before the subset, one pipeline trial on requests-2317 ran on an earlier harness and failed: the model made the correct edit three times but kept restoring to the baseline after seeing unrelated, network-dependent test failures. That trial led to the restore cap and the pre-existing-failure notes.
 
-The four failures were then traced. Two were the harness: leftover reproduction scripts had gone into the diff, and a test file had been edited despite the instruction not to; both are now prevented (scratch files live outside the repository and are excluded from the diff, and test paths can be protected). A third was the harness stalling a run after two blank replies; blank replies are now retried and `finish` is forced only after three stalls. Retried on the fixed harness, sympy-15017 and sphinx-8621 resolved. sympy-20916 produced the same one-line fix as the gold patch except `[0-9]` where the hidden test needs `\d`, and matplotlib-23476 was diagnosed in the wrong file both times; those two are the model's.
+The four failures were then traced. Two were the harness: leftover reproduction scripts had gone into the diff, and a test file had been edited despite the instruction not to; both are now prevented (scratch files live outside the repository, a new root-level file named like one is flagged and left out of an apply unless named, and test paths can be protected). A third was the harness stalling a run after two blank replies; blank replies are now retried and `finish` is forced only after three stalls. Retried on the fixed harness, sympy-15017 and sphinx-8621 resolved. sympy-20916 produced the same one-line fix as the gold patch except `[0-9]` where the hidden test needs `\d`, and matplotlib-23476 was diagnosed in the wrong file both times; those two are the model's.
 
 The same twelve tasks were then run twice more from scratch, with no retries, to measure the harness rather than the best of several attempts:
 
@@ -444,7 +444,7 @@ Thirteen tasks missed at least once across the six runs on this harness: five ne
 
 **Reading spirals.** Matplotlib-20676 spent 36 steps reading and searching one file before its first reproduction; matplotlib-23476 read for 45 steps and edited once, at step 46, after the late nudge at 40. Across the 31 transcripts, 27% of steps are file reads, about 60 lines each, the same file read up to 24 times. Two harness changes: `read_file` takes a `symbol` and returns that function or class whole, and at half the budget with nothing edited the tool result tells the model to commit to a hypothesis and edit.
 
-**A binary in the diff.** Matplotlib-23476's diff carried a 57 KB pickle that the reproduction script wrote into the repository root. Binary files the run creates are now dropped from the diff and listed.
+**A binary in the diff.** Matplotlib-23476's diff carried a 57 KB pickle that the reproduction script wrote into the repository root. Binary files the run creates are now flagged in the diff and left out of an apply unless named.
 
 Matplotlib-23476 needs macOS and its hidden test drives a private method; matplotlib-20676's test checks handle positions the report never mentions. Those two stay.
 
@@ -456,6 +456,15 @@ The three prompt rules were run on the twelve plus the five wrong-layer tasks, e
 | sympy-17655, sphinx-9258, pytest-7521, pylint-4970, matplotlib-20676 | 0 of 5 (in the 31-task run) | 1 of 5 |
 
 Pytest-7521 resolved in 21 steps where it had used 50; sympy-17655, sphinx-9258 and pylint-4970 made the same wrong-layer fix as before, rule or no rule, the issue's traceback pointing at the place the model edits. One task changed at no cost, so the rules stay, with the same caveat as the one-script rule: this model follows a rule in the prompt some of the time. The misses on the twelve were sympy-20916, matplotlib-23476 and django-16899, which wrote the same message format as in the run before and cited the rule about tests that assert old behaviour to excuse the failing ones.
+
+The same seventeen were then run with the harness changes on top: the symbol read, the halfway nudge and the flagged files.
+
+| set | with the three rules | plus the harness changes |
+|---|---|---|
+| the twelve | 9 of 12, 4.68M | 8 of 12, 4.36M |
+| the five wrong-layer tasks | 1 of 5, 2.73M | 2 of 5, 1.94M |
+
+Ten of seventeen both times, at 15% fewer tokens. Matplotlib-20676 resolved for the first time in seven attempts, django-16899 came back, and requests-5414 was lost to four real regressions from an over-broad patch this time, not to the grading sandbox. The model read a definition by name in 12 of its 126 file reads, mostly in the two matplotlib tasks, and the halfway nudge fired once, on matplotlib-23476, moving its first edit from step 46 to 39 without changing the outcome. Kept.
 
 
 Thirty-one tasks is still a small sample and these are the easier tier of Verified, so this is not comparable to leaderboard numbers on the full 500. It is a genuine measurement on real GitHub issues with hidden tests, run once, with the harness frozen before the run.

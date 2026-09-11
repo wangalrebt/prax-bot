@@ -233,7 +233,12 @@ class PraxApp(App[None]):
             f"{self.backend} · effort {self.session.settings.effort if self.session else s.effort}",
         )
         self.query_one("#info", Static).update(info)
-        files = self.session.changes.files if self.session and self.session.changes else []
+        pending = self.session.changes if self.session and self.session.changes else None
+        files = (
+            [f"{name}  (not applied unless named)" if name in pending.flagged else name for name in pending.files]
+            if pending
+            else []
+        )
         changes = Text.assemble(("changes\n", "bold"), "\n".join(files) if files else ("none pending", "dim"))
         self.query_one("#changes", Static).update(changes)
         checks = Text.assemble(
@@ -347,6 +352,8 @@ class PraxApp(App[None]):
     def close_session(self) -> None:
         try:
             self.session.close()
+        except Exception as e:
+            self.out.print(f"[red]✗ {type(e).__name__}: {escape(str(e)[:300])}[/]")
         finally:
             self.call_from_thread(self.exit)
 

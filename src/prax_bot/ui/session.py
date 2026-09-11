@@ -65,6 +65,12 @@ def show_changes(session: Session, out: Console) -> None:
         out.print("[dim]excluded by Git ignore rules (project or workspace):[/]")
         for name in session.changes.excluded:
             out.print(f"  {escape(name)}")
+    if session.changes and session.changes.flagged:
+        out.print("[dim]in the diff but left out of /apply unless named:[/]")
+        for name in session.changes.scratch:
+            out.print(f"  {escape(name)}  [dim]looks like a scratch script[/]")
+        for name in session.changes.binary:
+            out.print(f"  {escape(name)}  [dim]binary file the run created[/]")
 
 
 def show_status(session: Session, out: Console) -> None:
@@ -167,4 +173,7 @@ def session_loop(session: Session, out: Console, read_line: Callable[[], str | N
             else:
                 out.print(f"pending diff saved at {session.run_dir / 'diff.patch'}")
     finally:
-        session.close()
+        try:
+            session.close()
+        except WorkspaceError as error:
+            out.print(f"[red]✗ {escape(str(error))}[/]")

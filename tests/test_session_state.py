@@ -311,3 +311,53 @@ def test_undo_restores_context_as_well_as_files(tmp_path: Path) -> None:
         assert "added b" in task and "added c" not in task
     finally:
         session.close()
+
+
+def test_default_apply_leaves_scratch_and_binary_files_pending_until_named(tmp_path: Path) -> None:
+    session = make_session(tmp_path)
+    try:
+        session.ws.write("a.py", b"changed\n")
+        session.ws.write("reproduce.py", b"print('repro')\n")
+        session.ws.write("sinus.pickle", b"\x80\x00\x01pickle")
+        session.diff()
+        assert session.changes is not None
+        assert set(session.changes.files) == {"a.py", "reproduce.py", "sinus.pickle"}
+        assert session.changes.scratch == ("reproduce.py",) and session.changes.binary == ("sinus.pickle",)
+        state = session.state()
+        assert state["scratch"] == ["reproduce.py"] and state["binary"] == ["sinus.pickle"]
+        assert session.apply()
+        assert (session.root / "a.py").read_text() == "changed\n"
+        assert not (session.root / "reproduce.py").exists() and not (session.root / "sinus.pickle").exists()
+        assert set(session.changes.files) == {"reproduce.py", "sinus.pickle"}
+        assert session.apply(["reproduce.py"])
+        assert (session.root / "reproduce.py").exists() and session.changes.files == ("sinus.pickle",)
+        # a tracked binary the task changes on purpose is not flagged
+        session.ws.write("blob.bin", b"\x00\x02")
+        session.ws.run("git add blob.bin && git -c user.email=t@t -c user.name=t commit -qm blob")
+        session.ws.write("blob.bin", b"\x00\x03")
+        session.diff()
+        assert "blob.bin" in session.changes.files and session.changes.binary == ("sinus.pickle",)
+    finally:
+        session.close()
+
+
+def test_record_label_does_not_replace_the_task_in_continuations(tmp_path: Path) -> None:
+    from tests.fakes import FakeLLM, call, reply
+
+    llm = FakeLLM(
+        [
+            reply(None, call("finish", summary="wrote it")),
+            reply(None, call("finish", summary="again")),
+        ]
+    )
+    session = make_session(tmp_path, llm=llm)
+    try:
+        session.run_round("Create AGENTS.md with the full instructions", original_task="init: write AGENTS.md")
+        record = json.loads((session.run_dir / "run.json").read_text())
+        assert record["task"] == "init: write AGENTS.md"
+        session.instruct("make it shorter")
+        followup_task = llm.requests[-1][0][1]["content"]
+        assert "Create AGENTS.md with the full instructions" in followup_task
+        assert "init: write AGENTS.md" not in followup_task
+    finally:
+        session.close()

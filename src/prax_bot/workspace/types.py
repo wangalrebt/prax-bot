@@ -46,6 +46,14 @@ class Changes:
     image: str
     files: tuple[str, ...]
     excluded: tuple[str, ...] = ()
+    scratch: tuple[
+        str, ...
+    ] = ()  # new root-level files named like reproduction scripts; in the diff, not applied unless named
+    binary: tuple[str, ...] = ()  # new binary files; in the diff, not applied unless named
+
+    @property
+    def flagged(self) -> frozenset[str]:
+        return frozenset((*self.scratch, *self.binary))
 
 
 class Workspace(Protocol):

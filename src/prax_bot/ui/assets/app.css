@@ -183,6 +183,11 @@ aside {
 .frow:hover {
   background: var(--hover);
 }
+.frow .tag {
+  margin-left: auto;
+  color: var(--warn);
+  font: 11px var(--mono);
+}
 .frow .g {
   color: var(--accent);
   font-size: 9px;

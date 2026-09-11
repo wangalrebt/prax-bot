@@ -1,0 +1,505 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "sympy__sympy-20916,django__django-11880,django__django-16899,matplotlib__matplotlib-25122,matplotlib__matplotlib-23476,sympy__sympy-15017,pytest-dev__pytest-5809,scikit-learn__scikit-learn-12585,psf__requests-5414,sphinx-doc__sphinx-8621,psf__requests-1142,pydata__xarray-4075,sympy__sympy-17655,sphinx-doc__sphinx-9258,pytest-dev__pytest-7521,pylint-dev__pylint-4970,matplotlib__matplotlib-20676",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "3",
+    "out": "bench/swebench"
+  },
+  "results": [
+    {
+      "instance_id": "sympy__sympy-20916",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 766963,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 731666,
+          "completion_tokens": 35297
+        }
+      },
+      "sandbox_commands": 28,
+      "sandbox_cost": 0.11132346000000004,
+      "diff_lines": 18,
+      "summary": "(no summary given)",
+      "agent_elapsed": 302.32069708406925,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "1/1",
+      "eval": "not resolved",
+      "eval_cost": 0.026096130000000002,
+      "grading_attempts": 1,
+      "wall": 309.07688975008205
+    },
+    {
+      "instance_id": "django__django-11880",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 26,
+      "tokens": 261691,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 26,
+          "prompt_tokens": 258674,
+          "completion_tokens": 3017
+        }
+      },
+      "sandbox_commands": 25,
+      "sandbox_cost": 0.07700530000000001,
+      "diff_lines": 12,
+      "summary": "Fixed the __deepcopy__ method of Field in django/forms/fields.py to deep copy the error_messages dictionary. Verified with forms_tests.tests.test_error_messages and forms_tests.field_tests. The fix ensures that copies of form fields do not share error messages.",
+      "agent_elapsed": 119.80134875001386,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "114/114",
+      "eval": "resolved",
+      "eval_cost": 0.04069197,
+      "grading_attempts": 1,
+      "wall": 129.46509341686033
+    },
+    {
+      "instance_id": "django__django-16899",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 21,
+      "tokens": 195451,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 21,
+          "prompt_tokens": 186961,
+          "completion_tokens": 8490
+        }
+      },
+      "sandbox_commands": 15,
+      "sandbox_cost": 0.046234790000000005,
+      "diff_lines": 17,
+      "summary": "Modified django/contrib/admin/checks.py in the _check_readonly_fields_item method to include the field name in the error message for nonexistent readonly fields. The error now reads: \"The value of '%s' refers to '%s', which is not a callable, an attribute of '%s', or an attribute of '%s'.\" instead o",
+      "agent_elapsed": 99.87632241705433,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "54/54",
+      "eval": "resolved",
+      "eval_cost": 0.04050955,
+      "grading_attempts": 1,
+      "wall": 110.0429946668446
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-25122",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 20,
+      "tokens": 215363,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 20,
+          "prompt_tokens": 205067,
+          "completion_tokens": 10296
+        }
+      },
+      "sandbox_commands": 20,
+      "sandbox_cost": 0.21661400999999997,
+      "diff_lines": 26,
+      "summary": "Fixed the window correction in mlab._spectral_helper by removing np.abs when computing the power correction. Changed line 430 in /testbed/lib/matplotlib/mlab.py from `result /= np.abs(window).sum()**2` to `result /= window.sum()**2`. This ensures correct scaling for windows with negative values (e.g",
+      "agent_elapsed": 139.82111062482,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "12/12",
+      "p2p": "2476/2476",
+      "eval": "resolved",
+      "eval_cost": 0.18770652999999998,
+      "grading_attempts": 1,
+      "wall": 166.5658460839186
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23476",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 49,
+      "tokens": 577676,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 49,
+          "prompt_tokens": 555754,
+          "completion_tokens": 21922
+        }
+      },
+      "sandbox_commands": 29,
+      "sandbox_cost": 0.11535384,
+      "diff_lines": 14,
+      "summary": "Fixed the DPI doubling issue on unpickling by ensuring that figure._original_dpi is only set once in FigureCanvasBase.__init__. This prevents the DPI from being scaled by device_pixel_ratio multiple times during successive pickle/unpickle cycles. Verified with reproduction script and existing pickle",
+      "agent_elapsed": 201.13270816695876,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "104/104",
+      "eval": "not resolved",
+      "eval_cost": 0.19035881999999998,
+      "grading_attempts": 1,
+      "wall": 220.49532012501732
+    },
+    {
+      "instance_id": "sympy__sympy-15017",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 24,
+      "tokens": 284388,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 24,
+          "prompt_tokens": 277684,
+          "completion_tokens": 6704
+        }
+      },
+      "sandbox_commands": 14,
+      "sandbox_cost": 0.0323711,
+      "diff_lines": 35,
+      "summary": "Fixed the __len__ method for rank-0 arrays by changing the _loop_size initialization in DenseNDimArray and SparseNDimArray to use functools.reduce with a default value of 1 for empty shape. This makes len(sympy.Array(3)) return 1, matching the number of elements and numpy behavior. Verified with rep",
+      "agent_elapsed": 88.07298370799981,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "14/14",
+      "eval": "resolved",
+      "eval_cost": 0.022719649999999997,
+      "grading_attempts": 1,
+      "wall": 93.32212762488052
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5809",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 5,
+      "tokens": 38071,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 5,
+          "prompt_tokens": 37289,
+          "completion_tokens": 782
+        }
+      },
+      "sandbox_commands": 8,
+      "sandbox_cost": 0.012348350000000001,
+      "diff_lines": 13,
+      "summary": "Changed the lexer used in the pastebin feature from 'python3' to 'text' in src/_pytest/pastebin.py to avoid HTTP 400 errors when submitting arbitrary console output to bpaste.net. Verified that the change resolves the issue by running the pastebin tests; three tests pass and one test (test_create_ne",
+      "agent_elapsed": 27.59162470791489,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "3/3",
+      "eval": "resolved",
+      "eval_cost": 0.03003536,
+      "grading_attempts": 1,
+      "wall": 35.370267582824454
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-12585",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 10,
+      "tokens": 76989,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 10,
+          "prompt_tokens": 75709,
+          "completion_tokens": 1280
+        }
+      },
+      "sandbox_commands": 10,
+      "sandbox_cost": 0.04440162,
+      "diff_lines": 13,
+      "summary": "Fixed the clone function in sklearn/base.py to handle estimator types (classes) as parameters by adding a check for isinstance(estimator, type) in the condition that determines whether an object has get_params. The fix allows cloning an estimator with a parameter that is a classifier class (e.g., St",
+      "agent_elapsed": 42.252674707910046,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "22/22",
+      "eval": "resolved",
+      "eval_cost": 0.03057189,
+      "grading_attempts": 1,
+      "wall": 48.50538979098201
+    },
+    {
+      "instance_id": "psf__requests-5414",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 650741,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 615596,
+          "completion_tokens": 35145
+        }
+      },
+      "sandbox_commands": 23,
+      "sandbox_cost": 0.055766769999999986,
+      "diff_lines": 43,
+      "summary": "(no summary given)",
+      "agent_elapsed": 257.144176625181,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "126/130",
+      "eval": "not resolved",
+      "eval_cost": 0.01827338,
+      "grading_attempts": 1,
+      "wall": 262.2086755409837
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 33,
+      "tokens": 496113,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 33,
+          "prompt_tokens": 445486,
+          "completion_tokens": 50627
+        }
+      },
+      "sandbox_commands": 24,
+      "sandbox_cost": 0.07140002999999998,
+      "diff_lines": 17,
+      "summary": "Fixed the KeyboardTransform in sphinx/builders/html/transforms.py to handle standalone separator characters (-, +, ^) correctly. The transform now checks if the text is exactly one of these characters and leaves it as a single kbd element. For compound keystrokes, it continues to split on separators",
+      "agent_elapsed": 267.1594602500554,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "1/2",
+      "p2p": "31/31",
+      "eval": "not resolved",
+      "eval_cost": 0.032352620000000006,
+      "grading_attempts": 1,
+      "wall": 274.9401577920653
+    },
+    {
+      "instance_id": "psf__requests-1142",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 683816,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 652584,
+          "completion_tokens": 31232
+        }
+      },
+      "sandbox_commands": 19,
+      "sandbox_cost": 0.024593080000000007,
+      "diff_lines": 28,
+      "summary": "(no summary given)",
+      "agent_elapsed": 224.59477320802398,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "5/5",
+      "eval": "resolved",
+      "eval_cost": 0.016734830000000003,
+      "grading_attempts": 1,
+      "wall": 228.9946250000503
+    },
+    {
+      "instance_id": "pydata__xarray-4075",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 12,
+      "tokens": 117567,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 12,
+          "prompt_tokens": 114288,
+          "completion_tokens": 3279
+        }
+      },
+      "sandbox_commands": 11,
+      "sandbox_cost": 0.1046476,
+      "diff_lines": 21,
+      "summary": "Fixed the issue where boolean weights were not properly normalized in weighted mean calculations. The problem was in the `_reduce` method of the `Weighted` class in `xarray/core/weighted.py`, where the mask derived from `da.notnull()` was boolean and caused the dot product with boolean weights to pr",
+      "agent_elapsed": 64.75866795796901,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "958/958",
+      "eval": "resolved",
+      "eval_cost": 0.07950501000000001,
+      "grading_attempts": 1,
+      "wall": 77.39528537495062
+    },
+    {
+      "instance_id": "sympy__sympy-17655",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 16,
+      "tokens": 164509,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 16,
+          "prompt_tokens": 160627,
+          "completion_tokens": 3882
+        }
+      },
+      "sandbox_commands": 13,
+      "sandbox_cost": 0.0520522,
+      "diff_lines": 33,
+      "summary": "Fixed the issue where multiplying a geometry.Point by a number on the left side (e.g., 2.0 * point) raised an exception. The fix modifies Point.__add__ to handle the case where 'other' is a Mul containing a Point and a numeric factor, by extracting the point and scalar, computing the scaled point, a",
+      "agent_elapsed": 66.73749104188755,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/2",
+      "p2p": "9/9",
+      "eval": "not resolved",
+      "eval_cost": 0.10371836,
+      "grading_attempts": 1,
+      "wall": 80.0129538748879
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-9258",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 48,
+      "tokens": 678190,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 48,
+          "prompt_tokens": 667267,
+          "completion_tokens": 10923
+        }
+      },
+      "sandbox_commands": 45,
+      "sandbox_cost": 0.10825183,
+      "diff_lines": 24,
+      "summary": "Added support for union types in Sphinx docstring :type: fields by modifying the TypedField.make_field method in sphinx/util/docfields.py. The method now splits type strings by '|' and creates cross-references for each part, separated by literal ' | '. Verified with custom tests and existing test su",
+      "agent_elapsed": 209.683319499949,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "45/45",
+      "eval": "not resolved",
+      "eval_cost": 0.0423227,
+      "grading_attempts": 1,
+      "wall": 218.04193141683936
+    },
+    {
+      "instance_id": "pytest-dev__pytest-7521",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 19,
+      "tokens": 240962,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 19,
+          "prompt_tokens": 237330,
+          "completion_tokens": 3632
+        }
+      },
+      "sandbox_commands": 17,
+      "sandbox_cost": 0.09073667,
+      "diff_lines": 12,
+      "summary": "Fixed the issue where capfd.readouterr() was converting \\r to \\n by adding newline='' to the EncodedFile constructor in src/_pytest/capture.py. This ensures carriage returns are preserved in captured output. Verified with the reproducer test and existing test suite.",
+      "agent_elapsed": 80.72169074998237,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "125/125",
+      "eval": "resolved",
+      "eval_cost": 0.07752047999999999,
+      "grading_attempts": 1,
+      "wall": 93.85797691601329
+    },
+    {
+      "instance_id": "pylint-dev__pylint-4970",
+      "repo": "pylint-dev/pylint",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 30,
+      "tokens": 483298,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 30,
+          "prompt_tokens": 468740,
+          "completion_tokens": 14558
+        }
+      },
+      "sandbox_commands": 19,
+      "sandbox_cost": 0.05686927,
+      "diff_lines": 14,
+      "summary": "Modified pylint/checkers/similar.py to disable similarity checking when min-similarity-lines is set to 0 by adding an early return in the close() method. Verified that existing tests pass and that setting min-similarity-lines=0 prevents R0801 errors for duplicate code.",
+      "agent_elapsed": 134.7355933750514,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "17/17",
+      "eval": "not resolved",
+      "eval_cost": 0.02001247,
+      "grading_attempts": 1,
+      "wall": 140.01645633298904
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-20676",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 27,
+      "tokens": 370985,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 27,
+          "prompt_tokens": 361795,
+          "completion_tokens": 9190
+        }
+      },
+      "sandbox_commands": 23,
+      "sandbox_cost": 0.28372654,
+      "diff_lines": 18,
+      "summary": "Fixed the issue where interactive SpanSelector incorrectly forced axes limits to include 0. The problem was in the _setup_edge_handle method of SpanSelector class, which initialized the edge handles at (0,0) extents, causing the view to autoscale to include zero. Changed the initialization to use th",
+      "agent_elapsed": 148.53652112511918,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "32/32",
+      "eval": "resolved",
+      "eval_cost": 0.12107348,
+      "grading_attempts": 1,
+      "wall": 163.18415570794605
+    }
+  ]
+}

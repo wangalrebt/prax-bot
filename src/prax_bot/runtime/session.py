@@ -75,6 +75,7 @@ class Session:
         self.llm = llm
         self.started = time.monotonic()
         self.first_task: str | None = None
+        self.task_label: str | None = None  # how the record names the task when that differs from its text
         self.instructions: list[str] = []
         self.last_result: AgentResult | None = None
         self.last_summary = ""
@@ -155,7 +156,7 @@ class Session:
             self.run_dir,
             build_record(
                 run_id=self.run_id,
-                task=self.first_task or "(session)",
+                task=self.task_label or self.first_task or "(session)",
                 followups=self.instructions,
                 repo=self.root,
                 settings=self.settings,
@@ -203,7 +204,8 @@ class Session:
             )
         )
         if self.first_task is None:
-            self.first_task = original_task or instruction or task
+            self.first_task = instruction or task
+            self.task_label = original_task
         elif instruction is not None:
             self.instructions.append(instruction)
             self.on_event("followup", instruction=instruction)
@@ -373,8 +375,10 @@ class Session:
             self.record()
             return True
         self.diff()  # A failed refresh must never authorize applying the previous patch.
+        assert self.changes is not None
+        if paths is None and self.changes.flagged:
+            paths = [name for name in self.changes.files if name not in self.changes.flagged]
         changes = self.ws.changes(paths) if paths is not None else self.changes
-        assert changes is not None
         if not changes.patch.strip():
             return False
         self._pending_apply = ApplyTransaction.prepare(self.run_dir, self.root, changes)
@@ -474,6 +478,8 @@ class Session:
             "cost": self.ws.total_cost,
             "files": list(self.changes.files) if self.changes is not None else [],
             "excluded": list(self.changes.excluded) if self.changes is not None else [],
+            "scratch": list(self.changes.scratch) if self.changes is not None else [],
+            "binary": list(self.changes.binary) if self.changes is not None else [],
             "diff": self.last_diff,
             "diff_error": self.diff_error,
             "summary": self.last_summary,
