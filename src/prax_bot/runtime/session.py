@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING, Any, TextIO
 
 from prax_bot.core.agent import Agent, AgentResult
 from prax_bot.core.goal import GoalDriver, goal_task
-from prax_bot.core.prompts import prompt
 from prax_bot.core.tools import ToolBox
 from prax_bot.core.verification import CheckResult, VerificationStatus, run_check, verification_status
 from prax_bot.extensions.plugins import ExtraTool
@@ -212,11 +211,6 @@ class Session:
         self.on_event("instruction", text=instruction or original_task or task)
         self.checks = []
         self._expected_checks = tuple((name, command) for name, command in self.check_commands if command)
-        configured = [(name, command) for name, command in self.check_commands if command]
-        if configured:
-            task += "\n\n" + prompt(
-                "verification", commands="\n".join(f"- {name}: {command}" for name, command in configured)
-            )
         agent = Agent(
             self.llm,
             ToolBox(self.ws, protected=self.protect, skills=self.skills, plugins=self.plugins),
@@ -227,6 +221,7 @@ class Session:
             goal=goal,
             context_budget=self.settings.context_budget,
             system_prompt=self.settings.system_prompt_text(),
+            verification_commands=self._expected_checks,
             cancel=self.cancel,
         )
         self._agent = agent

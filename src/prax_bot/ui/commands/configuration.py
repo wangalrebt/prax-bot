@@ -87,7 +87,7 @@ def prompt_command(
     path: bool = typer.Option(False, "--path", help="Print where the prompt comes from instead of its text"),
     list_all: bool = typer.Option(False, "--list", help="List every prompt and where each comes from"),
 ) -> None:
-    """Print a prompt the model sees: built in, or your override under ~/.praxbot/prompts/."""
+    """Print a prompt template; defaults to the core system rules, before runtime context is appended."""
     from prax_bot.core import prompts
 
     settings = build_settings(repo_root=maybe_repo_root(Path(".")))

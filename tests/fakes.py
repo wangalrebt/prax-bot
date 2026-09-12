@@ -37,6 +37,7 @@ class FakeLLM:
 
 class FakeToolBox:
     def __init__(self) -> None:
+        self.ws = FakeWorkspace()
         self.calls: list[tuple[str, str]] = []
 
     def call(self, name: str, raw_args: str):
@@ -49,6 +50,7 @@ class FakeToolBox:
 class FakeWorkspace:
     """In-memory stand-in for the sandbox workspace: files only, no shell."""
 
+    backend = "contree"
     workdir = "/work"
 
     def __init__(self, files: dict[str, str] | None = None) -> None:

@@ -1,1 +1,1 @@
-The goal is met when this command exits 0 in the repository: {check}. Run it yourself before finishing.
+The runtime checks this command after each round and requires it to exit 0 for the goal to be met: {check}. Run it during the round only when its output will guide an edit or diagnose a failure. Its final result remains pending until the runtime reports it.

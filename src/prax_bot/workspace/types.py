@@ -57,6 +57,7 @@ class Changes:
 
 
 class Workspace(Protocol):
+    backend: str
     workdir: str
     command_timeout: int
     on_event: EventFn

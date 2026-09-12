@@ -42,6 +42,8 @@ def clone_dir(src: Path, dst: Path) -> None:
 
 
 class LocalWorkspace:
+    backend = "local"
+
     def __init__(self, root: Path, *, command_timeout: int = 300, on_event: EventFn | None = None) -> None:
         self.root = root
         self.current = root / "current"

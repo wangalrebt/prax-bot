@@ -35,6 +35,13 @@ def test_checks_record_commands_exit_codes_and_the_tested_image(tmp_path: Path) 
     try:
         result, _ = session.instruct("add b")
         assert result.finished and session.verification_status == "passed"
+        messages = session.llm.requests[0][0]
+        system = messages[0]["content"]
+        assert messages[0]["role"] == "system" and messages[1] == {"role": "user", "content": "add b"}
+        assert system.count("- tests: test -f b.py") == 1
+        assert system.count("- lint: touch check-artifact; true") == 1
+        assert "runs these commands after finish" in system
+        assert "No final verification commands are scheduled" not in system
         assert [check.name for check in session.checks] == ["tests", "lint"]
         assert all(check.image == session.ws.image_id for check in session.checks)
         assert not (session.ws.current / "check-artifact").exists(), "verification runs disposably"
@@ -67,6 +74,8 @@ def test_goal_reuses_the_configured_check_and_requires_other_checks_to_pass(tmp_
             driver = session.run_goal("add b", max_rounds=1, check="test -f b.py")
         assert not driver.met and session.verification_status == "failed"
         assert sum(call.args[0] == "test -f b.py" for call in run.call_args_list) == 1
+        system = session.llm.requests[0][0][0]["content"]
+        assert system.count("test -f b.py") == 1 and "- goal:" not in system
     finally:
         session.close()
 
@@ -76,6 +85,7 @@ def test_explicit_goal_check_is_recorded_without_test_configuration(tmp_path: Pa
     try:
         driver = session.run_goal("add b", max_rounds=1, check="test -f b.py")
         assert driver.met and session.verification_status == "passed"
+        assert "- goal: test -f b.py" in session.llm.requests[0][0][0]["content"]
         assert session.checks[0].name == "goal" and session.checks[0].exit_code == 0
     finally:
         session.close()

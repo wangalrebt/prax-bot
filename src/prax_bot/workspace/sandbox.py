@@ -55,6 +55,8 @@ def make_client() -> ContreeSync:
 
 
 class SandboxWorkspace:
+    backend = "contree"
+
     def __init__(
         self,
         client: ContreeSync,

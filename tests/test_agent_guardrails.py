@@ -53,7 +53,9 @@ def test_late_budget_nudge_tells_the_model_to_wrap_up() -> None:
     tool_results = [m["content"] for m in llm.requests[-1][0] if m["role"] == "tool"]
     assert "Only" not in tool_results[0], "step 1 of 5 is not late"
     assert "no repository file has been changed" in tool_results[1] and "Only 3 steps remain" in tool_results[1]
-    assert "Wrap up" in tool_results[2] and "no repository file" not in tool_results[2]
+    assert "Then call finish" in tool_results[2] and "no repository file" not in tool_results[2]
+    assert "If no edit is needed" in tool_results[1]
+    assert "Scheduled runtime checks can remain pending" in tool_results[2]
 
 
 def test_halfway_nudge_fires_once_when_nothing_is_edited() -> None:
@@ -71,7 +73,8 @@ def test_halfway_nudge_fires_once_when_nothing_is_edited() -> None:
     assert "Half of the budget" not in tool_results[3], "step 4 of 10 is not halfway"
     assert "Half of the budget" in tool_results[4] and "5 steps remain" in tool_results[4]
     assert "Half of the budget" not in tool_results[5], "the halfway nudge is sent once"
-    assert "3 steps remain. Wrap up" in tool_results[6], "the late nudge still fires in the last fifth"
+    assert "For read-only or already satisfied tasks, finish" in tool_results[4]
+    assert "3 steps remain." in tool_results[6] and "Then call finish" in tool_results[6]
     # nothing at halfway when an edit has already been made
     llm = FakeLLM(
         [
@@ -85,9 +88,12 @@ def test_halfway_nudge_fires_once_when_nothing_is_edited() -> None:
     assert not any("Half of the budget" in r for r in tool_results)
 
 
-def test_protected_message_says_not_to_revert_for_stale_tests() -> None:
+def test_protected_message_requires_evidence_before_dismissing_a_failure() -> None:
     ws = FakeWorkspace({"tests/test_a.py": "assert old\n", "a.py": "old\n"})
     box = ToolBox(ws, protected=("tests/*",))
     box.call("read_file", json.dumps({"path": "tests/test_a.py"}))
     out = box.call("edit_file", json.dumps({"path": "tests/test_a.py", "old": "old", "new": "new"})).output
-    assert out.startswith("error:") and "keep your fix" in out and "Do not revert" in out
+    assert out.startswith("error:") and "an explicit requirement must contradict it" in out
+    assert "otherwise treat it as unresolved" in out
+    assert "Do not discard a supported fix because an unrelated check failed" in out
+    assert ws.read("tests/test_a.py") == b"assert old\n"

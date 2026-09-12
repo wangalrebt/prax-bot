@@ -114,14 +114,21 @@ def test_agent_compacts_once_the_context_passes_the_budget() -> None:
     )
     events: list[dict] = []
     result = Agent(
-        llm, FakeToolBox(), max_steps=10, context_budget=80_000, on_event=lambda k, **p: events.append({"kind": k, **p})
+        llm,
+        FakeToolBox(),
+        max_steps=10,
+        context_budget=80_000,
+        verification_commands=(("tests", "pytest"),),
+        on_event=lambda k, **p: events.append({"kind": k, **p}),
     ).run("fix")
     assert result.finished
     compactions = [e for e in events if e["kind"] == "context.compacted"]
     assert len(compactions) == 1 and compactions[0]["step"] == 4 and compactions[0]["tokens_before"] == 500_000
     assert compactions[0]["summary_chars"] > 0 and llm.tools_seen[4] is None
     final_messages = llm.requests[-1][0]
-    assert final_messages[0]["role"] == "system"
+    assert final_messages[0] == llm.requests[0][0][0], "the full runtime instructions survive compaction"
+    assert "- tests: pytest" in final_messages[0]["content"]
+    assert "remote Linux sandbox" in final_messages[0]["content"]
     assert any("compacted to save context" in str(m.get("content")) for m in final_messages)
     assert next(e["context"] for e in events if e["kind"] == "llm.call") == 500_000
 

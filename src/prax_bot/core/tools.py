@@ -108,12 +108,15 @@ class LoadSkill(BaseModel):
 
 
 class Finish(BaseModel):
-    summary: str = Field(..., description="What changed, how it was verified, and anything left undone")
+    summary: str = Field(
+        ..., description="Outcome, changes, observed check results, pending checks, and remaining work"
+    )
 
 
 class GoalFinish(Finish):
     goal_met: bool = Field(
-        False, description="True only when the whole goal is achieved and verified; false if anything remains"
+        False,
+        description="True when available evidence supports the whole goal; report pending runtime checks in summary",
     )
 
 
@@ -510,7 +513,12 @@ class ToolBox:
         self._defs.pop(a.path, None)
         self._note_repo_edit(a.path)
         self._observe(a.path, a.content)
-        return f"wrote {a.path} ({len(a.content)} characters, checkpoint {self.ws.current_step})"
+        output = f"wrote {a.path} ({len(a.content)} characters, checkpoint {self.ws.current_step})"
+        path = resolve_in_workdir(a.path, self.ws.workdir)
+        if self.ws.backend == "local" and path.startswith(SCRATCH_DIR + "/"):
+            shell_path = '"$TMPDIR/praxbot/scratch"/' + shlex.quote(path.removeprefix(SCRATCH_DIR + "/"))
+            output += "\n" + prompt("local_scratch_written", shell_path=shell_path, file_path=path)
+        return output
 
     def _run(self, a: Run) -> str | ToolResult:
         workdir = a.workdir.strip() or "."

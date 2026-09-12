@@ -1,0 +1,1 @@
+error: no changes have been made to the repository. If the task requires edits, continue working. If it is read-only, already satisfied, or blocked, call finish again and explain which case applies, with the evidence you have.

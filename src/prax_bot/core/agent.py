@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
@@ -17,6 +18,7 @@ from prax_bot.core.context import (
 )
 from prax_bot.core.prompts import PACKAGED, prompt
 from prax_bot.core.tools import TOOL_MODELS, ToolBox, tool_specs
+from prax_bot.workspace.repository import SCRATCH_DIR
 from prax_bot.workspace.types import EventFn, noop
 
 DEFAULT_SYSTEM_PROMPT_PATH = Path(str(PACKAGED / "system.md"))
@@ -76,9 +78,11 @@ class Agent:
         goal: bool = False,
         context_budget: int = 80_000,
         system_prompt: str | None = None,
+        verification_commands: Sequence[tuple[str, str]] = (),
         cancel: Event | None = None,
     ) -> None:
         self.system_prompt = system_prompt or SYSTEM_PROMPT
+        self.verification_commands = tuple(verification_commands)
         self.cancel = cancel or Event()
         self.steps = 0
         self.llm = llm
@@ -93,9 +97,20 @@ class Agent:
         self.tools = self._specs()
 
     def system_message(self) -> str:
-        """The system prompt plus the code-style prompt; an empty code_style override drops the second part."""
-        style = prompt("code_style")
-        return f"{self.system_prompt}\n\n{style}" if style else self.system_prompt
+        """Engineering rules, actual workspace facts, and this round's verification plan."""
+        workspace = self.toolbox.ws
+        environment = prompt(f"environment/{workspace.backend}", workdir=workspace.workdir, scratch_dir=SCRATCH_DIR)
+        verification = (
+            prompt(
+                "verification",
+                commands="\n".join(f"- {name}: {command}" for name, command in self.verification_commands),
+            )
+            if self.verification_commands
+            else prompt("verification_manual")
+        )
+        return "\n\n".join(
+            part for part in (self.system_prompt, prompt("code_style"), environment, verification) if part
+        )
 
     def _specs(self) -> list[dict[str, Any]]:
         specs = getattr(self.toolbox, "specs", None)
@@ -247,10 +262,7 @@ class Agent:
                         continue
                     if not edited and not empty_finish_refused and not force_finish:
                         empty_finish_refused = True
-                        output = (
-                            "error: no changes have been made to the repository. If the task cannot be done, call finish "
-                            "again and explain why in the summary; otherwise keep working."
-                        )
+                        output = prompt("finish_without_edits")
                         self.on_event("tool.result", step=step, name=name, output=output, error=True)
                         messages.append({"role": "tool", "tool_call_id": tc.id, "content": output})
                         call_names[tc.id] = name

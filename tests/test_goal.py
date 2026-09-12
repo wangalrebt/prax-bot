@@ -71,7 +71,8 @@ def test_driver_stops_at_the_round_cap_and_on_no_progress() -> None:
 
 def test_goal_task_states_the_check_and_the_finish_contract() -> None:
     t = goal_task("all tests green", 4, "pytest")
-    assert t.startswith("Goal: all tests green") and "up to 4 rounds" in t and "exits 0" in t and "goal_met=true" in t
+    assert t.startswith("Goal: all tests green") and "up to 4 rounds" in t and "exit 0" in t and "goal_met=true" in t
+    assert "after each round" in t and "runtime checks as pending" in t
     assert "You decide" in goal_task("tidy", 2, None)
 
 

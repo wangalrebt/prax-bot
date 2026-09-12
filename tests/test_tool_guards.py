@@ -42,6 +42,7 @@ def test_empty_finish_is_refused_once() -> None:
     assert result.finished and result.summary == "really nothing" and len(llm.requests) == 2
     refused = [m for m in llm.requests[-1][0] if m["role"] == "tool"]
     assert len(refused) == 1 and refused[0]["content"].startswith("error: no changes have been made")
+    assert "read-only, already satisfied, or blocked, call finish again" in refused[0]["content"]
 
 
 def test_search_error_lists_top_level_directories() -> None:

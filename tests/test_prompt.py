@@ -8,22 +8,27 @@ import pytest
 from typer.testing import CliRunner
 
 from prax_bot.core.agent import DEFAULT_SYSTEM_PROMPT_PATH, SYSTEM_PROMPT, Agent
+from prax_bot.core.tools import ToolBox
 from prax_bot.settings import Settings
 from prax_bot.ui.cli import app
-from tests.fakes import FakeLLM, FakeToolBox, call, reply
+from prax_bot.workspace.sandbox import SandboxWorkspace
+from tests.fakes import FakeLLM, FakeToolBox, base, call, fake_client, reply
+from tests.helpers import make_session
 
 
 def test_the_built_in_prompt_is_the_packaged_file_and_says_the_important_things() -> None:
     assert Path(str(DEFAULT_SYSTEM_PROMPT_PATH)).read_text(encoding="utf-8").strip() == SYSTEM_PROMPT
     for phrase in (
-        "Reproduce before you change anything",
+        "For bug reports",
+        "only with baseline evidence",
+        "only when an explicit requirement contradicts it",
         "not a way to start over",
-        "assert the old behaviour",
+        "Read-only tasks may need no edits",
         "fixed number of steps",
         "Respond only with tool calls",
     ):
         assert phrase in SYSTEM_PROMPT, phrase
-    assert len(SYSTEM_PROMPT) < 3700, "kept short on purpose; the measured text is 3,544 characters"
+    assert len(SYSTEM_PROMPT) < 3700, "keep the core instructions concise"
 
 
 def test_agent_uses_the_built_in_prompt_unless_given_another() -> None:
@@ -37,21 +42,11 @@ def test_agent_uses_the_built_in_prompt_unless_given_another() -> None:
     assert llm.requests[0][0][0]["content"].startswith("You are a terse bot.\n\nCode style:")
 
 
-def test_code_style_prompt_says_the_important_things_and_can_be_switched_off(
+def test_disabling_code_style_keeps_runtime_context_with_a_custom_core_prompt(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from prax_bot.core import prompts
 
-    style = prompts.prompt("code_style")
-    for phrase in (
-        "Match the surrounding code",
-        "No drive-by",
-        "Comments explain why",
-        "run it on the files you changed",
-        "add, do not break",
-    ):
-        assert phrase in style, phrase
-    assert len(style) < 1800
     home = tmp_path / "home"
     (home / "prompts").mkdir(parents=True)
     (home / "prompts" / "code_style.md").write_text("\n")  # an empty override switches it off
@@ -60,9 +55,46 @@ def test_code_style_prompt_says_the_important_things_and_can_be_switched_off(
     try:
         llm = FakeLLM([reply(None, call("finish", summary="x")), reply(None, call("finish", summary="y"))])
         Agent(llm, FakeToolBox(), max_steps=3, system_prompt="Terse.").run("t")
-        assert llm.requests[0][0][0]["content"] == "Terse."
+        system = llm.requests[0][0][0]["content"]
+        assert system.startswith("Terse.\n\nExecution environment:")
+        assert "Code style:" not in system and SYSTEM_PROMPT not in system
+        assert "remote Linux sandbox" in system
+        assert "No final verification commands are scheduled" in system
     finally:
         prompts.clear_cache()
+
+
+@pytest.mark.parametrize("workdir", ["/work", "/testbed"])
+def test_sandbox_prompt_describes_the_actual_command_directory(workdir: str) -> None:
+    log: list = []
+    ws = SandboxWorkspace(fake_client(log), base(log), workdir=workdir)
+    system = Agent(FakeLLM([]), ToolBox(ws)).system_message()
+    ws.run("pwd", mutate=False)
+    assert "remote Linux sandbox" in system
+    assert f"initial command directory are {log[-1]['cwd']}" in system
+    assert log[-1]["cwd"] == workdir
+    assert "{workdir}" not in system and "{scratch_dir}" not in system
+    assert "virtual repository root" not in system
+
+
+@pytest.mark.parametrize("filename", ["evidence.txt", "nested/a b;$(touch marker).txt"])
+def test_local_prompt_describes_host_execution_and_usable_scratch_paths(tmp_path: Path, filename: str) -> None:
+    session = make_session(tmp_path)
+    try:
+        ws = session.ws
+        box = ToolBox(ws)
+        system = Agent(FakeLLM([]), box).system_message()
+        assert "user's machine" in system and "without isolation" in system
+        assert f"{ws.workdir} as a virtual repository root" in system
+        assert "remote Linux sandbox" not in system
+        assert '"$TMPDIR/praxbot/scratch"' in system
+        output = box.call("write_file", {"path": f"/tmp/praxbot/scratch/{filename}", "content": "evidence\n"}).output
+        shell_path = output.split("Local shell path: ", 1)[1].splitlines()[0]
+        result = ws.run(f"cat {shell_path}")
+        assert result.exit_code == 0 and result.stdout == "evidence\n"
+        assert ws.diff() == "", "scratch files stay outside the repository"
+    finally:
+        session.close()
 
 
 def test_system_prompt_file_is_user_level_and_validated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -96,7 +128,7 @@ def test_prompt_command_prints_the_text_and_the_source(tmp_path: Path, monkeypat
     env = {"PRAXBOT_HOME": str(home), "NEBIUS_API_KEY": "k", "NEBIUS_PROJECT_ID": "p"}
     monkeypatch.chdir(tmp_path)
     out = CliRunner().invoke(app, ["prompt"], env=env)
-    assert out.exit_code == 0 and "Reproduce before you change anything" in out.output
+    assert out.exit_code == 0 and out.output.strip() == SYSTEM_PROMPT
     out = CliRunner().invoke(app, ["prompt", "--path"], env=env)
     assert out.exit_code == 0 and "built-in" in out.output and "system.md" in out.output
     custom = tmp_path / "mine.md"
@@ -109,7 +141,7 @@ def test_prompt_loader_lists_renders_and_overrides(tmp_path: Path, monkeypatch: 
     from prax_bot.core import prompts
 
     names = prompts.names()
-    assert "system" in names and "tools/run" in names and "continuation" in names and len(names) >= 25
+    assert {"system", "tools/run", "continuation", "environment/local", "environment/contree"} <= set(names)
     assert prompts.source("system")[0] == "built-in"
     # placeholders: filled when given, left alone when not, and a value is never re-interpreted
     assert prompts.prompt("skill_loaded", name="x", source="s", text="{name} stays") == "Skill x (s):\n{name} stays"

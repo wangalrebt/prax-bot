@@ -135,18 +135,20 @@ The harness runs each configured check independently of the model, in a disposab
 
 ### Prompts
 
-Every word the model sees is a text file, not a string in the code: the system prompt, the code-style rules appended to it (match the surrounding code, change only what the task needs, run the project's own linter, tests in the project's own style), the summariser used for compaction, the nudges the loop sends when the model stalls, is halfway through its budget with nothing edited, or nears the end of it, the continuation and goal texts, the message on a protected file, and each tool's description. They ship with the package under `src/prax_bot/core/prompts/`, one file per prompt, with `{placeholders}` the code fills in.
+Prompt templates ship under `src/prax_bot/core/prompts/`, one text file per prompt, with `{placeholders}` filled in by the caller. They cover the core engineering rules, code style, execution environment, verification plan, compaction summary, budget reminders, continuation and goal texts, protected-file guidance, and tool descriptions.
+
+Each round's system message combines the core rules, code style, the active workspace's environment, and its verification plan. The environment describes the actual backend and working directory, including the local backend's virtual `/work` root and shell scratch path (`"$TMPDIR/praxbot/scratch"`). Creating a local scratch file also returns its quoted shell path. The plan lists the checks scheduled after `finish`; when none are scheduled, it explicitly assigns relevant verification to the agent. These instructions stay in the system message through context compaction.
 
 ```bash
 prax prompt --list          # every prompt and where each comes from
-prax prompt                 # the system prompt in effect
+prax prompt                # the core system rules, before runtime context is appended
 prax prompt tools/restore   # any other one by name
 prax prompt --path system   # where it comes from
 ```
 
-To change one, put a file with the same name under `~/.praxbot/prompts/`, for example `~/.praxbot/prompts/system.md` or `~/.praxbot/prompts/tools/run.md`, and it replaces the packaged text; `system_prompt_file` in the config does the same for the system prompt by pointing at any file. Only your own configuration can do this: a repository's config may not set it, because a cloned repository must not choose what the model is told. Rules that belong to a project go in its `AGENTS.md`, which the model reads at the start of every run.
+To change one, put a file with the same name under `~/.praxbot/prompts/`, for example `~/.praxbot/prompts/system.md` or `~/.praxbot/prompts/tools/run.md`, and it replaces the packaged text; `system_prompt_file` in the config does the same for the core rules by pointing at any file. Replacing the core rules still appends code style, environment and verification; an empty `code_style.md` override omits the style section. Only your own configuration can do this: a repository's config may not set it, because a cloned repository must not choose what the model is told. Rules that belong to a project go in its `AGENTS.md`, which the model reads at the start of every run.
 
-The system prompt is short by design, and every rule in it traces to a failure seen in the benchmark logs: reproduce the report before editing, because the most common miss was a confident fix that made the visible tests pass and not the hidden ones; keep a fix when tests that assert the old behaviour fail, because two runs undid correct edits; restore is for one bad command, never for starting over, because two runs restored to the baseline and lost their work; act once sure, because the budget is finite and every result says how much is left; and fix where the value is produced by extending the mechanism that already handles the nearest case, because five misses were a new branch beside a one-line upstream fix.
+The core rules ask for reproductions on bug reports when possible and checks suited to features, refactors, documentation and read-only tasks. Failures stay unresolved until investigated: calling one pre-existing requires baseline evidence, and calling a test expectation obsolete requires an explicit conflicting requirement. The agent preserves supported changes, avoids speculative abstractions, and distinguishes observed results from pending runtime checks in `finish`. Budget reminders follow the same rules. This revision corrects prompt and runtime inconsistencies; [small behavior smoke checks](bench/prompt-smoke/20260910.md) did not establish a comparative gain. A controlled model benchmark is still needed to measure effects on solve rate or token use. The benchmark results below describe the versions measured at the time.
 
 ## How the context is managed
 

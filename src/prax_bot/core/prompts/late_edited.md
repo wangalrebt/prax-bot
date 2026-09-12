@@ -1,1 +1,1 @@
-{left} steps remain. Wrap up: run the reproduction or the relevant tests once if you have not since your last edit, then call finish with what changed and how it was verified.
+{left} steps remain. Check any relevant change not yet covered by your evidence, following the verification plan. Scheduled runtime checks can remain pending. Then call finish with the changes, observed results and remaining gaps.

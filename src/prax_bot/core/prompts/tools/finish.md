@@ -1,1 +1,1 @@
-Finish the task. Call it once the change is made and verified, with a summary of what changed and how it was verified; or, if you cannot complete the task, with an honest account of what blocks you.
+End this round with the outcome, any changes, observed check results, and unresolved failures or blockers. Name scheduled runtime checks as pending; their results become available after this call. A task may be complete without edits if it is read-only or already satisfied. Never claim a check passed unless its result supports that.
