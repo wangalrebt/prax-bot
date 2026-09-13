@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
+from typing import Any, cast
 
 import typer
 from rich.markup import escape
@@ -105,12 +106,9 @@ def prompt_command(
 
         checks = tuple((n, c) for n, c in (("tests", settings.test_command), ("lint", settings.lint_command)) if c)
         workspace = SimpleNamespace(backend=settings.backend, workdir=WORKDIR)
-        agent = Agent(
-            None,
-            SimpleNamespace(ws=workspace),
-            system_prompt=settings.system_prompt_text(),
-            verification_commands=checks,
-        )
+        # Only system_message() is used: it reads the workspace's backend and workdir through the toolbox.
+        stand_in = cast(Any, SimpleNamespace(ws=workspace))
+        agent = Agent(stand_in, stand_in, system_prompt=settings.system_prompt_text(), verification_commands=checks)
         print(agent.system_message())
         return
     if list_all:
