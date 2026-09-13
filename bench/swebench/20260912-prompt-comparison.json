@@ -1,0 +1,663 @@
+{
+  "created_at": "2026-09-12T18:11:39.666348+00:00",
+  "dataset": "SWE-bench/SWE-bench_Verified",
+  "selection": {
+    "seed": 20260912,
+    "difficulty": "<15 min fix",
+    "per_repo": 1,
+    "n": 6,
+    "prior_unique_instances": 31,
+    "eligible_unseen_instances": 163,
+    "policy": "Exclude IDs in all tracked benchmark JSON results; sort remaining IDs, random.Random(20260912).shuffle, take first distinct repositories. No filtering by expected outcome."
+  },
+  "ids": [
+    "astropy__astropy-7336",
+    "django__django-12308",
+    "sympy__sympy-24539",
+    "matplotlib__matplotlib-25287",
+    "sphinx-doc__sphinx-7440",
+    "pytest-dev__pytest-6202"
+  ],
+  "revisions": {
+    "baseline": "82d7a228d5c847c1cf08ac2bef87c55ba1cd4cb5",
+    "candidate": "18dbb5dee28311be21fd1a0786c23ed431c12750"
+  },
+  "settings": {
+    "model": "nvidia/nemotron-3-super-120b-a12b",
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "effort": "low",
+    "max_steps": 50,
+    "context_budget": 80000,
+    "command_timeout": 300,
+    "import_timeout": 900,
+    "investigate_model": null,
+    "max_completion_tokens": 16384,
+    "parallel_per_variant": 2,
+    "total_concurrency": 4,
+    "samples_per_task_per_variant": 1
+  },
+  "environment": {
+    "python": "3.12.13",
+    "swebench": "5.0.2",
+    "contree-sdk": "0.3.6",
+    "openai": "3.8.0",
+    "uv_lock_sha256": "d5feaa1ed3fb88ed1c7b9c38470bdab5693b56ead0baa25e1e26fc0a200bb35c"
+  },
+  "grading": "Existing scripts/swe_bench.py, official test scripts and log parsers in fresh sandboxes; existing network-only retry policy, up to 3 grading attempts.",
+  "scope": "Compares the complete commit changes exercised by the direct-Agent SWE-bench harness; does not exercise local backend paths or Session scheduled verification.",
+  "limitations": [
+    "Six tasks from the easiest difficulty tier, one stochastic sample per variant; no statistical or full-benchmark claim.",
+    "Imports and shared-service load affect wall time.",
+    "Infrastructure errors are reported separately. Any external reruns use separate directories. Built-in network grading retries overwrite their eval.log and retain only the last eval_cost; attempt counts and console notices remain.",
+    "The selection seed does not seed model generation.",
+    "Held out means absent from tracked benchmark results in this repository, not absent from model training."
+  ],
+  "results": [
+    {
+      "variant": "baseline",
+      "revision": "82d7a228d5c847c1cf08ac2bef87c55ba1cd4cb5",
+      "instance_id": "astropy__astropy-7336",
+      "repo": "astropy/astropy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 25,
+      "tokens": 333031,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 25,
+          "prompt_tokens": 327535,
+          "completion_tokens": 5496
+        }
+      },
+      "sandbox_commands": 15,
+      "sandbox_cost": 0.13689469,
+      "diff_lines": 13,
+      "summary": "Fixed the issue where the `units.quantity_input` decorator failed for constructors with type hinted return value -> None. The fix modifies the decorator in astropy/units/decorators.py to skip the return unit conversion when the return annotation is None. Verified with the original reproducer and add",
+      "agent_elapsed": 106.65790208312683,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "339/339",
+      "eval": "resolved",
+      "eval_cost": 0.05798319,
+      "grading_attempts": 1,
+      "wall": 115.79227908304892,
+      "artifacts": {
+        "result.json": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/astropy__astropy-7336/result.json",
+        "patch.diff": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/astropy__astropy-7336/patch.diff",
+        "eval.log": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/astropy__astropy-7336/eval.log",
+        "events.jsonl": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/astropy__astropy-7336/events.jsonl"
+      },
+      "patch_sha256": "41720811c540729c42a95f5a1fbdf79ae248ec6c351c2c9c5685e908ea24d87f"
+    },
+    {
+      "variant": "baseline",
+      "revision": "82d7a228d5c847c1cf08ac2bef87c55ba1cd4cb5",
+      "instance_id": "django__django-12308",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 39,
+      "tokens": 522977,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 39,
+          "prompt_tokens": 514959,
+          "completion_tokens": 8018
+        }
+      },
+      "sandbox_commands": 38,
+      "sandbox_cost": 0.12675329,
+      "diff_lines": 13,
+      "summary": "Added a special case for JSONField in django.contrib.admin.utils.display_for_field to call the field's formfield().prepare_value method, ensuring proper JSON string representation in admin readonly displays. Verified with existing test suites (admin_utils, model_fields.test_jsonfield) and a custom t",
+      "agent_elapsed": 161.11879808292724,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/2",
+      "p2p": "20/20",
+      "eval": "not resolved",
+      "eval_cost": 0.03974138,
+      "grading_attempts": 1,
+      "wall": 170.44255174999125,
+      "artifacts": {
+        "result.json": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/django__django-12308/result.json",
+        "patch.diff": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/django__django-12308/patch.diff",
+        "eval.log": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/django__django-12308/eval.log",
+        "events.jsonl": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/django__django-12308/events.jsonl"
+      },
+      "patch_sha256": "49690bfc70068bd404bb120d5945504ee8c033d4fbbfac271da24ab2ea6f26ca"
+    },
+    {
+      "variant": "baseline",
+      "revision": "82d7a228d5c847c1cf08ac2bef87c55ba1cd4cb5",
+      "instance_id": "sympy__sympy-24539",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 11,
+      "tokens": 98242,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 11,
+          "prompt_tokens": 96971,
+          "completion_tokens": 1271
+        }
+      },
+      "sandbox_commands": 11,
+      "sandbox_cost": 0.045760249999999995,
+      "diff_lines": 16,
+      "summary": "Fixed PolyElement.as_expr() to respect custom symbols. The bug was that when symbols were provided, the code incorrectly reset symbols to self.ring.symbols in the else branch. Changed the logic: if symbols are provided, validate length and use them; otherwise use self.ring.symbols. Verified with the",
+      "agent_elapsed": 65.21943566715345,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "62/62",
+      "eval": "resolved",
+      "eval_cost": 0.027275980000000002,
+      "grading_attempts": 1,
+      "wall": 71.38305325014517,
+      "artifacts": {
+        "result.json": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/sympy__sympy-24539/result.json",
+        "patch.diff": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/sympy__sympy-24539/patch.diff",
+        "eval.log": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/sympy__sympy-24539/eval.log",
+        "events.jsonl": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/sympy__sympy-24539/events.jsonl"
+      },
+      "patch_sha256": "1fb2903c7c2193ac0565ef2ab2b1d654b4af14d5d5c75677f59ba6cd10f09edd"
+    },
+    {
+      "variant": "baseline",
+      "revision": "82d7a228d5c847c1cf08ac2bef87c55ba1cd4cb5",
+      "instance_id": "matplotlib__matplotlib-25287",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 30,
+      "tokens": 430085,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 30,
+          "prompt_tokens": 425003,
+          "completion_tokens": 5082
+        }
+      },
+      "sandbox_commands": 22,
+      "sandbox_cost": 0.19457145,
+      "diff_lines": 22,
+      "summary": "Fixed the issue where offsetText was colored based on tick.color instead of tick.labelcolor. Modified lib/matplotlib/axis.py in two places (XAxis._init and YAxis._init) to set the offsetText color according to the labelcolor rcParam, falling back to the tick color when labelcolor is 'inherit'. Verif",
+      "agent_elapsed": 132.518851458095,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "786/786",
+      "eval": "resolved",
+      "eval_cost": 0.8123896500000001,
+      "grading_attempts": 1,
+      "wall": 198.32738454197533,
+      "artifacts": {
+        "result.json": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/matplotlib__matplotlib-25287/result.json",
+        "patch.diff": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/matplotlib__matplotlib-25287/patch.diff",
+        "eval.log": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/matplotlib__matplotlib-25287/eval.log",
+        "events.jsonl": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/matplotlib__matplotlib-25287/events.jsonl"
+      },
+      "patch_sha256": "2f6a98b867c7022d4739f3ec4cee1a7f77fb6a4faf8e3daa87ec086fb96067ba"
+    },
+    {
+      "variant": "baseline",
+      "revision": "82d7a228d5c847c1cf08ac2bef87c55ba1cd4cb5",
+      "instance_id": "sphinx-doc__sphinx-7440",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 943275,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 924930,
+          "completion_tokens": 18345
+        }
+      },
+      "sandbox_commands": 41,
+      "sandbox_cost": 0.11202757,
+      "diff_lines": 13,
+      "summary": "(no summary given)",
+      "agent_elapsed": 229.94949799985625,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "12/12",
+      "eval": "resolved",
+      "eval_cost": 0.027355900000000002,
+      "grading_attempts": 1,
+      "wall": 236.51779508288018,
+      "artifacts": {
+        "result.json": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/sphinx-doc__sphinx-7440/result.json",
+        "patch.diff": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/sphinx-doc__sphinx-7440/patch.diff",
+        "eval.log": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/sphinx-doc__sphinx-7440/eval.log",
+        "events.jsonl": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/sphinx-doc__sphinx-7440/events.jsonl"
+      },
+      "patch_sha256": "0bb7c494dde967f0bfcb4e84ac6317398ff801ffe30051671168b36953a96d77"
+    },
+    {
+      "variant": "baseline",
+      "revision": "82d7a228d5c847c1cf08ac2bef87c55ba1cd4cb5",
+      "instance_id": "pytest-dev__pytest-6202",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 32,
+      "tokens": 365586,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 32,
+          "prompt_tokens": 358160,
+          "completion_tokens": 7426
+        }
+      },
+      "sandbox_commands": 30,
+      "sandbox_cost": 0.09267588999999998,
+      "diff_lines": 16,
+      "summary": "Fixed the issue by removing the erroneous string replacement in src/_pytest/python.py in the getmodpath method. The line `return s.replace(\".[\", \"[\")` was causing test names containing '.[' to be incorrectly displayed as '[', e.g., 'test_boo[..[]' became 'test_boo[.[]'. After removal, the test name ",
+      "agent_elapsed": 135.46243075001985,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "72/72",
+      "eval": "resolved",
+      "eval_cost": 0.050918769999999995,
+      "grading_attempts": 1,
+      "wall": 145.69485254213214,
+      "artifacts": {
+        "result.json": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/pytest-dev__pytest-6202/result.json",
+        "patch.diff": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/pytest-dev__pytest-6202/patch.diff",
+        "eval.log": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/pytest-dev__pytest-6202/eval.log",
+        "events.jsonl": "bench/swebench/scratch/20260912-prompt-comparison/baseline/scratch/pytest-dev__pytest-6202/events.jsonl"
+      },
+      "patch_sha256": "1a7583449e0026cebafd37188235cc26b57b2365b84d6c50801f6c9ccba3b236"
+    },
+    {
+      "variant": "candidate",
+      "revision": "18dbb5dee28311be21fd1a0786c23ed431c12750",
+      "instance_id": "astropy__astropy-7336",
+      "repo": "astropy/astropy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 10,
+      "tokens": 106347,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 10,
+          "prompt_tokens": 104500,
+          "completion_tokens": 1847
+        }
+      },
+      "sandbox_commands": 10,
+      "sandbox_cost": 0.050498470000000004,
+      "diff_lines": 37,
+      "summary": "Fixed the issue in astropy/units/decorators.py by adding a check for None in the return annotation before attempting to convert units. The fix prevents the AttributeError when the return annotation is None (as in constructors). Verified that the reproducer now works and that the existing unit tests ",
+      "agent_elapsed": 57.15075070806779,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "339/339",
+      "eval": "resolved",
+      "eval_cost": 0.056805190000000005,
+      "grading_attempts": 1,
+      "wall": 66.76484570815228,
+      "artifacts": {
+        "result.json": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/astropy__astropy-7336/result.json",
+        "patch.diff": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/astropy__astropy-7336/patch.diff",
+        "eval.log": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/astropy__astropy-7336/eval.log",
+        "events.jsonl": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/astropy__astropy-7336/events.jsonl"
+      },
+      "patch_sha256": "74b67c7a794608efd093930a9013785d13f014b26ad178b0a0c283f397bdefb0"
+    },
+    {
+      "variant": "candidate",
+      "revision": "18dbb5dee28311be21fd1a0786c23ed431c12750",
+      "instance_id": "django__django-12308",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 39,
+      "tokens": 522480,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 39,
+          "prompt_tokens": 507690,
+          "completion_tokens": 14790
+        }
+      },
+      "sandbox_commands": 35,
+      "sandbox_cost": 0.38138587000000007,
+      "diff_lines": 22,
+      "summary": "Fixed the issue where JSONField values were displayed as Python dict representation (e.g., {'foo': 'bar'}) instead of valid JSON (e.g., {\"foo\": \"bar\"}) when readonly in the Django admin.\n\nChanges made:\n1. In django/contrib/admin/utils.py, added import for JSONField from django.db.models.\n2. In the d",
+      "agent_elapsed": 185.0795362079516,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/2",
+      "p2p": "20/20",
+      "eval": "not resolved",
+      "eval_cost": 0.04004952,
+      "grading_attempts": 1,
+      "wall": 194.0052828330081,
+      "artifacts": {
+        "result.json": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/django__django-12308/result.json",
+        "patch.diff": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/django__django-12308/patch.diff",
+        "eval.log": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/django__django-12308/eval.log",
+        "events.jsonl": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/django__django-12308/events.jsonl"
+      },
+      "patch_sha256": "3f10660742855ae95dd35a8626c48f928a3cbcd92cc3a1b01f1dd4890956eac8"
+    },
+    {
+      "variant": "candidate",
+      "revision": "18dbb5dee28311be21fd1a0786c23ed431c12750",
+      "instance_id": "sympy__sympy-24539",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 14,
+      "tokens": 121721,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 14,
+          "prompt_tokens": 119869,
+          "completion_tokens": 1852
+        }
+      },
+      "sandbox_commands": 12,
+      "sandbox_cost": 0.046748639999999994,
+      "diff_lines": 16,
+      "summary": "Fixed PolyElement.as_expr() to correctly use provided symbols when the number matches. The bug was that the method always replaced symbols with self.ring.symbols even when symbols were provided. Changed the condition to only replace when no symbols are given. Verified with the existing test suite an",
+      "agent_elapsed": 58.10741808288731,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "62/62",
+      "eval": "resolved",
+      "eval_cost": 0.02693301,
+      "grading_attempts": 1,
+      "wall": 64.32020595786162,
+      "artifacts": {
+        "result.json": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/sympy__sympy-24539/result.json",
+        "patch.diff": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/sympy__sympy-24539/patch.diff",
+        "eval.log": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/sympy__sympy-24539/eval.log",
+        "events.jsonl": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/sympy__sympy-24539/events.jsonl"
+      },
+      "patch_sha256": "1fb2903c7c2193ac0565ef2ab2b1d654b4af14d5d5c75677f59ba6cd10f09edd"
+    },
+    {
+      "variant": "candidate",
+      "revision": "18dbb5dee28311be21fd1a0786c23ed431c12750",
+      "instance_id": "matplotlib__matplotlib-25287",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 25,
+      "tokens": 291345,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 25,
+          "prompt_tokens": 286552,
+          "completion_tokens": 4793
+        }
+      },
+      "sandbox_commands": 22,
+      "sandbox_cost": 0.28755532,
+      "diff_lines": 22,
+      "summary": "Fixed the bug where offsetText was colored based on tick.color instead of tick.labelcolor. Modified lib/matplotlib/axis.py in two places (for XAxis and YAxis) to use the labelcolor when it is not 'inherit', otherwise fall back to the color. Verified with a simple test that the offset text now respec",
+      "agent_elapsed": 170.68017462501302,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "786/786",
+      "eval": "resolved",
+      "eval_cost": 0.8228490900000001,
+      "grading_attempts": 1,
+      "wall": 238.34592533297837,
+      "artifacts": {
+        "result.json": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/matplotlib__matplotlib-25287/result.json",
+        "patch.diff": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/matplotlib__matplotlib-25287/patch.diff",
+        "eval.log": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/matplotlib__matplotlib-25287/eval.log",
+        "events.jsonl": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/matplotlib__matplotlib-25287/events.jsonl"
+      },
+      "patch_sha256": "2f6a98b867c7022d4739f3ec4cee1a7f77fb6a4faf8e3daa87ec086fb96067ba"
+    },
+    {
+      "variant": "candidate",
+      "revision": "18dbb5dee28311be21fd1a0786c23ed431c12750",
+      "instance_id": "sphinx-doc__sphinx-7440",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 975164,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 953300,
+          "completion_tokens": 21864
+        }
+      },
+      "sandbox_commands": 41,
+      "sandbox_cost": 0.12295055,
+      "diff_lines": 13,
+      "summary": "(no summary given)",
+      "agent_elapsed": 234.0626204169821,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "12/12",
+      "eval": "resolved",
+      "eval_cost": 0.027300770000000002,
+      "grading_attempts": 1,
+      "wall": 240.20699116704054,
+      "artifacts": {
+        "result.json": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/sphinx-doc__sphinx-7440/result.json",
+        "patch.diff": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/sphinx-doc__sphinx-7440/patch.diff",
+        "eval.log": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/sphinx-doc__sphinx-7440/eval.log",
+        "events.jsonl": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/sphinx-doc__sphinx-7440/events.jsonl"
+      },
+      "patch_sha256": "0bb7c494dde967f0bfcb4e84ac6317398ff801ffe30051671168b36953a96d77"
+    },
+    {
+      "variant": "candidate",
+      "revision": "18dbb5dee28311be21fd1a0786c23ed431c12750",
+      "instance_id": "pytest-dev__pytest-6202",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 29,
+      "tokens": 390932,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 29,
+          "prompt_tokens": 384260,
+          "completion_tokens": 6672
+        }
+      },
+      "sandbox_commands": 30,
+      "sandbox_cost": 0.14644049,
+      "diff_lines": 25,
+      "summary": "Fixed the issue by removing the erroneous string replacement in src/_pytest/python.py line 289. The change ensures that test IDs containing '.[' are not incorrectly altered. Verified the fix with the provided bug.py test and ran the project's test suite for reports, nodes, and collection modules, al",
+      "agent_elapsed": 133.88547104108147,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "72/72",
+      "eval": "resolved",
+      "eval_cost": 0.050933240000000005,
+      "grading_attempts": 1,
+      "wall": 144.60546937515028,
+      "artifacts": {
+        "result.json": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/pytest-dev__pytest-6202/result.json",
+        "patch.diff": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/pytest-dev__pytest-6202/patch.diff",
+        "eval.log": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/pytest-dev__pytest-6202/eval.log",
+        "events.jsonl": "bench/swebench/scratch/20260912-prompt-comparison/candidate/scratch/pytest-dev__pytest-6202/events.jsonl"
+      },
+      "patch_sha256": "d1c8a6d5f9d1d67a557846c99f83acf8dcb06d771c4c42b0ef12362d40e143ef"
+    }
+  ],
+  "commands": {
+    "baseline": [
+      "/Users/wangalrebt/code/prax_bot/.venv/bin/python",
+      "/var/folders/0f/klr6jtcx6kg97gc01fs_ggd80000gn/T/praxbot-benchmark-20260912-8efdxpp3/baseline/scripts/swe_bench.py",
+      "run",
+      "--ids",
+      "astropy__astropy-7336,django__django-12308,sympy__sympy-24539,matplotlib__matplotlib-25287,sphinx-doc__sphinx-7440,pytest-dev__pytest-6202",
+      "--max-steps",
+      "50",
+      "--parallel",
+      "2",
+      "--out",
+      "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260912-prompt-comparison/baseline"
+    ],
+    "candidate": [
+      "/Users/wangalrebt/code/prax_bot/.venv/bin/python",
+      "/var/folders/0f/klr6jtcx6kg97gc01fs_ggd80000gn/T/praxbot-benchmark-20260912-8efdxpp3/candidate/scripts/swe_bench.py",
+      "run",
+      "--ids",
+      "astropy__astropy-7336,django__django-12308,sympy__sympy-24539,matplotlib__matplotlib-25287,sphinx-doc__sphinx-7440,pytest-dev__pytest-6202",
+      "--max-steps",
+      "50",
+      "--parallel",
+      "2",
+      "--out",
+      "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260912-prompt-comparison/candidate"
+    ]
+  },
+  "dataset_cache_sha256": "5010be3ce5e862037b73e42418a8f1c95721019c87df88d8d5fa5e65d1bdc52d",
+  "runner_sha256": "c0a5b9f9a853031cd39bd9d0bd3f057ca7d563f7dc96174b6da032781ed7a26c",
+  "preflight": {
+    "baseline": {
+      "agent_source": "/private/var/folders/0f/klr6jtcx6kg97gc01fs_ggd80000gn/T/praxbot-benchmark-20260912-8efdxpp3/baseline/src/prax_bot/core/agent.py",
+      "system_sha256": "697e7354138f4c41ef7070a94aa8c4dc18bf1564425d575f5d9fba9c06b35242",
+      "settings": {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "effort": "low",
+        "max_steps": 50,
+        "context_budget": 80000,
+        "command_timeout": 300,
+        "import_timeout": 900,
+        "investigate_model": null
+      }
+    },
+    "candidate": {
+      "agent_source": "/private/var/folders/0f/klr6jtcx6kg97gc01fs_ggd80000gn/T/praxbot-benchmark-20260912-8efdxpp3/candidate/src/prax_bot/core/agent.py",
+      "system_sha256": "c26429cd31432b533a79ad34410ad55f1dcab50c52b1b232ab5cd578058c7985",
+      "settings": {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "effort": "low",
+        "max_steps": 50,
+        "context_budget": 80000,
+        "command_timeout": 300,
+        "import_timeout": 900,
+        "investigate_model": null
+      }
+    }
+  },
+  "tasks": [
+    {
+      "instance_id": "astropy__astropy-7336",
+      "repo": "astropy/astropy",
+      "difficulty": "<15 min fix",
+      "image": "swebench/sweb.eval.x86_64.astropy_1776_astropy-7336:latest",
+      "base_commit": "732d89c2940156bdc0e200bb36dc38b5e424bcba"
+    },
+    {
+      "instance_id": "django__django-12308",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "image": "swebench/sweb.eval.x86_64.django_1776_django-12308:latest",
+      "base_commit": "2e0f04507b17362239ba49830d26fec504d46978"
+    },
+    {
+      "instance_id": "sympy__sympy-24539",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "image": "swebench/sweb.eval.x86_64.sympy_1776_sympy-24539:latest",
+      "base_commit": "193e3825645d93c73e31cdceb6d742cc6919624d"
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-25287",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "image": "swebench/sweb.eval.x86_64.matplotlib_1776_matplotlib-25287:latest",
+      "base_commit": "f8ffce6d44127d4ea7d6491262ab30046b03294b"
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-7440",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "image": "swebench/sweb.eval.x86_64.sphinx-doc_1776_sphinx-7440:latest",
+      "base_commit": "9bb204dcabe6ba0fc422bf4a45ad0c79c680d90b"
+    },
+    {
+      "instance_id": "pytest-dev__pytest-6202",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "image": "swebench/sweb.eval.x86_64.pytest-dev_1776_pytest-6202:latest",
+      "base_commit": "3a668ea6ff24b0c8f00498c3144c63bac561d925"
+    }
+  ],
+  "status": "complete",
+  "completed_at": "2026-09-12T18:22:59.246246+00:00",
+  "aggregates": {
+    "baseline": {
+      "tasks": 6,
+      "resolved": 5,
+      "tokens": 2693196,
+      "steps": 187,
+      "model_calls": 187,
+      "median_task_tokens": 397835.5,
+      "sum_task_wall_seconds": 938.157916250173,
+      "grading_attempts": 6,
+      "infrastructure_errors": 0
+    },
+    "candidate": {
+      "tasks": 6,
+      "resolved": 5,
+      "tokens": 2407989,
+      "steps": 167,
+      "model_calls": 167,
+      "median_task_tokens": 341138.5,
+      "sum_task_wall_seconds": 948.2487203741912,
+      "grading_attempts": 6,
+      "infrastructure_errors": 0
+    }
+  },
+  "comparison": {
+    "resolved_change": 0,
+    "token_change": -285207,
+    "token_change_percent": -10.58990879237902,
+    "step_change": -20,
+    "step_change_percent": -10.6951871657754,
+    "candidate_only_resolved": [],
+    "baseline_only_resolved": []
+  },
+  "trace_findings": {
+    "astropy__astropy-7336": "Both source fixes are behaviorally equivalent. Candidate used fewer calls but skipped the baseline reproduction, attempted a guard-blocked restore after passing tests, and submitted root test_reproducer.py. Baseline wasted calls trying to overwrite scratch files and guessing test names.",
+    "django__django-12308": "Both miss the same edge case: tuple-key dictionary input raises uncaught TypeError during JSON serialization. Different serialization APIs, same 0/2 target and 20/20 regression results. Both spend calls on guessed test targets and repeated checks.",
+    "sympy__sympy-24539": "Patches are byte-identical and contain only the source change. Both edit before reproducing. Candidate uses an assertion in its scratch check but needs more navigation and a correction from an invalid scratch path.",
+    "matplotlib__matplotlib-25287": "Patches are byte-identical and contain only the source change. Neither reproduces before editing. Both repeat passing test subsets and guess nonexistent targets; candidate performs fewer source reads.",
+    "sphinx-doc__sphinx-7440": "Patches are byte-identical. Both exhaust 50 steps and call forced finish with command instead of summary; the runtime accepts them as finished with (no summary given). Both have unresolved local test failures, despite the selected official checks passing. Candidate also observes two internationalized-glossary failures and temporarily reverts/reapplies without checking a baseline.",
+    "pytest-dev__pytest-6202": "Same one-line source fix; both correctly reproduce and recheck the intended failure headline. Baseline submits empty =0.12, from an unquoted pip requirement; candidate submits root bug.py containing assert 0. Broader validation has dependency problems in both runs; candidate still claims no further action is required."
+  }
+}

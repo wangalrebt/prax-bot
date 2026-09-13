@@ -1,0 +1,949 @@
+{
+  "status": "complete",
+  "experiment": "opt-in bounded finish review; same-source toggle comparison",
+  "selection": {
+    "candidate": "Freeze final working source implementing the opt-in review, record its complete diff/new files/hashes against 18dbb5d, and run both arms from that same source snapshot.",
+    "dataset_cache_sha256": "5010be3ce5e862037b73e42418a8f1c95721019c87df88d8d5fa5e65d1bdc52d",
+    "prior_unique_instances": 37,
+    "excluded_instance_ids": [
+      "astropy__astropy-14309",
+      "astropy__astropy-14995",
+      "astropy__astropy-7166",
+      "astropy__astropy-7336",
+      "django__django-11880",
+      "django__django-12193",
+      "django__django-12308",
+      "django__django-16899",
+      "matplotlib__matplotlib-20676",
+      "matplotlib__matplotlib-23476",
+      "matplotlib__matplotlib-25122",
+      "matplotlib__matplotlib-25287",
+      "pallets__flask-5014",
+      "psf__requests-1142",
+      "psf__requests-2317",
+      "psf__requests-5414",
+      "pydata__xarray-4075",
+      "pydata__xarray-4094",
+      "pydata__xarray-4629",
+      "pylint-dev__pylint-4970",
+      "pylint-dev__pylint-6903",
+      "pylint-dev__pylint-7277",
+      "pytest-dev__pytest-5262",
+      "pytest-dev__pytest-5809",
+      "pytest-dev__pytest-6202",
+      "pytest-dev__pytest-7521",
+      "scikit-learn__scikit-learn-12585",
+      "scikit-learn__scikit-learn-13328",
+      "scikit-learn__scikit-learn-25232",
+      "sphinx-doc__sphinx-7440",
+      "sphinx-doc__sphinx-8621",
+      "sphinx-doc__sphinx-9258",
+      "sphinx-doc__sphinx-9591",
+      "sympy__sympy-15017",
+      "sympy__sympy-17655",
+      "sympy__sympy-20916",
+      "sympy__sympy-24539"
+    ],
+    "coverage_sources": [
+      "bench/results/20260906T010725Z-contree.json",
+      "bench/results/20260906T011850Z-contree.json",
+      "bench/results/20260906T012805Z-contree-reeval.json",
+      "bench/results/20260906T013042Z-contree.json",
+      "bench/results/20260906T013923Z-contree.json",
+      "bench/results/20260906T014206Z-contree.json",
+      "bench/results/20260906T022050Z-contree.json",
+      "bench/results/20260906T024257Z-contree.json",
+      "bench/results/20260906T024452Z-contree-reeval.json",
+      "bench/results/20260906T031421Z-contree.json",
+      "bench/results/20260906T033034Z-contree.json",
+      "bench/results/20260907T010556Z-contree.json",
+      "bench/results/20260907T041714Z-contree.json",
+      "bench/results/context/20260909T071714Z-contree.json",
+      "bench/results/prompt/20260910T020004Z-contree.json",
+      "bench/results/sampling-low/20260907T225428Z-contree.json",
+      "bench/results/sampling-off/20260907T225451Z-contree.json",
+      "bench/results/sampling-off/20260907T225706Z-contree.json",
+      "bench/results/sampling-on/20260907T225757Z-contree.json",
+      "bench/results/ultra/20260906T024842Z-contree.json",
+      "bench/swebench/20260906T022010Z-run.json",
+      "bench/swebench/20260906T023354Z-run.json",
+      "bench/swebench/20260906T025010Z-reeval.json",
+      "bench/swebench/20260906T031637Z-run.json",
+      "bench/swebench/20260907T031102Z-run.json",
+      "bench/swebench/20260907T031925Z-run.json",
+      "bench/swebench/20260907T034735Z-run.json",
+      "bench/swebench/20260907T042951Z-run.json",
+      "bench/swebench/20260907T054325Z-run.json",
+      "bench/swebench/20260907T071156Z-run.json",
+      "bench/swebench/20260907T071315Z-reeval.json",
+      "bench/swebench/20260908T001133Z-run.json",
+      "bench/swebench/20260909T-prompt12-assembled.json",
+      "bench/swebench/20260909T-prompt31-assembled.json",
+      "bench/swebench/20260909T071122Z-run.json",
+      "bench/swebench/20260909T071143Z-reeval.json",
+      "bench/swebench/20260910T015756Z-run.json",
+      "bench/swebench/20260910T022711Z-run.json",
+      "bench/swebench/20260910T025845Z-reeval.json",
+      "bench/swebench/20260910T031325Z-run.json",
+      "bench/swebench/20260910T031828Z-reeval.json",
+      "bench/swebench/20260910T033317Z-run.json",
+      "bench/swebench/20260910T044844Z-reeval.json",
+      "bench/swebench/20260910T050608Z-run.json",
+      "bench/swebench/20260910T052238Z-run.json",
+      "bench/swebench/20260912-prompt-comparison.json"
+    ],
+    "seed": 20260912,
+    "strata": [
+      {
+        "difficulty": "<15 min fix",
+        "take": 1
+      },
+      {
+        "difficulty": "15 min - 1 hour",
+        "take": 2
+      }
+    ],
+    "eligible_counts_excluding_django": {
+      "<15 min fix": 69,
+      "15 min - 1 hour": 144
+    },
+    "policy": "Django-12308 is explicitly a development case. For fresh tasks exclude all prior IDs (tracked result JSON plus the latest paired report) and django/django. Use one random.Random(20260912) instance. For each stratum in order, sort eligible rows by instance_id, shuffle, and take the first rows whose repositories have not been used; start used repositories with django/django. Read problem statements only after fixing selection. No filtering by expected outcome.",
+    "tasks": [
+      {
+        "instance_id": "django__django-12308",
+        "repo": "django/django",
+        "difficulty": "<15 min fix",
+        "role": "development",
+        "summary": "Readonly admin JSON fields should display valid JSON and handle exceptional display values."
+      },
+      {
+        "instance_id": "scikit-learn__scikit-learn-13779",
+        "repo": "scikit-learn/scikit-learn",
+        "difficulty": "<15 min fix",
+        "role": "fresh",
+        "summary": "Voting estimator fit fails with sample weights when a component estimator is None."
+      },
+      {
+        "instance_id": "sphinx-doc__sphinx-8551",
+        "repo": "sphinx-doc/sphinx",
+        "difficulty": "15 min - 1 hour",
+        "role": "fresh",
+        "summary": "Implicit type/rtype cross-references resolve unqualified names differently from explicit roles, causing ambiguous lookup warnings."
+      },
+      {
+        "instance_id": "astropy__astropy-13033",
+        "repo": "astropy/astropy",
+        "difficulty": "15 min - 1 hour",
+        "role": "fresh",
+        "summary": "TimeSeries required-column validation raises a misleading message when an additional required column is removed."
+      }
+    ],
+    "ids": [
+      "django__django-12308",
+      "scikit-learn__scikit-learn-13779",
+      "sphinx-doc__sphinx-8551",
+      "astropy__astropy-13033"
+    ],
+    "settings": {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "temperature": 1.0,
+      "top_p": 0.95,
+      "effort": "low",
+      "max_steps": 50,
+      "context_budget": 80000,
+      "command_timeout": 300,
+      "import_timeout": 900,
+      "parallel_per_variant": 2,
+      "samples_per_task_per_variant": 1
+    },
+    "status": "frozen_before_execution",
+    "base_revision": "18dbb5dee28311be21fd1a0786c23ed431c12750",
+    "comparison": "Same frozen working source and runner in both arms. Baseline uses default review_before_finish=False; candidate alone passes --review-before-finish. No other settings or behavior differences.",
+    "prior_effective_preflight": {
+      "agent_source": "/private/var/folders/0f/klr6jtcx6kg97gc01fs_ggd80000gn/T/praxbot-benchmark-20260912-8efdxpp3/candidate/src/prax_bot/core/agent.py",
+      "system_sha256": "c26429cd31432b533a79ad34410ad55f1dcab50c52b1b232ab5cd578058c7985",
+      "settings": {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "effort": "low",
+        "max_steps": 50,
+        "context_budget": 80000,
+        "command_timeout": 300,
+        "import_timeout": 900,
+        "investigate_model": null
+      }
+    },
+    "prior_environment": {
+      "python": "3.12.13",
+      "swebench": "5.0.2",
+      "contree-sdk": "0.3.6",
+      "openai": "3.8.0",
+      "uv_lock_sha256": "d5feaa1ed3fb88ed1c7b9c38470bdab5693b56ead0baa25e1e26fc0a200bb35c"
+    },
+    "prior_request_options": {
+      "temperature": 1.0,
+      "top_p": 0.95,
+      "max_tokens": 16384,
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": true,
+          "low_effort": true
+        }
+      }
+    },
+    "prior_runner_sha256": "c0a5b9f9a853031cd39bd9d0bd3f057ca7d563f7dc96174b6da032781ed7a26c",
+    "review_policy": {
+      "enabled_by_default": false,
+      "trigger": "first finish with summary after tracked repository edit, not forced, at least two steps remain",
+      "max_additional_tool_turns_including_finish": 5,
+      "global_max_steps_unchanged": 50,
+      "one_review_opportunity_per_run": true,
+      "shell_only_edits_detected": false
+    }
+  },
+  "source_hashes": {
+    "bench/swebench/scratch/verified.pkl": "5010be3ce5e862037b73e42418a8f1c95721019c87df88d8d5fa5e65d1bdc52d",
+    "pyproject.toml": "a54b0785ffaf23d5d8ea7839d77e57e41ca80740242f7eeb3d4a53ee64110cc6",
+    "scripts/bench.py": "c3cb6b92f6e8629d9afc7ee86cfa96d0386e09f35a7b9a74671bf10eebe1d47d",
+    "scripts/swe_bench.py": "bb3e909283ff54fd5ad3ee1340f5430e6001f540149146182905c6f759864165",
+    "src/prax_bot/__init__.py": "899881438a14a191b5fcbdd28e757a81afa97612dc1c70b1fc29984e6721cf08",
+    "src/prax_bot/__main__.py": "2ced8845f9d62060eff0b039460795ac1cd603c9c4cc0436932ec54a6dda77ac",
+    "src/prax_bot/core/__init__.py": "ff2f593b99817bb92000f1ef379f56735363c3a979ad97e5021be0c8f83392ca",
+    "src/prax_bot/core/agent.py": "3c28fffc0926ecc3543da3ca096b5c02d77246ee41ae68a6a460f0c8a10231a4",
+    "src/prax_bot/core/context.py": "5361ef76a2e671713f6bc5aec5ea78474ae3a274d53c24e6a8c13ff9710b82ec",
+    "src/prax_bot/core/editing.py": "2b263b8cc4c233a55be35784bd39986dab1159c8c204f5a0b5cdb96024834cfd",
+    "src/prax_bot/core/goal.py": "90928b114c406c557928b1e7a5e4761b0dc5ab0b7c88c418461d428bdd6744c0",
+    "src/prax_bot/core/llm.py": "d2d8b5eee452c0b82451a5d80290a80d0b27156a44e40ad41ea49fcc55f2d5b7",
+    "src/prax_bot/core/navigation.py": "48bee9f9c9937d4dd382c66e37d527255e9969bbd2017981ce1839d77633717f",
+    "src/prax_bot/core/prompts/__init__.py": "2b85571971053aa812e126d226573607639c62af205208af251a45fc58ac8016",
+    "src/prax_bot/core/prompts/code_style.md": "853c65bc8f33d7349b9036f9fbd694ea39982b996d8bc2eb99f5509e208adf40",
+    "src/prax_bot/core/prompts/compacted_bridge.md": "4b01011ef4313bc9473e5db64a68551154e7bf5cea1ef3a033a1b6a2a0482754",
+    "src/prax_bot/core/prompts/continuation.md": "722ac7b2f2999542018d254c456bab5f14a6fe107bf54b12b3c2b70482b4f276",
+    "src/prax_bot/core/prompts/environment/contree.md": "b03c71bfd3bbe0ae10581f459f4683b07d307b1af3bc9a24a4cd06fe97e22768",
+    "src/prax_bot/core/prompts/environment/local.md": "8b4b78d73c3d08fbed97b3f8c71ebba22d2a0ac74b57a24dafd337b25190678b",
+    "src/prax_bot/core/prompts/finish_review.md": "d6b073864d67a11d66a6c0850fbd8a70576c3b8cb99967d9ddd4292391da4e2f",
+    "src/prax_bot/core/prompts/finish_without_edits.md": "5ef9d75bbf323643b117b6ad4d12f5da42c7b91648d7929b9e9dc07abbc60d81",
+    "src/prax_bot/core/prompts/goal.md": "5c15157c6b3a6deb12a2d262fbf7d697d645267899f1061b3d32d0fe377dc7ac",
+    "src/prax_bot/core/prompts/goal_how_check.md": "8074fd5d5ac7700812f15922df6a2490825b3d985a523ca69ab75d16c6d8a325",
+    "src/prax_bot/core/prompts/goal_how_model.md": "c8c767f383a08780a922bf8f49f3a98d9003f9aaf7ef702ba7ab6b22b86a82b7",
+    "src/prax_bot/core/prompts/init_task.md": "a4bd7a533ccc99d9a57b6507a5ed078fc418a1d7efc81db0778ec7d5ba3e0cf7",
+    "src/prax_bot/core/prompts/late_edited.md": "ff555fa92559ae9a81e4c62cc9a36ca1a840dec9e8bd754fe5b5fb6767a78ff6",
+    "src/prax_bot/core/prompts/late_no_edit.md": "9cc88b479500aaf07db1fc97be1422211fa2b893047c227e2cf9fcca368cbb7a",
+    "src/prax_bot/core/prompts/local_scratch_written.md": "fa07ab781d001c5aff1631386638e4c9f725f9d2e86cdfcb94d5987f3dbe9d2a",
+    "src/prax_bot/core/prompts/mid_no_edit.md": "c2d92b985e675bfdddfcc2078746deffb63214791a517c002a03a48b84b583dd",
+    "src/prax_bot/core/prompts/nested_instructions.md": "8d90647f1162a367e3d0bc7fd651b1d92ea8e4b991666924de60e7dd6d786d55",
+    "src/prax_bot/core/prompts/nudge.md": "f44cae17d36718c06afde3390e050c872e3042b529296bcd7e6dedb9a10f6d96",
+    "src/prax_bot/core/prompts/nudge_blank.md": "bce3eeffadb75c8aa782ddeb858585a5d673e2625bbd9fa874dd16cd6964409f",
+    "src/prax_bot/core/prompts/nudge_repeat.md": "fb35253f39dd2d9e339f0bf39d220bc132692b153c3dd0ddf57e0acebb32beea",
+    "src/prax_bot/core/prompts/project_instructions.md": "59492b2050f8ae82a0ee48ff91d9049bd09e32d6a1b332376cac227fb75c5fc6",
+    "src/prax_bot/core/prompts/protected.md": "cd531aa0709c7178a5ff51d3f4f11c5d41ffc7292e436d5ae2fc723c15c043ab",
+    "src/prax_bot/core/prompts/repo_map_intro.md": "a278419377eb211ae66a9634b30b1f53bdf052182047a050e55f059bed8b036e",
+    "src/prax_bot/core/prompts/skill_loaded.md": "1397d363e3866efeaf752b0dcebbf40fcaeaa236c2a28e3977a1d52851d4be7a",
+    "src/prax_bot/core/prompts/skills_intro.md": "9665b570102761b3ddb406f7bac3b1bf779352ed8911e4d3fbfe46a92f07ae45",
+    "src/prax_bot/core/prompts/summary.md": "95605f0bfe32a9dab36c2087b54ee482be1d01cb273aa58a54bff70b58653a65",
+    "src/prax_bot/core/prompts/system.md": "bf7c783b9e2160d9b304b9fa86a2c7979697fed9a52378f75fce288e9c93fce8",
+    "src/prax_bot/core/prompts/tools/edit_file.md": "e4f8ab3f894dadddf4375a057476412fcbee1cad81387909cdc84678c30e1a85",
+    "src/prax_bot/core/prompts/tools/finish.md": "f2291762dc75fca403a40f534c4ff6b3ddd794324b93d9295701f161bf63efbf",
+    "src/prax_bot/core/prompts/tools/list_files.md": "20fc2cf9d0154f409e6040a9dd7ff5457c85fec84b05242de83dc077a029cfb5",
+    "src/prax_bot/core/prompts/tools/load_skill.md": "11f7ffd24755fa2db1a42511badd470c3ecb963d5201bf354be262aa690810fc",
+    "src/prax_bot/core/prompts/tools/outline.md": "c4da638e2a6a01383a12193627272bf2a7997fee13a7f30f4e8d0aec2dcee706",
+    "src/prax_bot/core/prompts/tools/read_file.md": "a9cb093fa1fe854cba36438c052c9479dc87926ea833c4b2428f2a21dc295f5c",
+    "src/prax_bot/core/prompts/tools/restore.md": "7987acb9e513e14c4dd0d61b6b80b0ae4762c61f7665a28e791d2aeb7d657f83",
+    "src/prax_bot/core/prompts/tools/run.md": "fe5000dc544b36015cd74857f4a86a53705946d257939aea09ee837f20cd4f27",
+    "src/prax_bot/core/prompts/tools/search.md": "67eb9b736b33fcfda7209fad472d45c4deacf4c3826dbbc04efbbabea413eb58",
+    "src/prax_bot/core/prompts/tools/todo_write.md": "d959fe9fc57dbacb866ff208a90466a65084a026d2c92785d69ec85b948d2941",
+    "src/prax_bot/core/prompts/tools/write_file.md": "99548b200bb19702e9f450d78c531ad080e76a32256d668db7e7dcc60c675613",
+    "src/prax_bot/core/prompts/verification.md": "02af77d2ac7235bddea936a2a118c480acf49df31ce6f38f143246fa8e6af926",
+    "src/prax_bot/core/prompts/verification_manual.md": "50537a07111dde87b70e7206d4e62184ed62b2a4255bfb2c94ffaa94307855d5",
+    "src/prax_bot/core/tool_result.py": "9cfb8ea038ab186b75fe3ca0584b04df5c2193b34c8442b9f83bb3dd64c21015",
+    "src/prax_bot/core/tools.py": "bc676a202c81caafc6ba9c7df166df3c76a9c98d3f0514ac3014172f47add43e",
+    "src/prax_bot/core/verification.py": "35562e4249ff70dfbe047b5666857fd93f5a83649eec56199b13eef6836f7b2f",
+    "src/prax_bot/extensions/__init__.py": "16c7c944f81c1a069783aff153e040861723309905ee512c1e08d913eb24c197",
+    "src/prax_bot/extensions/plugins.py": "3d1f3b934ee1fd2e05f35d1c0dc309e9de1b4d61324240086fe03858043081fc",
+    "src/prax_bot/extensions/skills.py": "404b719965d6924d2b385c99d29c42d245cec6e73ad9ab98eebd69975cea70a5",
+    "src/prax_bot/runtime/__init__.py": "89efd11d76ec41925fb1eb45dde37fdd4f92a522a27b499eed7d453b079ba647",
+    "src/prax_bot/runtime/apply.py": "722099cc2bc71cc1533b1a6761b22aa0750544373feb2c71e09d3507478f7cae",
+    "src/prax_bot/runtime/factory.py": "b819cd6c74489f3e91a08196d4d5cb11086d51185e55a4d8e6fb6a39229a7e51",
+    "src/prax_bot/runtime/runs.py": "02b8ed56be01e61a7738404d641e916cbfa7aadc138637208c461f16a25f2801",
+    "src/prax_bot/runtime/session.py": "4e3248fd3fbd05eaa3ce78d810c047e782be060438ebe4a88ca3807d0112284b",
+    "src/prax_bot/runtime/storage.py": "c083cc48760d74e294282b5e4170e037f78b07096365c764999e544adb7c31e9",
+    "src/prax_bot/settings.py": "f4b9f26d1bed1735a7e26ab007db083992e99c144039b5e1031be3306e7b2bd5",
+    "src/prax_bot/ui/__init__.py": "f70b74267eaeba8db2b9be7d643ed117d2ec93c8f168a7d4f57203ce545114e5",
+    "src/prax_bot/ui/assets/app.css": "f09ca4189984c5877590ce9537457886e9f9a9a40aa6caf1943b0b970e2c3214",
+    "src/prax_bot/ui/assets/app.js": "0f019d74087b678713d069ee0aec0a0964df71c11eebf42c3d0c0266a8ccb84f",
+    "src/prax_bot/ui/assets/index.html": "2e35a5bc50fce2c218bb907cebfd27bec44c622ee623677d7d165456b0f48bfe",
+    "src/prax_bot/ui/cli.py": "5fc51695c12da7c08908bb7b7594ee7db45f0b73112d9ce392af31d5d44b3b0f",
+    "src/prax_bot/ui/commands/__init__.py": "55bed9af19d41cbbc2cb97768fe7fcb224b5a70cdab43c138520b32ac21de330",
+    "src/prax_bot/ui/commands/configuration.py": "40f6c22e04c9f1c9e3b7124af2877d0f46cc9256646b3f70343cc8914004effa",
+    "src/prax_bot/ui/commands/execution.py": "2ce2d72b91723a9c168a261df4f24557d7b8ca6509353e85360d68b1a175a7c6",
+    "src/prax_bot/ui/commands/history.py": "08d94c4b2deb619825286b8dac85d5b5a3fe089fb82487abf7f09b38397b5102",
+    "src/prax_bot/ui/common.py": "f8430f640fa172dc6622a05334dfb73a96ba22478832cb3e35fe7285587d6a62",
+    "src/prax_bot/ui/render.py": "385bd51477092f855dfd9d966ae4e4b1a21f862966f6f472e5e86ab776c26e54",
+    "src/prax_bot/ui/report.py": "a3b9e76e1a10b545f9a1d1432eb8d630f0f69173d257e7b6b5d4dbcfb1e3cd9c",
+    "src/prax_bot/ui/session.py": "f1e4fabc2c3dc9bac473aa8f47c1a4394f716a71942e77d024d8a40fac4b9d5c",
+    "src/prax_bot/ui/tui.py": "e35f6f3a58c6bdd652660ff5b79b4aff33bcbd9102414fe66c7dd6238ed09d83",
+    "src/prax_bot/ui/web.py": "48b1faff10746dbf4ee2a83aec5d0cce79dc22588dd7335164bc7e3757dc1921",
+    "src/prax_bot/workspace/__init__.py": "69fd89f934a9d229ceb53e481da37a0b03db6c175c030bcea36c018af9a7d69b",
+    "src/prax_bot/workspace/local.py": "feb7080cc1afc9bbd62f716da02719ef1235d9dd3b28393344581117629eefeb",
+    "src/prax_bot/workspace/repository.py": "bd4ac475fde31585ffffcefd453e5c091493aaa2a3e7c719b16b0ed44eb5e4cc",
+    "src/prax_bot/workspace/sandbox.py": "6d157bda149912d899efe47e38089c798714adf2a7a8d4d3bc809a0dcd7e6e56",
+    "src/prax_bot/workspace/types.py": "1ddb9b78420e104a2f699d2b2b954088ca3850e550d590da08ecef463b49c5b3",
+    "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/fakes.py": "247f6cfd5853edcd724921090d7f946d9cad09cbeea62e1d4feb79c7e4fb3dd5",
+    "tests/helpers.py": "8e6b8ca34485a0be94ed230363319918ba31a3937d96103d2a77cef2c43d9f62",
+    "tests/test_agent.py": "02e0cbd6cf279689e6adbba3d5dae1bbe1debbdd3ae584f8ffccb80ecbbc6616",
+    "tests/test_agent_guardrails.py": "add4873d5b51ab99a1e7f5a61e5b51358973b44e3f103d20802fb655e5ede1bf",
+    "tests/test_agent_recovery.py": "10d09e1eac50c048888ff573e096f0819fb4d29ce53bd746ec50c78faf64ab28",
+    "tests/test_agent_review.py": "e7a147f161e236403af1ade6a2be2abd236470d4ccbca0b8a95649254ed058fc",
+    "tests/test_budget_and_search.py": "b3cec0101b7bab7fe283938f531712d12ed33703819fccdaa2ab65e5add4db0b",
+    "tests/test_cancellation.py": "2b70ad0bfab74809c2d258124a80ce55e02f7c4b7d76c093b79eaf3b976aeeeb",
+    "tests/test_config.py": "fb4b13b5a03ec8c6d4cb0586109995676605fcd99a18f597440930d203004e76",
+    "tests/test_context.py": "2569a3801ad75d616bfee9e45e4a3caf51802809c3af65f757c4e0be3c6f6f47",
+    "tests/test_edit_matching.py": "6e0775ec2834663d3606b9bf45e9322da8ad8a8bd76fbda03de03438a9a24e91",
+    "tests/test_extensions.py": "834f4ae4edc90dcedd8bedda79d486a8d49b14bd9b065e78126b3e349edc9500",
+    "tests/test_goal.py": "2a53280fd05ed9dc2da2da2c24f101a0ae2f8d0f187c905c4c1a720d7e3d8fe0",
+    "tests/test_local.py": "0117e3cb4ade265f244f860d296a381d49973af7396abf9470deedb41994f8f1",
+    "tests/test_navigation_tools.py": "afc49d102968264d5c138486cfefda43765bc8edcdb41883e9a388a02b54099c",
+    "tests/test_prompt.py": "3fb13f0ab0df3da8e95f7e20a7fb8dba9770e5f7fe317415a37600a2c8105d0c",
+    "tests/test_resume.py": "6b531347e08cccfb338a803a39324d2d14ecadb335a9c749528479d2875324ee",
+    "tests/test_routing.py": "f1e42e2ee822a3485f1be7650c201fa8a83853ee677af6b1478f099d0752b082",
+    "tests/test_runs.py": "cb5095a60b44c7b6d7668d6e3da35180a9025e5f6403f942785bfb663b4d805a",
+    "tests/test_sampling.py": "63bfc2fe99f0e3fe4a1a13b4153fa6168ad815ce5880eb0357e71b1510f9e5cd",
+    "tests/test_sandbox.py": "26606ddcfd76caab580ca5380400d11419b29051d3812ddd78ca2d94b918bc15",
+    "tests/test_sandbox_retry.py": "a4aa66b34d8b77241524446a13a34911fa593679fe0f8c054ecbcffd9a438ad8",
+    "tests/test_session.py": "a31aa930cbfd709024707a6d5a74bd6eea2aedbbe561fbbda9ec23ca3dceefc2",
+    "tests/test_session_factory.py": "1771269d85c81f076e20d504ffee8c32d0c712bddcc4e03a34c649f5314845cd",
+    "tests/test_session_state.py": "8158b78a9fd5875af4f41974149e832254343c5c4b2adf52b8fd3a1a2ca8e0c0",
+    "tests/test_settings.py": "4529f27e8c14295e0549e696754a84865855013cb278bfb63d6c97bb64a774cc",
+    "tests/test_status.py": "0b195eed0db6a2c6d11292a49df08da1230341310c80625e889057526ac45b52",
+    "tests/test_symbol_read.py": "69323e13f111525b6f35f403f4dc9c9e7eb30670ee4dc164ff1369cdfab5411c",
+    "tests/test_test_observations.py": "c1c4760dbe8aa882736b7c87db6c141d6b373be430b2a809053dd845cfaf7362",
+    "tests/test_tool_errors.py": "2a667bad51ee4eac301bb9565e064413aeb032fe2d4f2a2e9a84ab60256b1d5d",
+    "tests/test_tool_execution.py": "5aae8c799cdf06e07407df91dcb76f37ad81309b0050a38bc788e3b9a3b025c1",
+    "tests/test_tool_guards.py": "f32e780e55822a128f263c201ec5f3fa94bc8209ca3ebeca295a5e7c7c9e2098",
+    "tests/test_tools.py": "f0b3fa2e98f43280c95c215882cf0cf3c6955e176fa2a5ce4c78a7f116377b39",
+    "tests/test_tui.py": "572f01896e69b88e27a2aa2b1fc3c0ce25ab3e3c4fa75d7e7b4dc35e9d511ffd",
+    "tests/test_verification.py": "e8351a33b92c653d4c7344cdf4a1b38035a8fb989e9a465c0d2aec383384e257",
+    "tests/test_web.py": "6f59eb0f015dadab130b27d6109fd9c9b330ef93c4fce9892ee92053762df6db",
+    "uv.lock": "d5feaa1ed3fb88ed1c7b9c38470bdab5693b56ead0baa25e1e26fc0a200bb35c"
+  },
+  "preflight": {
+    "baseline": {
+      "agent_source": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260912-review-comparison/source-tree/src/prax_bot/core/agent.py",
+      "settings": {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "llm_base_url": "https://api.tokenfactory.nebius.com/v1/",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "effort": "low",
+        "max_steps": 50,
+        "context_budget": 80000,
+        "command_timeout": 300,
+        "import_timeout": 900,
+        "investigate_model": null,
+        "investigate_steps": 6,
+        "system_prompt_file": null
+      },
+      "request_options": {
+        "max_tokens": 16384,
+        "top_p": 0.95,
+        "extra_body": {
+          "chat_template_kwargs": {
+            "enable_thinking": true,
+            "low_effort": true
+          }
+        }
+      },
+      "review_before_finish": false,
+      "system_sha256": "c26429cd31432b533a79ad34410ad55f1dcab50c52b1b232ab5cd578058c7985",
+      "tools_sha256": "8d44868e31c2b235c64c2fdfcb7487a4c92b9665e62742400c44698c73689e75",
+      "python": "3.12.13",
+      "packages": {
+        "swebench": "5.0.2",
+        "contree-sdk": "0.3.6",
+        "openai": "3.8.0"
+      },
+      "fake_review_events": []
+    },
+    "candidate": {
+      "agent_source": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260912-review-comparison/source-tree/src/prax_bot/core/agent.py",
+      "settings": {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "llm_base_url": "https://api.tokenfactory.nebius.com/v1/",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "effort": "low",
+        "max_steps": 50,
+        "context_budget": 80000,
+        "command_timeout": 300,
+        "import_timeout": 900,
+        "investigate_model": null,
+        "investigate_steps": 6,
+        "system_prompt_file": null
+      },
+      "request_options": {
+        "max_tokens": 16384,
+        "top_p": 0.95,
+        "extra_body": {
+          "chat_template_kwargs": {
+            "enable_thinking": true,
+            "low_effort": true
+          }
+        }
+      },
+      "review_before_finish": true,
+      "system_sha256": "c26429cd31432b533a79ad34410ad55f1dcab50c52b1b232ab5cd578058c7985",
+      "tools_sha256": "8d44868e31c2b235c64c2fdfcb7487a4c92b9665e62742400c44698c73689e75",
+      "python": "3.12.13",
+      "packages": {
+        "swebench": "5.0.2",
+        "contree-sdk": "0.3.6",
+        "openai": "3.8.0"
+      },
+      "fake_review_events": [
+        {
+          "kind": "review.requested",
+          "step": 2,
+          "deadline": 7
+        }
+      ]
+    }
+  },
+  "execution": {
+    "started_at_epoch": 1789274198.4480472,
+    "processes": {
+      "baseline": {
+        "pid": 63562,
+        "argv": [
+          "/Users/wangalrebt/code/prax_bot/.venv/bin/python",
+          "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260912-review-comparison/source-tree/scripts/swe_bench.py",
+          "run",
+          "--ids",
+          "django__django-12308,scikit-learn__scikit-learn-13779,sphinx-doc__sphinx-8551,astropy__astropy-13033",
+          "--max-steps",
+          "50",
+          "--parallel",
+          "2",
+          "--out",
+          "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260912-review-comparison/baseline"
+        ],
+        "exit_code": 0
+      },
+      "candidate": {
+        "pid": 63563,
+        "argv": [
+          "/Users/wangalrebt/code/prax_bot/.venv/bin/python",
+          "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260912-review-comparison/source-tree/scripts/swe_bench.py",
+          "run",
+          "--ids",
+          "django__django-12308,scikit-learn__scikit-learn-13779,sphinx-doc__sphinx-8551,astropy__astropy-13033",
+          "--max-steps",
+          "50",
+          "--parallel",
+          "2",
+          "--out",
+          "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260912-review-comparison/candidate",
+          "--review-before-finish"
+        ],
+        "exit_code": 0
+      }
+    },
+    "finished_at_epoch": 1789274603.5876591
+  },
+  "results": [
+    {
+      "instance_id": "django__django-12308",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "role": "development",
+      "baseline": {
+        "instance_id": "django__django-12308",
+        "repo": "django/django",
+        "difficulty": "<15 min fix",
+        "finished": true,
+        "reason": "finish",
+        "steps": 50,
+        "tokens": 740581,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 50,
+            "prompt_tokens": 721246,
+            "completion_tokens": 19335
+          }
+        },
+        "sandbox_commands": 38,
+        "sandbox_cost": 0.09087302999999998,
+        "diff_lines": 30,
+        "summary": "(no summary given)",
+        "agent_elapsed": 214.6000688332133,
+        "resolved": false,
+        "patch_applied": true,
+        "f2p": "0/2",
+        "p2p": "20/20",
+        "eval": "not resolved",
+        "eval_cost": 0.04216681,
+        "grading_attempts": 1,
+        "wall": 224.04462900012732,
+        "model_calls": 50,
+        "patch_sha256": "20d35a4f1558a71af977403e6d70cdac20f407b4ccbedadd8f63222a0b8f662f",
+        "patch_bytes": 1366,
+        "review": {
+          "requested": false,
+          "additional_model_calls": 0,
+          "additional_tokens": 0
+        }
+      },
+      "candidate": {
+        "instance_id": "django__django-12308",
+        "repo": "django/django",
+        "difficulty": "<15 min fix",
+        "finished": true,
+        "reason": "finish",
+        "steps": 50,
+        "tokens": 688058,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 50,
+            "prompt_tokens": 674933,
+            "completion_tokens": 13125
+          }
+        },
+        "sandbox_commands": 42,
+        "sandbox_cost": 0.38102115999999997,
+        "diff_lines": 13,
+        "summary": "(no summary given)",
+        "agent_elapsed": 206.790291500045,
+        "resolved": false,
+        "patch_applied": true,
+        "f2p": "0/2",
+        "p2p": "20/20",
+        "eval": "not resolved",
+        "eval_cost": 0.040511799999999994,
+        "grading_attempts": 1,
+        "wall": 215.76661500008777,
+        "model_calls": 50,
+        "patch_sha256": "c14b41486b3bf0bbfa494bd228669141614cea8bd683a05c2b78e95e4267c42d",
+        "patch_bytes": 598,
+        "review": {
+          "requested": true,
+          "additional_model_calls": 2,
+          "additional_tokens": 30994,
+          "requested_at_step": 48,
+          "deadline": 50,
+          "tokens_before_review": 657064,
+          "actions": [
+            {
+              "step": 49,
+              "name": "search",
+              "path": "django/db/models/fields/json.py"
+            },
+            {
+              "step": 50,
+              "name": "finish",
+              "path": "django/db/models/fields/json.py"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-13779",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "role": "fresh",
+      "baseline": {
+        "instance_id": "scikit-learn__scikit-learn-13779",
+        "repo": "scikit-learn/scikit-learn",
+        "difficulty": "<15 min fix",
+        "finished": true,
+        "reason": "finish",
+        "steps": 9,
+        "tokens": 108111,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 9,
+            "prompt_tokens": 106369,
+            "completion_tokens": 1742
+          }
+        },
+        "sandbox_commands": 12,
+        "sandbox_cost": 0.05405667,
+        "diff_lines": 35,
+        "summary": "Fixed the issue where VotingClassifier/VotingRegressor would fail at fit when weights are passed and an estimator is None. The fix was to skip None estimators when checking for sample_weight support in the _BaseVoting.fit method. Verified with the reproduction script and the existing test suite for ",
+        "agent_elapsed": 60.39837750000879,
+        "resolved": true,
+        "patch_applied": true,
+        "f2p": "2/2",
+        "p2p": "18/18",
+        "eval": "resolved",
+        "eval_cost": 0.04794298,
+        "grading_attempts": 1,
+        "wall": 68.19961891602725,
+        "model_calls": 9,
+        "patch_sha256": "7e12415c15ec4841890ddaa0db6a5f105c67ec1b3dd56e8ff6fd329b9faf7b9b",
+        "patch_bytes": 1299,
+        "review": {
+          "requested": false,
+          "additional_model_calls": 0,
+          "additional_tokens": 0
+        }
+      },
+      "candidate": {
+        "instance_id": "scikit-learn__scikit-learn-13779",
+        "repo": "scikit-learn/scikit-learn",
+        "difficulty": "<15 min fix",
+        "finished": true,
+        "reason": "finish",
+        "steps": 20,
+        "tokens": 220572,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 20,
+            "prompt_tokens": 215092,
+            "completion_tokens": 5480
+          }
+        },
+        "sandbox_commands": 14,
+        "sandbox_cost": 0.12808296,
+        "diff_lines": 22,
+        "summary": "Fixed the issue where VotingClassifier and VotingRegressor would fail when sample_weight is passed and an estimator is None. The fix involved adding a check for None estimators in the sample_weight validation loop in the fit method of _BaseVoting (sklearn/ensemble/voting.py) and also guarding the _p",
+        "agent_elapsed": 98.86915749986656,
+        "resolved": true,
+        "patch_applied": true,
+        "f2p": "2/2",
+        "p2p": "18/18",
+        "eval": "resolved",
+        "eval_cost": 0.04800493,
+        "grading_attempts": 1,
+        "wall": 106.76509820786305,
+        "model_calls": 20,
+        "patch_sha256": "3cabb6a089b039d462bb60d43af47e49d8a782b9bc9593cbc08cb5fe9ea257fa",
+        "patch_bytes": 943,
+        "review": {
+          "requested": true,
+          "additional_model_calls": 3,
+          "additional_tokens": 34630,
+          "requested_at_step": 17,
+          "deadline": 22,
+          "tokens_before_review": 185942,
+          "actions": [
+            {
+              "step": 18,
+              "name": "write_file",
+              "path": "/tmp/praxbot/scratch/test_parallel.py"
+            },
+            {
+              "step": 19,
+              "name": "run",
+              "command": "cd /testbed && python -m pytest sklearn/ensemble/tests/test_voting.py -q"
+            },
+            {
+              "step": 20,
+              "name": "finish"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8551",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "15 min - 1 hour",
+      "role": "fresh",
+      "baseline": {
+        "instance_id": "sphinx-doc__sphinx-8551",
+        "status": "complete",
+        "method": "Exact final-checkpoint patch bytes; original official grading script and parser; no model rerun",
+        "original_result": {
+          "instance_id": "sphinx-doc__sphinx-8551",
+          "repo": "sphinx-doc/sphinx",
+          "difficulty": "15 min - 1 hour",
+          "resolved": false,
+          "eval": "error: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbb in position 3862030: invalid start byte",
+          "wall": 272.13560133310966
+        },
+        "original_error": "error: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbb in position 3862030: invalid start byte",
+        "checkpoint": {
+          "step": 17,
+          "image": "fadaeca6-e722-43a2-888f-1bc30aecc168"
+        },
+        "additional_model_calls": 0,
+        "runner_sha256": "bb3e909283ff54fd5ad3ee1340f5430e6001f540149146182905c6f759864165",
+        "started_at_epoch": 1789274693.8218281,
+        "recovery_cost": 0.04149121,
+        "grading": [
+          {
+            "resolved": false,
+            "patch_applied": true,
+            "eval_cost": 0.03577358,
+            "exit_code": 0,
+            "truncated": false,
+            "attempt": 1,
+            "eval": "not resolved",
+            "f2p": "0/1",
+            "p2p": "32/32"
+          }
+        ],
+        "agent_from_trace": {
+          "finished": true,
+          "reason": "finish",
+          "steps": 46,
+          "tokens": 624247,
+          "usage_by_model": {
+            "nvidia/nemotron-3-super-120b-a12b": {
+              "calls": 46,
+              "prompt_tokens": 587697,
+              "completion_tokens": 36550
+            }
+          },
+          "summary": "Fixed the issue by removing the 'refspecific' flag from PyXrefMixin.make_xref in sphinx/domains/python.py. This flag was causing field references (like :type: and :rtype:) to use a search mode that led to ambiguous cross-reference warnings for unqualified names when multiple matches existed across modules. After the change, the warnings no longer appear in the provided test case.",
+          "finish_at_epoch": 1789274527.149732,
+          "note": "Reconstructed from original events, not a new attempt. Original aggregate omits these fields because export raised."
+        },
+        "export": {
+          "command": "bash -c 'export HOME=${HOME:-/root}; source /opt/miniconda3/bin/activate testbed >/dev/null 2>&1; cd /testbed; git add -A && git --literal-pathspecs diff --cached --binary --no-renames HEAD -- .'",
+          "exit_code": 0,
+          "truncated": false,
+          "cost": 0.00571763,
+          "stdout_bytes": 7904804
+        },
+        "patch_sha256": "255091a07c4706ead4d7401735e90bd58c5a93dddc73a820de3e63d7b13439ab",
+        "patch_bytes": 7904804,
+        "diff_lines": 151791,
+        "patch_utf8": false,
+        "patch_decode_error": "'utf-8' codec can't decode byte 0xbb in position 3862030: invalid start byte",
+        "repo": "sphinx-doc/sphinx",
+        "difficulty": "15 min - 1 hour",
+        "oci_image": "swebench/sweb.eval.x86_64.sphinx-doc_1776_sphinx-8551:latest",
+        "grading_image_uuid": "df10a314-fc4f-32af-8153-0985b03c525f",
+        "eval_script_sha256": "095ed7957be355020306236f4ef5a316de18fa387e0b5d295b6fd819c54d72d1",
+        "log_policy": "Raw stdout/stderr retained. UTF-8 replacement applies only to parser/display logs; uploaded patch bytes are unchanged.",
+        "grading_attempts": 1,
+        "resolved": false,
+        "patch_applied": true,
+        "eval_cost": 0.03577358,
+        "exit_code": 0,
+        "truncated": false,
+        "eval": "not resolved",
+        "f2p": "0/1",
+        "p2p": "32/32",
+        "finished_at_epoch": 1789274724.7210119,
+        "recovery_wall": 30.899184942245483,
+        "tokens": 624247,
+        "model_calls": 46,
+        "steps": 46,
+        "review": {
+          "requested": false,
+          "additional_model_calls": 0,
+          "additional_tokens": 0
+        }
+      },
+      "candidate": {
+        "instance_id": "sphinx-doc__sphinx-8551",
+        "repo": "sphinx-doc/sphinx",
+        "difficulty": "15 min - 1 hour",
+        "finished": true,
+        "reason": "finish",
+        "steps": 50,
+        "tokens": 713275,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 50,
+            "prompt_tokens": 692550,
+            "completion_tokens": 20725
+          }
+        },
+        "sandbox_commands": 34,
+        "sandbox_cost": 0.10071638,
+        "diff_lines": 26,
+        "summary": "(no summary given)",
+        "agent_elapsed": 210.4311263328418,
+        "resolved": false,
+        "patch_applied": true,
+        "f2p": "0/1",
+        "p2p": "32/32",
+        "eval": "not resolved",
+        "eval_cost": 0.03365779,
+        "grading_attempts": 1,
+        "wall": 217.6543721249327,
+        "model_calls": 50,
+        "patch_sha256": "88279687beee8d938638ac4a1c57f5365ff75f3b6f69b287505be0d23daeb39c",
+        "patch_bytes": 1217,
+        "review": {
+          "requested": false,
+          "additional_model_calls": 0,
+          "additional_tokens": 0
+        }
+      }
+    },
+    {
+      "instance_id": "astropy__astropy-13033",
+      "repo": "astropy/astropy",
+      "difficulty": "15 min - 1 hour",
+      "role": "fresh",
+      "baseline": {
+        "instance_id": "astropy__astropy-13033",
+        "repo": "astropy/astropy",
+        "difficulty": "15 min - 1 hour",
+        "finished": true,
+        "reason": "finish",
+        "steps": 19,
+        "tokens": 263780,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 19,
+            "prompt_tokens": 253114,
+            "completion_tokens": 10666
+          }
+        },
+        "sandbox_commands": 16,
+        "sandbox_cost": 0.08526689999999999,
+        "diff_lines": 39,
+        "summary": "Fixed the misleading exception when required column check fails in TimeSeries. Modified astropy/timeseries/core.py in the _check_required_columns method to provide clearer messages when required columns are missing, distinguishing between single and multiple required columns. The fix changes the err",
+        "agent_elapsed": 97.20667941705324,
+        "resolved": false,
+        "patch_applied": true,
+        "f2p": "0/1",
+        "p2p": "20/20",
+        "eval": "not resolved",
+        "eval_cost": 0.46422613,
+        "grading_attempts": 1,
+        "wall": 152.38564754207619,
+        "model_calls": 19,
+        "patch_sha256": "9ea3aacc9ebfe62ba195c8ed422a487a5da7ee7072ba7791d422c7aa2ce0295c",
+        "patch_bytes": 2413,
+        "review": {
+          "requested": false,
+          "additional_model_calls": 0,
+          "additional_tokens": 0
+        }
+      },
+      "candidate": {
+        "instance_id": "astropy__astropy-13033",
+        "repo": "astropy/astropy",
+        "difficulty": "15 min - 1 hour",
+        "finished": true,
+        "reason": "finish",
+        "steps": 26,
+        "tokens": 382630,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 26,
+            "prompt_tokens": 372358,
+            "completion_tokens": 10272
+          }
+        },
+        "sandbox_commands": 22,
+        "sandbox_cost": 0.12293451999999999,
+        "diff_lines": 34,
+        "summary": "Fixed the misleading exception when required column check fails in TimeSeries. Modified astropy/timeseries/core.py to provide a more informative error message when required columns are missing, while maintaining backward compatibility for cases where the first required column is incorrect. The fix e",
+        "agent_elapsed": 123.00270758313127,
+        "resolved": false,
+        "patch_applied": true,
+        "f2p": "0/1",
+        "p2p": "20/20",
+        "eval": "not resolved",
+        "eval_cost": 0.46829258000000007,
+        "grading_attempts": 1,
+        "wall": 179.9616388331633,
+        "model_calls": 26,
+        "patch_sha256": "8b5998cbc44b028428b5b09789b94bcb0b9b92cc583c3d8bf3463089f15797e9",
+        "patch_bytes": 2166,
+        "review": {
+          "requested": true,
+          "additional_model_calls": 1,
+          "additional_tokens": 23003,
+          "requested_at_step": 25,
+          "deadline": 30,
+          "tokens_before_review": 359627,
+          "actions": [
+            {
+              "step": 26,
+              "name": "finish"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "cohorts": {
+    "fresh": {
+      "baseline": {
+        "resolved": 1,
+        "tasks": 3,
+        "tokens": 996138,
+        "steps": 74,
+        "model_calls": 74,
+        "reviews_requested": 0,
+        "review_tokens": 0,
+        "review_calls": 0
+      },
+      "candidate": {
+        "resolved": 1,
+        "tasks": 3,
+        "tokens": 1316477,
+        "steps": 96,
+        "model_calls": 96,
+        "reviews_requested": 2,
+        "review_tokens": 57633,
+        "review_calls": 4
+      },
+      "token_change_percent": 32.15809456119534
+    },
+    "development": {
+      "baseline": {
+        "resolved": 0,
+        "tasks": 1,
+        "tokens": 740581,
+        "steps": 50,
+        "model_calls": 50,
+        "reviews_requested": 0,
+        "review_tokens": 0,
+        "review_calls": 0
+      },
+      "candidate": {
+        "resolved": 0,
+        "tasks": 1,
+        "tokens": 688058,
+        "steps": 50,
+        "model_calls": 50,
+        "reviews_requested": 1,
+        "review_tokens": 30994,
+        "review_calls": 2
+      },
+      "token_change_percent": -7.09213441878741
+    },
+    "all": {
+      "baseline": {
+        "resolved": 1,
+        "tasks": 4,
+        "tokens": 1736719,
+        "steps": 124,
+        "model_calls": 124,
+        "reviews_requested": 0,
+        "review_tokens": 0,
+        "review_calls": 0
+      },
+      "candidate": {
+        "resolved": 1,
+        "tasks": 4,
+        "tokens": 2004535,
+        "steps": 146,
+        "model_calls": 146,
+        "reviews_requested": 3,
+        "review_tokens": 88627,
+        "review_calls": 6
+      },
+      "token_change_percent": 15.420802098669961
+    }
+  },
+  "limitations": [
+    "One stochastic sample per task/arm; three fresh tasks and one development case.",
+    "Review does not trigger on forced finishes, insufficient remaining budget, or shell-only edits.",
+    "Initial trajectories vary even before review; differences between complete runs are not all review overhead.",
+    "Baseline Sphinx patch export failed UTF-8 decoding; raw-byte recovery grades the unchanged final checkpoint without model retry.",
+    "Original infrastructure error and output aggregates are preserved separately from recovery.",
+    "Scheduled Session verification and goal loops are not exercised by this direct-Agent runner."
+  ]
+}

@@ -1,0 +1,2656 @@
+{
+  "experiment": "Frozen authored acceptance checks, same-source opt-in comparison",
+  "conclusion": "Fresh tasks: baseline 1/3, acceptance 0/3. Development: 1/2 in both arms. No accepted check finished passing. Keep the experiment disabled by default.",
+  "selection": {
+    "experiment": "acceptance-check opt-in toggle; selection only",
+    "status": "frozen_before_execution",
+    "comparison": "Both arms execute one frozen final working source and identical runner. Baseline leaves acceptance-check mode disabled; candidate alone enables the finalized opt-in flag. Prior finish-review mode remains disabled in both arms.",
+    "base_revision": "18dbb5dee28311be21fd1a0786c23ed431c12750",
+    "candidate_flag": "--acceptance-check",
+    "seed": 20260913,
+    "development_instance_ids": [
+      "django__django-12308",
+      "sphinx-doc__sphinx-8551"
+    ],
+    "strata": [
+      {
+        "difficulty": "<15 min fix",
+        "take": 1
+      },
+      {
+        "difficulty": "15 min - 1 hour",
+        "take": 2
+      }
+    ],
+    "policy": "Use Django-12308 and Sphinx-8551 as explicit development cases. For fresh tasks exclude every instance_id in all tracked benchmark result JSON plus both 20260912 comparison reports, and exclude django/django and sphinx-doc/sphinx repositories. Use one random.Random(20260913) instance. In stratum order, sort eligible rows by instance_id, shuffle, and take the first rows with previously unused repositories; initialize used repositories with the two development repositories. Read problem statements only after selection. No outcome-based filtering.",
+    "prior_unique_instances": 40,
+    "excluded_instance_ids": [
+      "astropy__astropy-13033",
+      "astropy__astropy-14309",
+      "astropy__astropy-14995",
+      "astropy__astropy-7166",
+      "astropy__astropy-7336",
+      "django__django-11880",
+      "django__django-12193",
+      "django__django-12308",
+      "django__django-16899",
+      "matplotlib__matplotlib-20676",
+      "matplotlib__matplotlib-23476",
+      "matplotlib__matplotlib-25122",
+      "matplotlib__matplotlib-25287",
+      "pallets__flask-5014",
+      "psf__requests-1142",
+      "psf__requests-2317",
+      "psf__requests-5414",
+      "pydata__xarray-4075",
+      "pydata__xarray-4094",
+      "pydata__xarray-4629",
+      "pylint-dev__pylint-4970",
+      "pylint-dev__pylint-6903",
+      "pylint-dev__pylint-7277",
+      "pytest-dev__pytest-5262",
+      "pytest-dev__pytest-5809",
+      "pytest-dev__pytest-6202",
+      "pytest-dev__pytest-7521",
+      "scikit-learn__scikit-learn-12585",
+      "scikit-learn__scikit-learn-13328",
+      "scikit-learn__scikit-learn-13779",
+      "scikit-learn__scikit-learn-25232",
+      "sphinx-doc__sphinx-7440",
+      "sphinx-doc__sphinx-8551",
+      "sphinx-doc__sphinx-8621",
+      "sphinx-doc__sphinx-9258",
+      "sphinx-doc__sphinx-9591",
+      "sympy__sympy-15017",
+      "sympy__sympy-17655",
+      "sympy__sympy-20916",
+      "sympy__sympy-24539"
+    ],
+    "coverage_sources": [
+      "bench/results/20260906T010725Z-contree.json",
+      "bench/results/20260906T011850Z-contree.json",
+      "bench/results/20260906T012805Z-contree-reeval.json",
+      "bench/results/20260906T013042Z-contree.json",
+      "bench/results/20260906T013923Z-contree.json",
+      "bench/results/20260906T014206Z-contree.json",
+      "bench/results/20260906T022050Z-contree.json",
+      "bench/results/20260906T024257Z-contree.json",
+      "bench/results/20260906T024452Z-contree-reeval.json",
+      "bench/results/20260906T031421Z-contree.json",
+      "bench/results/20260906T033034Z-contree.json",
+      "bench/results/20260907T010556Z-contree.json",
+      "bench/results/20260907T041714Z-contree.json",
+      "bench/results/context/20260909T071714Z-contree.json",
+      "bench/results/prompt/20260910T020004Z-contree.json",
+      "bench/results/sampling-low/20260907T225428Z-contree.json",
+      "bench/results/sampling-off/20260907T225451Z-contree.json",
+      "bench/results/sampling-off/20260907T225706Z-contree.json",
+      "bench/results/sampling-on/20260907T225757Z-contree.json",
+      "bench/results/ultra/20260906T024842Z-contree.json",
+      "bench/swebench/20260906T022010Z-run.json",
+      "bench/swebench/20260906T023354Z-run.json",
+      "bench/swebench/20260906T025010Z-reeval.json",
+      "bench/swebench/20260906T031637Z-run.json",
+      "bench/swebench/20260907T031102Z-run.json",
+      "bench/swebench/20260907T031925Z-run.json",
+      "bench/swebench/20260907T034735Z-run.json",
+      "bench/swebench/20260907T042951Z-run.json",
+      "bench/swebench/20260907T054325Z-run.json",
+      "bench/swebench/20260907T071156Z-run.json",
+      "bench/swebench/20260907T071315Z-reeval.json",
+      "bench/swebench/20260908T001133Z-run.json",
+      "bench/swebench/20260909T-prompt12-assembled.json",
+      "bench/swebench/20260909T-prompt31-assembled.json",
+      "bench/swebench/20260909T071122Z-run.json",
+      "bench/swebench/20260909T071143Z-reeval.json",
+      "bench/swebench/20260910T015756Z-run.json",
+      "bench/swebench/20260910T022711Z-run.json",
+      "bench/swebench/20260910T025845Z-reeval.json",
+      "bench/swebench/20260910T031325Z-run.json",
+      "bench/swebench/20260910T031828Z-reeval.json",
+      "bench/swebench/20260910T033317Z-run.json",
+      "bench/swebench/20260910T044844Z-reeval.json",
+      "bench/swebench/20260910T050608Z-run.json",
+      "bench/swebench/20260910T052238Z-run.json",
+      "bench/swebench/20260912-prompt-comparison.json",
+      "bench/swebench/20260912-review-comparison.json"
+    ],
+    "eligible_counts_excluding_development_repositories": {
+      "<15 min fix": 50,
+      "15 min - 1 hour": 126
+    },
+    "tasks": [
+      {
+        "instance_id": "django__django-12308",
+        "repo": "django/django",
+        "difficulty": "<15 min fix",
+        "role": "development",
+        "summary": "Readonly admin JSON fields should display valid JSON and handle exceptional display values."
+      },
+      {
+        "instance_id": "sphinx-doc__sphinx-8551",
+        "repo": "sphinx-doc/sphinx",
+        "difficulty": "15 min - 1 hour",
+        "role": "development",
+        "summary": "Implicit type/rtype cross-references resolve unqualified names differently from explicit roles, causing ambiguous lookup warnings."
+      },
+      {
+        "instance_id": "matplotlib__matplotlib-20859",
+        "repo": "matplotlib/matplotlib",
+        "difficulty": "<15 min fix",
+        "role": "fresh",
+        "summary": "Adding a legend to a SubFigure raises a parent-type error."
+      },
+      {
+        "instance_id": "pydata__xarray-4687",
+        "repo": "pydata/xarray",
+        "difficulty": "15 min - 1 hour",
+        "role": "fresh",
+        "summary": "xr.where drops DataArray attributes; the report requests preservation or a keep_attrs option."
+      },
+      {
+        "instance_id": "sympy__sympy-19040",
+        "repo": "sympy/sympy",
+        "difficulty": "15 min - 1 hour",
+        "role": "fresh",
+        "summary": "Factoring a multivariate expression with a complex extension drops a multiplicative factor."
+      }
+    ],
+    "ids": [
+      "django__django-12308",
+      "sphinx-doc__sphinx-8551",
+      "matplotlib__matplotlib-20859",
+      "pydata__xarray-4687",
+      "sympy__sympy-19040"
+    ],
+    "dataset_cache_sha256": "5010be3ce5e862037b73e42418a8f1c95721019c87df88d8d5fa5e65d1bdc52d",
+    "settings": {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "llm_base_url": "https://api.tokenfactory.nebius.com/v1/",
+      "temperature": 1.0,
+      "top_p": 0.95,
+      "effort": "low",
+      "max_steps": 50,
+      "context_budget": 80000,
+      "command_timeout": 300,
+      "import_timeout": 900,
+      "investigate_model": null,
+      "review_before_finish": false,
+      "max_completion_tokens": 16384,
+      "parallel_per_variant": 2,
+      "samples_per_task_per_variant": 1
+    },
+    "environment_reference": {
+      "python": "3.12.13",
+      "swebench": "5.0.2",
+      "contree-sdk": "0.3.6",
+      "openai": "3.8.0",
+      "uv_lock_sha256": "d5feaa1ed3fb88ed1c7b9c38470bdab5693b56ead0baa25e1e26fc0a200bb35c"
+    },
+    "limitations": [
+      "Three fresh tasks and two development cases; report cohorts separately.",
+      "One stochastic sample per arm; task selection seed does not seed model generation.",
+      "Previous Sphinx export failure requires preserving raw patch bytes if recovery is necessary, without model retry or artifact filtering.",
+      "Additional runtime check commands/cost are measured separately; the50turn cap applies to model turns callingtools acrossallphases."
+    ],
+    "phase_policy": {
+      "author_max_turns": 12,
+      "author_fraction_cap": "max_steps // 4",
+      "max_submissions": 3,
+      "repair_reserve_turns": 8,
+      "repair_fraction_cap": "max_steps // 5",
+      "total_tool_turn_cap": 50,
+      "max_repair_rounds": 1,
+      "check_language": "Python setup plus 1\u20138 boolean expressions",
+      "baseline_acceptance": "observed false expression(s), with no setup or evaluation error",
+      "execution": "run_check, disposable forks, frozen inline command",
+      "fallback": "if no accepted check, solver uses remaining turns without repair reserve",
+      "check_execution_budget": "Runtime check commands are additional sandbox work, included in command/cost totals; all author/solver/repair model tool turns share50."
+    }
+  },
+  "frozen_source_sha256": {
+    "bench/swebench/scratch/verified.pkl": "5010be3ce5e862037b73e42418a8f1c95721019c87df88d8d5fa5e65d1bdc52d",
+    "pyproject.toml": "a54b0785ffaf23d5d8ea7839d77e57e41ca80740242f7eeb3d4a53ee64110cc6",
+    "scripts/bench.py": "c3cb6b92f6e8629d9afc7ee86cfa96d0386e09f35a7b9a74671bf10eebe1d47d",
+    "scripts/swe_acceptance.py": "7d516cddf09f8b327711a89a383bb068a3d90c74fc6409174824043426cd860f",
+    "scripts/swe_bench.py": "9f78e3bf84e194001eb8d59930fa96c9ab986b56004b84a2878d40427d103072",
+    "src/prax_bot/__init__.py": "899881438a14a191b5fcbdd28e757a81afa97612dc1c70b1fc29984e6721cf08",
+    "src/prax_bot/__main__.py": "2ced8845f9d62060eff0b039460795ac1cd603c9c4cc0436932ec54a6dda77ac",
+    "src/prax_bot/core/__init__.py": "ff2f593b99817bb92000f1ef379f56735363c3a979ad97e5021be0c8f83392ca",
+    "src/prax_bot/core/agent.py": "3c28fffc0926ecc3543da3ca096b5c02d77246ee41ae68a6a460f0c8a10231a4",
+    "src/prax_bot/core/context.py": "5361ef76a2e671713f6bc5aec5ea78474ae3a274d53c24e6a8c13ff9710b82ec",
+    "src/prax_bot/core/editing.py": "2b263b8cc4c233a55be35784bd39986dab1159c8c204f5a0b5cdb96024834cfd",
+    "src/prax_bot/core/goal.py": "90928b114c406c557928b1e7a5e4761b0dc5ab0b7c88c418461d428bdd6744c0",
+    "src/prax_bot/core/llm.py": "d2d8b5eee452c0b82451a5d80290a80d0b27156a44e40ad41ea49fcc55f2d5b7",
+    "src/prax_bot/core/navigation.py": "48bee9f9c9937d4dd382c66e37d527255e9969bbd2017981ce1839d77633717f",
+    "src/prax_bot/core/prompts/__init__.py": "2b85571971053aa812e126d226573607639c62af205208af251a45fc58ac8016",
+    "src/prax_bot/core/prompts/acceptance_author.md": "21b00f721f2aa499c39e07b7b2395473cf1611284191d7c3206b01e8a196545e",
+    "src/prax_bot/core/prompts/acceptance_repair.md": "bd6fecf80242bf4c39531ffd5e8ad5e342fb3d1ce8ebf82c364ca1df34659507",
+    "src/prax_bot/core/prompts/acceptance_solver.md": "8e73d2b642ffebe8722c00a2807169eaf8b3b49a0f69cd28d576dd6c5b390a3f",
+    "src/prax_bot/core/prompts/acceptance_tool.md": "153efddcc342ea16a1e010c85c1e8bb37942a5a042e4791aed9f1bfba62572fa",
+    "src/prax_bot/core/prompts/code_style.md": "853c65bc8f33d7349b9036f9fbd694ea39982b996d8bc2eb99f5509e208adf40",
+    "src/prax_bot/core/prompts/compacted_bridge.md": "4b01011ef4313bc9473e5db64a68551154e7bf5cea1ef3a033a1b6a2a0482754",
+    "src/prax_bot/core/prompts/continuation.md": "722ac7b2f2999542018d254c456bab5f14a6fe107bf54b12b3c2b70482b4f276",
+    "src/prax_bot/core/prompts/environment/contree.md": "b03c71bfd3bbe0ae10581f459f4683b07d307b1af3bc9a24a4cd06fe97e22768",
+    "src/prax_bot/core/prompts/environment/local.md": "8b4b78d73c3d08fbed97b3f8c71ebba22d2a0ac74b57a24dafd337b25190678b",
+    "src/prax_bot/core/prompts/finish_review.md": "d6b073864d67a11d66a6c0850fbd8a70576c3b8cb99967d9ddd4292391da4e2f",
+    "src/prax_bot/core/prompts/finish_without_edits.md": "5ef9d75bbf323643b117b6ad4d12f5da42c7b91648d7929b9e9dc07abbc60d81",
+    "src/prax_bot/core/prompts/goal.md": "5c15157c6b3a6deb12a2d262fbf7d697d645267899f1061b3d32d0fe377dc7ac",
+    "src/prax_bot/core/prompts/goal_how_check.md": "8074fd5d5ac7700812f15922df6a2490825b3d985a523ca69ab75d16c6d8a325",
+    "src/prax_bot/core/prompts/goal_how_model.md": "c8c767f383a08780a922bf8f49f3a98d9003f9aaf7ef702ba7ab6b22b86a82b7",
+    "src/prax_bot/core/prompts/init_task.md": "a4bd7a533ccc99d9a57b6507a5ed078fc418a1d7efc81db0778ec7d5ba3e0cf7",
+    "src/prax_bot/core/prompts/late_edited.md": "ff555fa92559ae9a81e4c62cc9a36ca1a840dec9e8bd754fe5b5fb6767a78ff6",
+    "src/prax_bot/core/prompts/late_no_edit.md": "9cc88b479500aaf07db1fc97be1422211fa2b893047c227e2cf9fcca368cbb7a",
+    "src/prax_bot/core/prompts/local_scratch_written.md": "fa07ab781d001c5aff1631386638e4c9f725f9d2e86cdfcb94d5987f3dbe9d2a",
+    "src/prax_bot/core/prompts/mid_no_edit.md": "c2d92b985e675bfdddfcc2078746deffb63214791a517c002a03a48b84b583dd",
+    "src/prax_bot/core/prompts/nested_instructions.md": "8d90647f1162a367e3d0bc7fd651b1d92ea8e4b991666924de60e7dd6d786d55",
+    "src/prax_bot/core/prompts/nudge.md": "f44cae17d36718c06afde3390e050c872e3042b529296bcd7e6dedb9a10f6d96",
+    "src/prax_bot/core/prompts/nudge_blank.md": "bce3eeffadb75c8aa782ddeb858585a5d673e2625bbd9fa874dd16cd6964409f",
+    "src/prax_bot/core/prompts/nudge_repeat.md": "fb35253f39dd2d9e339f0bf39d220bc132692b153c3dd0ddf57e0acebb32beea",
+    "src/prax_bot/core/prompts/project_instructions.md": "59492b2050f8ae82a0ee48ff91d9049bd09e32d6a1b332376cac227fb75c5fc6",
+    "src/prax_bot/core/prompts/protected.md": "cd531aa0709c7178a5ff51d3f4f11c5d41ffc7292e436d5ae2fc723c15c043ab",
+    "src/prax_bot/core/prompts/repo_map_intro.md": "a278419377eb211ae66a9634b30b1f53bdf052182047a050e55f059bed8b036e",
+    "src/prax_bot/core/prompts/skill_loaded.md": "1397d363e3866efeaf752b0dcebbf40fcaeaa236c2a28e3977a1d52851d4be7a",
+    "src/prax_bot/core/prompts/skills_intro.md": "9665b570102761b3ddb406f7bac3b1bf779352ed8911e4d3fbfe46a92f07ae45",
+    "src/prax_bot/core/prompts/summary.md": "95605f0bfe32a9dab36c2087b54ee482be1d01cb273aa58a54bff70b58653a65",
+    "src/prax_bot/core/prompts/system.md": "bf7c783b9e2160d9b304b9fa86a2c7979697fed9a52378f75fce288e9c93fce8",
+    "src/prax_bot/core/prompts/tools/edit_file.md": "e4f8ab3f894dadddf4375a057476412fcbee1cad81387909cdc84678c30e1a85",
+    "src/prax_bot/core/prompts/tools/finish.md": "f2291762dc75fca403a40f534c4ff6b3ddd794324b93d9295701f161bf63efbf",
+    "src/prax_bot/core/prompts/tools/list_files.md": "20fc2cf9d0154f409e6040a9dd7ff5457c85fec84b05242de83dc077a029cfb5",
+    "src/prax_bot/core/prompts/tools/load_skill.md": "11f7ffd24755fa2db1a42511badd470c3ecb963d5201bf354be262aa690810fc",
+    "src/prax_bot/core/prompts/tools/outline.md": "c4da638e2a6a01383a12193627272bf2a7997fee13a7f30f4e8d0aec2dcee706",
+    "src/prax_bot/core/prompts/tools/read_file.md": "a9cb093fa1fe854cba36438c052c9479dc87926ea833c4b2428f2a21dc295f5c",
+    "src/prax_bot/core/prompts/tools/restore.md": "7987acb9e513e14c4dd0d61b6b80b0ae4762c61f7665a28e791d2aeb7d657f83",
+    "src/prax_bot/core/prompts/tools/run.md": "fe5000dc544b36015cd74857f4a86a53705946d257939aea09ee837f20cd4f27",
+    "src/prax_bot/core/prompts/tools/search.md": "67eb9b736b33fcfda7209fad472d45c4deacf4c3826dbbc04efbbabea413eb58",
+    "src/prax_bot/core/prompts/tools/todo_write.md": "d959fe9fc57dbacb866ff208a90466a65084a026d2c92785d69ec85b948d2941",
+    "src/prax_bot/core/prompts/tools/write_file.md": "99548b200bb19702e9f450d78c531ad080e76a32256d668db7e7dcc60c675613",
+    "src/prax_bot/core/prompts/verification.md": "02af77d2ac7235bddea936a2a118c480acf49df31ce6f38f143246fa8e6af926",
+    "src/prax_bot/core/prompts/verification_manual.md": "50537a07111dde87b70e7206d4e62184ed62b2a4255bfb2c94ffaa94307855d5",
+    "src/prax_bot/core/tool_result.py": "9cfb8ea038ab186b75fe3ca0584b04df5c2193b34c8442b9f83bb3dd64c21015",
+    "src/prax_bot/core/tools.py": "bc676a202c81caafc6ba9c7df166df3c76a9c98d3f0514ac3014172f47add43e",
+    "src/prax_bot/core/verification.py": "35562e4249ff70dfbe047b5666857fd93f5a83649eec56199b13eef6836f7b2f",
+    "src/prax_bot/extensions/__init__.py": "16c7c944f81c1a069783aff153e040861723309905ee512c1e08d913eb24c197",
+    "src/prax_bot/extensions/plugins.py": "3d1f3b934ee1fd2e05f35d1c0dc309e9de1b4d61324240086fe03858043081fc",
+    "src/prax_bot/extensions/skills.py": "404b719965d6924d2b385c99d29c42d245cec6e73ad9ab98eebd69975cea70a5",
+    "src/prax_bot/runtime/__init__.py": "89efd11d76ec41925fb1eb45dde37fdd4f92a522a27b499eed7d453b079ba647",
+    "src/prax_bot/runtime/apply.py": "722099cc2bc71cc1533b1a6761b22aa0750544373feb2c71e09d3507478f7cae",
+    "src/prax_bot/runtime/factory.py": "b819cd6c74489f3e91a08196d4d5cb11086d51185e55a4d8e6fb6a39229a7e51",
+    "src/prax_bot/runtime/runs.py": "02b8ed56be01e61a7738404d641e916cbfa7aadc138637208c461f16a25f2801",
+    "src/prax_bot/runtime/session.py": "4e3248fd3fbd05eaa3ce78d810c047e782be060438ebe4a88ca3807d0112284b",
+    "src/prax_bot/runtime/storage.py": "c083cc48760d74e294282b5e4170e037f78b07096365c764999e544adb7c31e9",
+    "src/prax_bot/settings.py": "f4b9f26d1bed1735a7e26ab007db083992e99c144039b5e1031be3306e7b2bd5",
+    "src/prax_bot/ui/__init__.py": "f70b74267eaeba8db2b9be7d643ed117d2ec93c8f168a7d4f57203ce545114e5",
+    "src/prax_bot/ui/assets/app.css": "f09ca4189984c5877590ce9537457886e9f9a9a40aa6caf1943b0b970e2c3214",
+    "src/prax_bot/ui/assets/app.js": "0f019d74087b678713d069ee0aec0a0964df71c11eebf42c3d0c0266a8ccb84f",
+    "src/prax_bot/ui/assets/index.html": "2e35a5bc50fce2c218bb907cebfd27bec44c622ee623677d7d165456b0f48bfe",
+    "src/prax_bot/ui/cli.py": "5fc51695c12da7c08908bb7b7594ee7db45f0b73112d9ce392af31d5d44b3b0f",
+    "src/prax_bot/ui/commands/__init__.py": "55bed9af19d41cbbc2cb97768fe7fcb224b5a70cdab43c138520b32ac21de330",
+    "src/prax_bot/ui/commands/configuration.py": "40f6c22e04c9f1c9e3b7124af2877d0f46cc9256646b3f70343cc8914004effa",
+    "src/prax_bot/ui/commands/execution.py": "2ce2d72b91723a9c168a261df4f24557d7b8ca6509353e85360d68b1a175a7c6",
+    "src/prax_bot/ui/commands/history.py": "08d94c4b2deb619825286b8dac85d5b5a3fe089fb82487abf7f09b38397b5102",
+    "src/prax_bot/ui/common.py": "f8430f640fa172dc6622a05334dfb73a96ba22478832cb3e35fe7285587d6a62",
+    "src/prax_bot/ui/render.py": "385bd51477092f855dfd9d966ae4e4b1a21f862966f6f472e5e86ab776c26e54",
+    "src/prax_bot/ui/report.py": "a3b9e76e1a10b545f9a1d1432eb8d630f0f69173d257e7b6b5d4dbcfb1e3cd9c",
+    "src/prax_bot/ui/session.py": "f1e4fabc2c3dc9bac473aa8f47c1a4394f716a71942e77d024d8a40fac4b9d5c",
+    "src/prax_bot/ui/tui.py": "e35f6f3a58c6bdd652660ff5b79b4aff33bcbd9102414fe66c7dd6238ed09d83",
+    "src/prax_bot/ui/web.py": "48b1faff10746dbf4ee2a83aec5d0cce79dc22588dd7335164bc7e3757dc1921",
+    "src/prax_bot/workspace/__init__.py": "69fd89f934a9d229ceb53e481da37a0b03db6c175c030bcea36c018af9a7d69b",
+    "src/prax_bot/workspace/local.py": "feb7080cc1afc9bbd62f716da02719ef1235d9dd3b28393344581117629eefeb",
+    "src/prax_bot/workspace/repository.py": "bd4ac475fde31585ffffcefd453e5c091493aaa2a3e7c719b16b0ed44eb5e4cc",
+    "src/prax_bot/workspace/sandbox.py": "6d157bda149912d899efe47e38089c798714adf2a7a8d4d3bc809a0dcd7e6e56",
+    "src/prax_bot/workspace/types.py": "1ddb9b78420e104a2f699d2b2b954088ca3850e550d590da08ecef463b49c5b3",
+    "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/fakes.py": "247f6cfd5853edcd724921090d7f946d9cad09cbeea62e1d4feb79c7e4fb3dd5",
+    "tests/helpers.py": "8e6b8ca34485a0be94ed230363319918ba31a3937d96103d2a77cef2c43d9f62",
+    "tests/test_agent.py": "02e0cbd6cf279689e6adbba3d5dae1bbe1debbdd3ae584f8ffccb80ecbbc6616",
+    "tests/test_agent_guardrails.py": "add4873d5b51ab99a1e7f5a61e5b51358973b44e3f103d20802fb655e5ede1bf",
+    "tests/test_agent_recovery.py": "10d09e1eac50c048888ff573e096f0819fb4d29ce53bd746ec50c78faf64ab28",
+    "tests/test_agent_review.py": "e7a147f161e236403af1ade6a2be2abd236470d4ccbca0b8a95649254ed058fc",
+    "tests/test_budget_and_search.py": "b3cec0101b7bab7fe283938f531712d12ed33703819fccdaa2ab65e5add4db0b",
+    "tests/test_cancellation.py": "2b70ad0bfab74809c2d258124a80ce55e02f7c4b7d76c093b79eaf3b976aeeeb",
+    "tests/test_config.py": "fb4b13b5a03ec8c6d4cb0586109995676605fcd99a18f597440930d203004e76",
+    "tests/test_context.py": "2569a3801ad75d616bfee9e45e4a3caf51802809c3af65f757c4e0be3c6f6f47",
+    "tests/test_edit_matching.py": "6e0775ec2834663d3606b9bf45e9322da8ad8a8bd76fbda03de03438a9a24e91",
+    "tests/test_extensions.py": "834f4ae4edc90dcedd8bedda79d486a8d49b14bd9b065e78126b3e349edc9500",
+    "tests/test_goal.py": "2a53280fd05ed9dc2da2da2c24f101a0ae2f8d0f187c905c4c1a720d7e3d8fe0",
+    "tests/test_local.py": "0117e3cb4ade265f244f860d296a381d49973af7396abf9470deedb41994f8f1",
+    "tests/test_navigation_tools.py": "afc49d102968264d5c138486cfefda43765bc8edcdb41883e9a388a02b54099c",
+    "tests/test_prompt.py": "3fb13f0ab0df3da8e95f7e20a7fb8dba9770e5f7fe317415a37600a2c8105d0c",
+    "tests/test_resume.py": "6b531347e08cccfb338a803a39324d2d14ecadb335a9c749528479d2875324ee",
+    "tests/test_routing.py": "f1e42e2ee822a3485f1be7650c201fa8a83853ee677af6b1478f099d0752b082",
+    "tests/test_runs.py": "cb5095a60b44c7b6d7668d6e3da35180a9025e5f6403f942785bfb663b4d805a",
+    "tests/test_sampling.py": "63bfc2fe99f0e3fe4a1a13b4153fa6168ad815ce5880eb0357e71b1510f9e5cd",
+    "tests/test_sandbox.py": "26606ddcfd76caab580ca5380400d11419b29051d3812ddd78ca2d94b918bc15",
+    "tests/test_sandbox_retry.py": "a4aa66b34d8b77241524446a13a34911fa593679fe0f8c054ecbcffd9a438ad8",
+    "tests/test_session.py": "a31aa930cbfd709024707a6d5a74bd6eea2aedbbe561fbbda9ec23ca3dceefc2",
+    "tests/test_session_factory.py": "1771269d85c81f076e20d504ffee8c32d0c712bddcc4e03a34c649f5314845cd",
+    "tests/test_session_state.py": "8158b78a9fd5875af4f41974149e832254343c5c4b2adf52b8fd3a1a2ca8e0c0",
+    "tests/test_settings.py": "4529f27e8c14295e0549e696754a84865855013cb278bfb63d6c97bb64a774cc",
+    "tests/test_status.py": "0b195eed0db6a2c6d11292a49df08da1230341310c80625e889057526ac45b52",
+    "tests/test_swe_acceptance.py": "7de97ef06db6096ffee83de15996d7578842eae95f1439bab49a21dd8e344b9c",
+    "tests/test_symbol_read.py": "69323e13f111525b6f35f403f4dc9c9e7eb30670ee4dc164ff1369cdfab5411c",
+    "tests/test_test_observations.py": "c1c4760dbe8aa882736b7c87db6c141d6b373be430b2a809053dd845cfaf7362",
+    "tests/test_tool_errors.py": "2a667bad51ee4eac301bb9565e064413aeb032fe2d4f2a2e9a84ab60256b1d5d",
+    "tests/test_tool_execution.py": "5aae8c799cdf06e07407df91dcb76f37ad81309b0050a38bc788e3b9a3b025c1",
+    "tests/test_tool_guards.py": "f32e780e55822a128f263c201ec5f3fa94bc8209ca3ebeca295a5e7c7c9e2098",
+    "tests/test_tools.py": "f0b3fa2e98f43280c95c215882cf0cf3c6955e176fa2a5ce4c78a7f116377b39",
+    "tests/test_tui.py": "572f01896e69b88e27a2aa2b1fc3c0ce25ab3e3c4fa75d7e7b4dc35e9d511ffd",
+    "tests/test_verification.py": "e8351a33b92c653d4c7344cdf4a1b38035a8fb989e9a465c0d2aec383384e257",
+    "tests/test_web.py": "6f59eb0f015dadab130b27d6109fd9c9b330ef93c4fce9892ee92053762df6db",
+    "uv.lock": "d5feaa1ed3fb88ed1c7b9c38470bdab5693b56ead0baa25e1e26fc0a200bb35c"
+  },
+  "preflight": {
+    "baseline": {
+      "agent_source": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/source-tree/src/prax_bot/core/agent.py",
+      "acceptance_source": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/source-tree/scripts/swe_acceptance.py",
+      "settings": {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "llm_base_url": "https://api.tokenfactory.nebius.com/v1/",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "effort": "low",
+        "max_steps": 50,
+        "context_budget": 80000,
+        "command_timeout": 300,
+        "import_timeout": 900,
+        "investigate_model": null,
+        "investigate_steps": 6,
+        "system_prompt_file": null
+      },
+      "request_options": {
+        "max_tokens": 16384,
+        "top_p": 0.95,
+        "extra_body": {
+          "chat_template_kwargs": {
+            "enable_thinking": true,
+            "low_effort": true
+          }
+        }
+      },
+      "acceptance_check": false,
+      "review_before_finish": false,
+      "system_sha256": "c26429cd31432b533a79ad34410ad55f1dcab50c52b1b232ab5cd578058c7985",
+      "tools_sha256": "8d44868e31c2b235c64c2fdfcb7487a4c92b9665e62742400c44698c73689e75",
+      "python": "3.12.13",
+      "packages": {
+        "swebench": "5.0.2",
+        "contree-sdk": "0.3.6",
+        "openai": "3.8.0"
+      },
+      "frozen_probe_sha256": "a425adc18d025547e7aa28c41ccf90f5123ed1d695d63d026a66e48d6641aa6c"
+    },
+    "candidate": {
+      "agent_source": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/source-tree/src/prax_bot/core/agent.py",
+      "acceptance_source": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/source-tree/scripts/swe_acceptance.py",
+      "settings": {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "llm_base_url": "https://api.tokenfactory.nebius.com/v1/",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "effort": "low",
+        "max_steps": 50,
+        "context_budget": 80000,
+        "command_timeout": 300,
+        "import_timeout": 900,
+        "investigate_model": null,
+        "investigate_steps": 6,
+        "system_prompt_file": null
+      },
+      "request_options": {
+        "max_tokens": 16384,
+        "top_p": 0.95,
+        "extra_body": {
+          "chat_template_kwargs": {
+            "enable_thinking": true,
+            "low_effort": true
+          }
+        }
+      },
+      "acceptance_check": true,
+      "review_before_finish": false,
+      "system_sha256": "c26429cd31432b533a79ad34410ad55f1dcab50c52b1b232ab5cd578058c7985",
+      "tools_sha256": "875404c7eebe8043946b6506378f13a6317bfaf6f61128e978930bdfdded37b7",
+      "python": "3.12.13",
+      "packages": {
+        "swebench": "5.0.2",
+        "contree-sdk": "0.3.6",
+        "openai": "3.8.0"
+      },
+      "frozen_probe_sha256": "a425adc18d025547e7aa28c41ccf90f5123ed1d695d63d026a66e48d6641aa6c"
+    }
+  },
+  "execution": {
+    "started_at_epoch": 1789278864.853062,
+    "processes": {
+      "baseline": {
+        "pid": 1515,
+        "argv": [
+          "/Users/wangalrebt/code/prax_bot/.venv/bin/python",
+          "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/source-tree/scripts/swe_bench.py",
+          "run",
+          "--ids",
+          "django__django-12308,sphinx-doc__sphinx-8551,matplotlib__matplotlib-20859,pydata__xarray-4687,sympy__sympy-19040",
+          "--max-steps",
+          "50",
+          "--parallel",
+          "2",
+          "--out",
+          "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/baseline"
+        ],
+        "exit_code": 0
+      },
+      "candidate": {
+        "pid": 1516,
+        "argv": [
+          "/Users/wangalrebt/code/prax_bot/.venv/bin/python",
+          "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/source-tree/scripts/swe_bench.py",
+          "run",
+          "--ids",
+          "django__django-12308,sphinx-doc__sphinx-8551,matplotlib__matplotlib-20859,pydata__xarray-4687,sympy__sympy-19040",
+          "--max-steps",
+          "50",
+          "--parallel",
+          "2",
+          "--out",
+          "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/candidate",
+          "--acceptance-check"
+        ],
+        "exit_code": 0
+      }
+    },
+    "finished_at_epoch": 1789280110.866781
+  },
+  "pairs": [
+    {
+      "instance_id": "django__django-12308",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "role": "development",
+      "summary": "Readonly admin JSON fields should display valid JSON and handle exceptional display values.",
+      "baseline": {
+        "instance_id": "django__django-12308",
+        "repo": "django/django",
+        "difficulty": "<15 min fix",
+        "finished": true,
+        "reason": "finish",
+        "steps": 34,
+        "tokens": 471441,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 34,
+            "prompt_tokens": 454776,
+            "completion_tokens": 16665
+          }
+        },
+        "sandbox_commands": 30,
+        "sandbox_cost": 0.6383531600000003,
+        "agent_elapsed": 223.52300079190172,
+        "diff_lines": 13,
+        "resolved": false,
+        "patch_applied": true,
+        "f2p": "0/2",
+        "p2p": "20/20",
+        "eval": "not resolved",
+        "eval_cost": 0.04009599,
+        "grading_attempts": 1,
+        "wall": 232.55912204179913,
+        "summary_present": true,
+        "effective_variant": "baseline",
+        "evidence": {
+          "eval.log": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/django__django-12308/eval.log",
+            "sha256": "f72a6febaf8562fb06d7c5c600f6b1134cf8c1e55861821ed7b6f29dd15ddd7f",
+            "bytes": 17580
+          },
+          "events.jsonl": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/django__django-12308/events.jsonl",
+            "sha256": "a0e0803ab76f3d060a96bd2d12ff7fbdf477ddae45c5030693d4bcf7938299e2",
+            "bytes": 107953
+          },
+          "patch.diff": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/django__django-12308/patch.diff",
+            "sha256": "f98a94367f1880d73db144ac7cb6ac204d919df91d9cf575842c4a3acb84c21f",
+            "bytes": 648
+          },
+          "result.json": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/django__django-12308/result.json",
+            "sha256": "bdd6cc5d06cea4bbc9471983dd5a6ecb8bd811b57b0b4de230803f923838ae5e",
+            "bytes": 965
+          }
+        },
+        "phase_usage": {
+          "solver": {
+            "prompt_tokens": 454776,
+            "completion_tokens": 16665,
+            "calls": 34,
+            "tokens": 471441
+          }
+        },
+        "tools_by_phase": {
+          "solver": {
+            "read_file": 6,
+            "search": 7,
+            "edit_file": 2,
+            "run": 15,
+            "ls": 1,
+            "list_files": 1,
+            "write_file": 1,
+            "finish": 1
+          }
+        }
+      },
+      "candidate": {
+        "instance_id": "django__django-12308",
+        "repo": "django/django",
+        "difficulty": "<15 min fix",
+        "finished": true,
+        "reason": "finish",
+        "steps": 43,
+        "tokens": 586475,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 43,
+            "prompt_tokens": 568580,
+            "completion_tokens": 17895
+          }
+        },
+        "sandbox_commands": 33,
+        "sandbox_cost": 0.37233018,
+        "agent_elapsed": 249.4634947499726,
+        "diff_lines": 20,
+        "resolved": true,
+        "patch_applied": true,
+        "f2p": "2/2",
+        "p2p": "20/20",
+        "eval": "resolved",
+        "eval_cost": 0.04103816,
+        "grading_attempts": 1,
+        "wall": 259.8247157498263,
+        "summary_present": true,
+        "effective_variant": "candidate",
+        "evidence": {
+          "acceptance.json": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/django__django-12308/acceptance.json",
+            "sha256": "44fdc940e88aa89d8ac909fe0b8d9db12d9dc9f878d29bfcb31344c7fb95dcf0",
+            "bytes": 1636
+          },
+          "eval.log": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/django__django-12308/eval.log",
+            "sha256": "16b2700498c8faf10a65526d09c219a394bf18b73ef50968093167498a62942b",
+            "bytes": 16695
+          },
+          "events.jsonl": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/django__django-12308/events.jsonl",
+            "sha256": "ae6ec7dc96dd26e56efbef0e08a6171011fd0040ddc4d2ba2a31dbdf2263315e",
+            "bytes": 167725
+          },
+          "patch.diff": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/django__django-12308/patch.diff",
+            "sha256": "638b050d8ef1baf6fa23c68659c8a4af10e72bb846146e9fb7acdcae1ed7bbbd",
+            "bytes": 868
+          },
+          "result.json": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/django__django-12308/result.json",
+            "sha256": "10367311b778c2ef6b405b7f457b81724b10421f4cffe4c10936bf30b6414d16",
+            "bytes": 2691
+          }
+        },
+        "phase_usage": {
+          "author": {
+            "prompt_tokens": 129740,
+            "completion_tokens": 3650,
+            "calls": 12,
+            "tokens": 133390
+          },
+          "solver": {
+            "prompt_tokens": 438840,
+            "completion_tokens": 14245,
+            "calls": 31,
+            "tokens": 453085
+          }
+        },
+        "tools_by_phase": {
+          "author": {
+            "read_file": 4,
+            "search": 4,
+            "run": 1,
+            "submit_acceptance_check": 1,
+            "outline": 1,
+            "finish": 1
+          },
+          "solver": {
+            "read_file": 8,
+            "search": 8,
+            "edit_file": 2,
+            "run": 9,
+            "find": 1,
+            "list_files": 2,
+            "finish": 1
+          }
+        },
+        "acceptance": {
+          "author_budget": 12,
+          "repair_reserve": 8,
+          "phases": [
+            {
+              "phase": "author",
+              "budget": 12,
+              "offset": 0,
+              "finished": true,
+              "summary": "(no summary given)",
+              "steps": 12,
+              "reason": "finish",
+              "goal_met": false
+            },
+            {
+              "phase": "solver",
+              "budget": 38,
+              "offset": 12,
+              "finished": true,
+              "summary": "Fixed the issue where JSONField values were displayed as Python dict strings (e.g., {'foo': 'bar'}) instead of valid JSON when readonly in the Django admin. Modified django/contrib/admin/utils.py to add a special case for JSONField in display_for_field that uses json.dumps with the field's encoder, with a fallback to display_for_value on encoding errors. Verified the fix by running the admin_utils, model_fields.test_jsonfield, admin_views, and admin_inlines test suites; all passed.",
+              "steps": 31,
+              "reason": "finish",
+              "goal_met": false
+            }
+          ],
+          "check_status": "unavailable",
+          "total_steps": 43,
+          "accepted": null,
+          "attempts": [
+            {
+              "spec": {
+                "requirement": "JSONField values in admin readonly display should be valid JSON (double quotes)",
+                "setup": "import json\nfrom django.db.models.fields.json import JSONField\nfrom django.contrib.admin.utils import display_for_field",
+                "assertions": [
+                  "value = {'foo': 'bar'}",
+                  "field = JSONField()",
+                  "result = display_for_field(value, field, '')",
+                  "parsed = json.loads(result)",
+                  "parsed == value"
+                ]
+              },
+              "status": "error",
+              "error": "invalid syntax (<acceptance-assertion-0>, line 1)"
+            }
+          ],
+          "submission_tool_calls": 1,
+          "runtime_check_events": []
+        }
+      }
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8551",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "15 min - 1 hour",
+      "role": "development",
+      "summary": "Implicit type/rtype cross-references resolve unqualified names differently from explicit roles, causing ambiguous lookup warnings.",
+      "baseline": {
+        "instance_id": "sphinx-doc__sphinx-8551",
+        "repo": "sphinx-doc/sphinx",
+        "difficulty": "15 min - 1 hour",
+        "finished": true,
+        "reason": "finish",
+        "steps": 42,
+        "tokens": 603889,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 42,
+            "prompt_tokens": 586309,
+            "completion_tokens": 17580
+          }
+        },
+        "sandbox_commands": 33,
+        "sandbox_cost": 0.05974739000000001,
+        "agent_elapsed": 198.19594470784068,
+        "diff_lines": 17,
+        "resolved": true,
+        "patch_applied": true,
+        "f2p": "1/1",
+        "p2p": "32/32",
+        "eval": "resolved",
+        "eval_cost": 0.032183880000000005,
+        "grading_attempts": 1,
+        "wall": 206.12364624999464,
+        "summary_present": true,
+        "effective_variant": "baseline",
+        "evidence": {
+          "eval.log": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/sphinx-doc__sphinx-8551/eval.log",
+            "sha256": "d4b27a743bed5f26822367793a137d7a389fc1c7f0726636149ff3a8041abb80",
+            "bytes": 67333
+          },
+          "events.jsonl": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/sphinx-doc__sphinx-8551/events.jsonl",
+            "sha256": "ba25243812b919cace501ccafce4b9a882a4a2247bf985957375d89a836bbdf2",
+            "bytes": 124600
+          },
+          "patch.diff": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/sphinx-doc__sphinx-8551/patch.diff",
+            "sha256": "c734f0fe88a3d9da0967f3672e49fb6cafd73707fdbcad31721862073096b770",
+            "bytes": 719
+          },
+          "result.json": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/sphinx-doc__sphinx-8551/result.json",
+            "sha256": "e33581c0d70389dae44af1cebeea93d5a9698d923359bd51a19e3d4d296ae8ed",
+            "bytes": 982
+          }
+        },
+        "phase_usage": {
+          "solver": {
+            "prompt_tokens": 586309,
+            "completion_tokens": 17580,
+            "calls": 42,
+            "tokens": 603889
+          }
+        },
+        "tools_by_phase": {
+          "solver": {
+            "search": 17,
+            "outline": 2,
+            "read_file": 12,
+            "edit_file": 1,
+            "run": 6,
+            "list_files": 1,
+            "write_file": 2,
+            "finish": 1
+          }
+        }
+      },
+      "candidate": {
+        "instance_id": "sphinx-doc__sphinx-8551",
+        "repo": "sphinx-doc/sphinx",
+        "difficulty": "15 min - 1 hour",
+        "finished": true,
+        "reason": "finish",
+        "steps": 50,
+        "tokens": 581229,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 50,
+            "prompt_tokens": 566312,
+            "completion_tokens": 14917
+          }
+        },
+        "sandbox_commands": 40,
+        "sandbox_cost": 0.06769555000000001,
+        "agent_elapsed": 203.74491195799783,
+        "diff_lines": 0,
+        "resolved": false,
+        "patch_applied": false,
+        "eval": "no diff produced",
+        "wall": 203.74509604205377,
+        "summary_present": false,
+        "effective_variant": "candidate",
+        "evidence": {
+          "acceptance-command.sh": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/sphinx-doc__sphinx-8551/acceptance-command.sh",
+            "sha256": "e0542e33cb6cd2d16915c3f519c361bc6da4b73e389e39126f7bbdf5fd78e3ce",
+            "bytes": 3304
+          },
+          "acceptance.json": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/sphinx-doc__sphinx-8551/acceptance.json",
+            "sha256": "b48ac0e92fbeb602f86da17213233b5e6a1256ce7e46ef328a43bd0337b208d0",
+            "bytes": 34244
+          },
+          "events.jsonl": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/sphinx-doc__sphinx-8551/events.jsonl",
+            "sha256": "d9cb6f6cb2819ade7482c70573244cbe32c8ae8230e32cdb6ea15c5dc27a64be",
+            "bytes": 151485
+          },
+          "patch.diff": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/sphinx-doc__sphinx-8551/patch.diff",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "result.json": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/sphinx-doc__sphinx-8551/result.json",
+            "sha256": "3332773dd17aa293a361690079a86d002cb5dbd4ec72113fe7356a703eaf0ec9",
+            "bytes": 35212
+          }
+        },
+        "phase_usage": {
+          "author": {
+            "prompt_tokens": 103157,
+            "completion_tokens": 5509,
+            "calls": 10,
+            "tokens": 108666
+          },
+          "solver": {
+            "prompt_tokens": 394262,
+            "completion_tokens": 8248,
+            "calls": 32,
+            "tokens": 402510
+          },
+          "repair": {
+            "prompt_tokens": 68893,
+            "completion_tokens": 1160,
+            "calls": 8,
+            "tokens": 70053
+          }
+        },
+        "tools_by_phase": {
+          "author": {
+            "submit_acceptance_check": 4,
+            "outline": 2,
+            "list_files": 1,
+            "read_file": 1,
+            "finish": 2
+          },
+          "solver": {
+            "search": 19,
+            "read_file": 10,
+            "outline": 2,
+            "finish": 1
+          },
+          "repair": {
+            "search": 3,
+            "outline": 1,
+            "read_file": 3,
+            "finish": 1
+          }
+        },
+        "acceptance": {
+          "author_budget": 12,
+          "repair_reserve": 8,
+          "phases": [
+            {
+              "phase": "author",
+              "budget": 12,
+              "offset": 0,
+              "finished": true,
+              "summary": "Authored acceptance check for the issue: :type: and :rtype: give false ambiguous class lookup warnings. The check builds a Sphinx project with the provided RST snippet and asserts that no warnings about ambiguous cross-reference 'A' appear. The check is accepted (frozen) and currently fails on the original code, demonstrating the bug. The solver can now proceed to fix the issue and verify that the check passes.",
+              "steps": 10,
+              "reason": "finish",
+              "goal_met": false
+            },
+            {
+              "phase": "solver",
+              "budget": 32,
+              "offset": 10,
+              "finished": true,
+              "summary": "(no summary given)",
+              "steps": 32,
+              "reason": "finish",
+              "goal_met": false
+            },
+            {
+              "phase": "repair",
+              "budget": 8,
+              "offset": 42,
+              "finished": true,
+              "summary": "(no summary given)",
+              "steps": 8,
+              "reason": "finish",
+              "goal_met": false
+            }
+          ],
+          "check_status": "failed",
+          "total_steps": 50,
+          "accepted": {
+            "spec": {
+              "requirement": "Acceptance check for issue: :type: and :rtype: should not produce ambiguous class lookup warnings when there are multiple possible targets but the current module should be prioritized.",
+              "setup": "import tempfile\nimport os\nimport subprocess\nimport sys\n\ndef build_and_get_warnings(rst_content):\n    with tempfile.TemporaryDirectory() as tmpdir:\n        srcdir = os.path.join(tmpdir, 'src')\n        os.makedirs(srcdir)\n        # conf.py\n        conf_path = os.path.join(srcdir, 'conf.py')\n        with open(conf_path, 'w') as f:\n            f.write('extensions = []\\n')\n            f.write('master_doc = \"index\"\\n')\n        # index.rst\n        index_path = os.path.join(srcdir, 'index.rst')\n        with open(index_path, 'w') as f:\n            f.write(rst_content)\n        # run sphinx-build\n        result = subprocess.run(\n            [sys.executable, '-m', 'sphinx', '-b', 'html', srcdir, os.path.join(tmpdir, 'out')],\n            capture_output=True,\n            text=True,\n        )\n        # warnings are in stderr\n        return result.stderr\n\nrst = '''\n.. py:class:: mod.A\n.. py:class:: mod.submod.A\n\n.. py:function:: f()\n\n\t- :py:class:`mod.A`\n\t- :py:class:`mod.submod.A`\n\n\t:param mod.A a:\n\t:param mod.submod.A b:\n\t:rtype: mod.A\n\t:rtype: mod.submod.A\n\n.. py:currentmodule:: mod\n\n.. py:function:: f()\n\n\t- :py:class:`A`\n\t- :py:class:`mod.A`\n\t- :py:class:`mod.submod.A`\n\n\t:param A a:\n\t:param mod.A b:\n\t:param mod.submod.A c:\n\t:rtype: A\n\t:rtype: mod.A\n\t:rtype: mod.submod.A\n\n.. py:currentmodule:: mod.submod\n\n.. py:function:: f()\n\n\t- :py:class:`A`\n\t- :py:class:`mod.A`\n\t- :py:class:`mod.submod.A`\n\n\t:param A a: BUG: links to mod.A instead of mod.submod.A\n\t:param mod.A b:\n\t:param mod.submod.A c:\n\t:rtype: A\n\t:rtype: mod.A\n\t:rtype: mod.submod.A\n'''\nwarnings = build_and_get_warnings(rst)",
+              "assertions": [
+                "\"more than one target found for cross-reference 'A'\" not in warnings"
+              ]
+            },
+            "sha256": "f3f4220247ddda4f6cf7da397d0621262ff1ee2eb3b56fe209f93bb81588eae2"
+          },
+          "attempts": [
+            {
+              "spec": {
+                "requirement": "Acceptance check for issue: :type: and :rtype: should not produce ambiguous class lookup warnings when there are multiple possible targets but the current module should be prioritized.",
+                "setup": "import tempfile\nimport os\nimport sys\nfrom sphinx.testing import SphinxTestApp\n\ndef build_and_get_warnings(rst_content):\n    with tempfile.TemporaryDirectory() as tmpdir:\n        srcdir = os.path.join(tmpdir, 'src')\n        os.makedirs(srcdir)\n        conf_path = os.path.join(srcdir, 'conf.py')\n        with open(conf_path, 'w') as f:\n            f.write('extensions = []\\n')\n            f.write('master_doc = \"index\"\\n')\n        index_path = os.path.join(srcdir, 'index.rst')\n        with open(index_path, 'w') as f:\n            f.write(rst_content)\n        warning = []\n        status = []\n        app = SphinxTestApp(srcdir=srcdir, status=status, warning=warning)\n        app.build()\n        return ''.join(warning)\n\nrst = '''\n.. py:class:: mod.A\n.. py:class:: mod.submod.A\n\n.. py:function:: f()\n\n\t- :py:class:`mod.A`\n\t- :py:class:`mod.submod.A`\n\n\t:param mod.A a:\n\t:param mod.submod.A b:\n\t:rtype: mod.A\n\t:rtype: mod.submod.A\n\n.. py:currentmodule:: mod\n\n.. py:function:: f()\n\n\t- :py:class:`A`\n\t- :py:class:`mod.A`\n\t- :py:class:`mod.submod.A`\n\n\t:param A a:\n\t:param mod.A b:\n\t:param mod.submod.A c:\n\t:rtype: A\n\t:rtype: mod.A\n\t:rtype: mod.submod.A\n\n.. py:currentmodule:: mod.submod\n\n.. py:function:: f()\n\n\t- :py:class:`A`\n\t- :py:class:`mod.A`\n\t- :py:class:`mod.submod.A`\n\n\t:param A a: BUG: links to mod.A instead of mod.submod.A\n\t:param mod.A b:\n\t:param mod.submod.A c:\n\t:rtype: A\n\t:rtype: mod.A\n\t:rtype: mod.submod.A\n'''\nwarnings = build_and_get_warnings(rst)",
+                "assertions": [
+                  "\"more than one target found for cross-reference 'A'\" not in warnings"
+                ]
+              },
+              "sha256": "5b86381be1b0d864411c8841e1875ee3f6bb5f878523b7c0cbf805da93dcb706",
+              "status": "error",
+              "execution": {
+                "name": "acceptance/baseline",
+                "image": "dd70042a-7164-4d68-89ca-d29fb46b3e38",
+                "exit_code": 2,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"error\": \"ImportError: cannot import name 'SphinxTestApp' from 'sphinx.testing' (/testbed/sphinx/testing/__init__.py)\", \"index\": null, \"phase\": \"setup\", \"status\": \"error\"}\n",
+                "elapsed_s": 0.128568,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "error": "ImportError: cannot import name 'SphinxTestApp' from 'sphinx.testing' (/testbed/sphinx/testing/__init__.py)",
+                "index": null,
+                "phase": "setup",
+                "status": "error"
+              }
+            },
+            {
+              "spec": {
+                "requirement": "Acceptance check for issue: :type: and :rtype: should not produce ambiguous class lookup warnings when there are multiple possible targets but the current module should be prioritized.",
+                "setup": "import tempfile\nimport os\nimport sys\nsys.path.insert(0, '/testbed')\nfrom sphinx.testing.util import SphinxTestApp\n\ndef build_and_get_warnings(rst_content):\n    with tempfile.TemporaryDirectory() as tmpdir:\n        srcdir = os.path.join(tmpdir, 'src')\n        os.makedirs(srcdir)\n        conf_path = os.path.join(srcdir, 'conf.py')\n        with open(conf_path, 'w') as f:\n            f.write('extensions = []\\n')\n            f.write('master_doc = \"index\"\\n')\n        index_path = os.path.join(srcdir, 'index.rst')\n        with open(index_path, 'w') as f:\n            f.write(rst_content)\n        warning = []\n        status = []\n        app = SphinxTestApp(srcdir=srcdir, status=status, warning=warning)\n        app.build()\n        return ''.join(warning)\n\nrst = '''\n.. py:class:: mod.A\n.. py:class:: mod.submod.A\n\n.. py:function:: f()\n\n\t- :py:class:`mod.A`\n\t- :py:class:`mod.submod.A`\n\n\t:param mod.A a:\n\t:param mod.submod.A b:\n\t:rtype: mod.A\n\t:rtype: mod.submod.A\n\n.. py:currentmodule:: mod\n\n.. py:function:: f()\n\n\t- :py:class:`A`\n\t- :py:class:`mod.A`\n\t- :py:class:`mod.submod.A`\n\n\t:param A a:\n\t:param mod.A b:\n\t:param mod.submod.A c:\n\t:rtype: A\n\t:rtype: mod.A\n\t:rtype: mod.submod.A\n\n.. py:currentmodule:: mod.submod\n\n.. py:function:: f()\n\n\t- :py:class:`A`\n\t- :py:class:`mod.A`\n\t- :py:class:`mod.submod.A`\n\n\t:param A a: BUG: links to mod.A instead of mod.submod.A\n\t:param mod.A b:\n\t:param mod.submod.A c:\n\t:rtype: A\n\t:rtype: mod.A\n\t:rtype: mod.submod.A\n'''\nwarnings = build_and_get_warnings(rst)",
+                "assertions": [
+                  "\"more than one target found for cross-reference 'A'\" not in warnings"
+                ]
+              },
+              "sha256": "ad190c0bef8982cae0f82357d99bda73664bb1b2c6f5af45d4a5b85f64c675ee",
+              "status": "error",
+              "execution": {
+                "name": "acceptance/baseline",
+                "image": "dd70042a-7164-4d68-89ca-d29fb46b3e38",
+                "exit_code": 2,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"error\": \"TypeError: unsupported operand type(s) for /: 'str' and 'str'\", \"index\": null, \"phase\": \"setup\", \"status\": \"error\"}\n",
+                "elapsed_s": 0.362548,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "error": "TypeError: unsupported operand type(s) for /: 'str' and 'str'",
+                "index": null,
+                "phase": "setup",
+                "status": "error"
+              }
+            },
+            {
+              "spec": {
+                "requirement": "Acceptance check for issue: :type: and :rtype: should not produce ambiguous class lookup warnings when there are multiple possible targets but the current module should be prioritized.",
+                "setup": "import tempfile\nimport os\nimport subprocess\nimport sys\n\ndef build_and_get_warnings(rst_content):\n    with tempfile.TemporaryDirectory() as tmpdir:\n        srcdir = os.path.join(tmpdir, 'src')\n        os.makedirs(srcdir)\n        # conf.py\n        conf_path = os.path.join(srcdir, 'conf.py')\n        with open(conf_path, 'w') as f:\n            f.write('extensions = []\\n')\n            f.write('master_doc = \"index\"\\n')\n        # index.rst\n        index_path = os.path.join(srcdir, 'index.rst')\n        with open(index_path, 'w') as f:\n            f.write(rst_content)\n        # run sphinx-build\n        result = subprocess.run(\n            [sys.executable, '-m', 'sphinx', '-b', 'html', srcdir, os.path.join(tmpdir, 'out')],\n            capture_output=True,\n            text=True,\n        )\n        # warnings are in stderr\n        return result.stderr\n\nrst = '''\n.. py:class:: mod.A\n.. py:class:: mod.submod.A\n\n.. py:function:: f()\n\n\t- :py:class:`mod.A`\n\t- :py:class:`mod.submod.A`\n\n\t:param mod.A a:\n\t:param mod.submod.A b:\n\t:rtype: mod.A\n\t:rtype: mod.submod.A\n\n.. py:currentmodule:: mod\n\n.. py:function:: f()\n\n\t- :py:class:`A`\n\t- :py:class:`mod.A`\n\t- :py:class:`mod.submod.A`\n\n\t:param A a:\n\t:param mod.A b:\n\t:param mod.submod.A c:\n\t:rtype: A\n\t:rtype: mod.A\n\t:rtype: mod.submod.A\n\n.. py:currentmodule:: mod.submod\n\n.. py:function:: f()\n\n\t- :py:class:`A`\n\t- :py:class:`mod.A`\n\t- :py:class:`mod.submod.A`\n\n\t:param A a: BUG: links to mod.A instead of mod.submod.A\n\t:param mod.A b:\n\t:param mod.submod.A c:\n\t:rtype: A\n\t:rtype: mod.A\n\t:rtype: mod.submod.A\n'''\nwarnings = build_and_get_warnings(rst)",
+                "assertions": [
+                  "\"more than one target found for cross-reference 'A'\" not in warnings"
+                ]
+              },
+              "sha256": "f3f4220247ddda4f6cf7da397d0621262ff1ee2eb3b56fe209f93bb81588eae2",
+              "status": "failed",
+              "execution": {
+                "name": "acceptance/baseline",
+                "image": "dd70042a-7164-4d68-89ca-d29fb46b3e38",
+                "exit_code": 1,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0], \"status\": \"failed\"}\n",
+                "elapsed_s": 0.774701,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "failed": [
+                  0
+                ],
+                "status": "failed"
+              }
+            }
+          ],
+          "solver_check": {
+            "status": "failed",
+            "execution": {
+              "name": "acceptance/solver",
+              "image": "dd70042a-7164-4d68-89ca-d29fb46b3e38",
+              "exit_code": 1,
+              "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0], \"status\": \"failed\"}\n",
+              "elapsed_s": 0.781024,
+              "timed_out": false,
+              "error": null
+            },
+            "details": {
+              "failed": [
+                0
+              ],
+              "status": "failed"
+            }
+          },
+          "repair_check": {
+            "status": "failed",
+            "execution": {
+              "name": "acceptance/repair",
+              "image": "dd70042a-7164-4d68-89ca-d29fb46b3e38",
+              "exit_code": 1,
+              "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0], \"status\": \"failed\"}\n",
+              "elapsed_s": 0.806067,
+              "timed_out": false,
+              "error": null
+            },
+            "details": {
+              "failed": [
+                0
+              ],
+              "status": "failed"
+            }
+          },
+          "submission_tool_calls": 4,
+          "runtime_check_events": [
+            {
+              "t": 1789278885.312781,
+              "kind": "acceptance.check",
+              "phase": "baseline",
+              "sha256": "5b86381be1b0d864411c8841e1875ee3f6bb5f878523b7c0cbf805da93dcb706",
+              "status": "error",
+              "execution": {
+                "name": "acceptance/baseline",
+                "image": "dd70042a-7164-4d68-89ca-d29fb46b3e38",
+                "exit_code": 2,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"error\": \"ImportError: cannot import name 'SphinxTestApp' from 'sphinx.testing' (/testbed/sphinx/testing/__init__.py)\", \"index\": null, \"phase\": \"setup\", \"status\": \"error\"}\n",
+                "elapsed_s": 0.128568,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "error": "ImportError: cannot import name 'SphinxTestApp' from 'sphinx.testing' (/testbed/sphinx/testing/__init__.py)",
+                "index": null,
+                "phase": "setup",
+                "status": "error"
+              }
+            },
+            {
+              "t": 1789278897.152692,
+              "kind": "acceptance.check",
+              "phase": "baseline",
+              "sha256": "ad190c0bef8982cae0f82357d99bda73664bb1b2c6f5af45d4a5b85f64c675ee",
+              "status": "error",
+              "execution": {
+                "name": "acceptance/baseline",
+                "image": "dd70042a-7164-4d68-89ca-d29fb46b3e38",
+                "exit_code": 2,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"error\": \"TypeError: unsupported operand type(s) for /: 'str' and 'str'\", \"index\": null, \"phase\": \"setup\", \"status\": \"error\"}\n",
+                "elapsed_s": 0.362548,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "error": "TypeError: unsupported operand type(s) for /: 'str' and 'str'",
+                "index": null,
+                "phase": "setup",
+                "status": "error"
+              }
+            },
+            {
+              "t": 1789278905.7712278,
+              "kind": "acceptance.check",
+              "phase": "baseline",
+              "sha256": "f3f4220247ddda4f6cf7da397d0621262ff1ee2eb3b56fe209f93bb81588eae2",
+              "status": "failed",
+              "execution": {
+                "name": "acceptance/baseline",
+                "image": "dd70042a-7164-4d68-89ca-d29fb46b3e38",
+                "exit_code": 1,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0], \"status\": \"failed\"}\n",
+                "elapsed_s": 0.774701,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "failed": [
+                  0
+                ],
+                "status": "failed"
+              }
+            },
+            {
+              "t": 1789279015.5132318,
+              "kind": "acceptance.check",
+              "phase": "solver",
+              "sha256": "f3f4220247ddda4f6cf7da397d0621262ff1ee2eb3b56fe209f93bb81588eae2",
+              "status": "failed",
+              "execution": {
+                "name": "acceptance/solver",
+                "image": "dd70042a-7164-4d68-89ca-d29fb46b3e38",
+                "exit_code": 1,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0], \"status\": \"failed\"}\n",
+                "elapsed_s": 0.781024,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "failed": [
+                  0
+                ],
+                "status": "failed"
+              }
+            },
+            {
+              "t": 1789279093.947971,
+              "kind": "acceptance.check",
+              "phase": "repair",
+              "sha256": "f3f4220247ddda4f6cf7da397d0621262ff1ee2eb3b56fe209f93bb81588eae2",
+              "status": "failed",
+              "execution": {
+                "name": "acceptance/repair",
+                "image": "dd70042a-7164-4d68-89ca-d29fb46b3e38",
+                "exit_code": 1,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0], \"status\": \"failed\"}\n",
+                "elapsed_s": 0.806067,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "failed": [
+                  0
+                ],
+                "status": "failed"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-20859",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "role": "fresh",
+      "summary": "Adding a legend to a SubFigure raises a parent-type error.",
+      "baseline": {
+        "instance_id": "matplotlib__matplotlib-20859",
+        "repo": "matplotlib/matplotlib",
+        "difficulty": "<15 min fix",
+        "finished": true,
+        "reason": "finish",
+        "steps": 34,
+        "tokens": 382896,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 34,
+            "prompt_tokens": 371485,
+            "completion_tokens": 11411
+          }
+        },
+        "sandbox_commands": 16,
+        "sandbox_cost": 0.22266868999999997,
+        "agent_elapsed": 219.41883249999955,
+        "diff_lines": 22,
+        "resolved": true,
+        "patch_applied": true,
+        "f2p": "1/1",
+        "p2p": "88/88",
+        "eval": "resolved",
+        "eval_cost": 0.16000866,
+        "grading_attempts": 1,
+        "wall": 239.65411808388308,
+        "summary_present": true,
+        "effective_variant": "baseline-retry1",
+        "evidence": {
+          "eval.log": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline-retry1/scratch/matplotlib__matplotlib-20859/eval.log",
+            "sha256": "5631c09b7d7781b6d3f742bfbdce46e40b8cd18240b7cbf8072234b84da5b5b5",
+            "bytes": 25262
+          },
+          "events.jsonl": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline-retry1/scratch/matplotlib__matplotlib-20859/events.jsonl",
+            "sha256": "9aad97b03c774cb4de8b4f3224ab1c64fda0e9b60e7fb67415788f180b63c1ba",
+            "bytes": 68722
+          },
+          "patch.diff": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline-retry1/scratch/matplotlib__matplotlib-20859/patch.diff",
+            "sha256": "3768c720ef7a19299f1ed0b022e7cf8f3e899d0b6ee7639ab756c0d56e8f7bc7",
+            "bytes": 761
+          },
+          "result.json": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline-retry1/scratch/matplotlib__matplotlib-20859/result.json",
+            "sha256": "d0cf56e1424c0f0d3226f80b1ce2b4025dcbeff3c7eaa3aa61b0e0e7b3e3d933",
+            "bytes": 981
+          }
+        },
+        "phase_usage": {
+          "solver": {
+            "prompt_tokens": 371485,
+            "completion_tokens": 11411,
+            "calls": 34,
+            "tokens": 382896
+          }
+        },
+        "tools_by_phase": {
+          "solver": {
+            "outline": 2,
+            "read_file": 9,
+            "write_file": 2,
+            "run": 11,
+            "edit_file": 7,
+            "restore": 2,
+            "finish": 1
+          }
+        },
+        "initial_infrastructure_failure": {
+          "result": {
+            "instance_id": "matplotlib__matplotlib-20859",
+            "repo": "matplotlib/matplotlib",
+            "difficulty": "<15 min fix",
+            "resolved": false,
+            "eval": "error: ContreeTransportError: ContreeTransportError(request=RequestInfo(url='https://api.tokenfactory.nebius.com/sandboxes/v1/operations/01a09958-5e4f-7198-ae36-a4dc677ba73c', method='GET'), response=None, error='', _raw=ReadError",
+            "wall": 66.80999775021337
+          },
+          "observed_model_calls": 0,
+          "evidence": {
+            "result.json": {
+              "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/matplotlib__matplotlib-20859/result.json",
+              "sha256": "65ef3dc2de82a55ce457bb7074a7d5b96d611c93cfa110483555707603ca8020",
+              "bytes": 411
+            },
+            "events.jsonl": {
+              "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/matplotlib__matplotlib-20859/events.jsonl",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          "retry_plan": {
+            "status": "prepared_not_started",
+            "instance_id": "matplotlib__matplotlib-20859",
+            "variant": "baseline",
+            "attempt": 2,
+            "reason": "Initial attempt failed during pre-agent sandbox preparation while polling a ConTree operation; no model call occurred.",
+            "phase_evidence": {
+              "events_bytes": 0,
+              "llm_call_events": 0,
+              "acceptance_phase_events": 0,
+              "exact_preparation_substep": "Unknown: operation-polling error does not distinguish OCI import from baseline command operation; no stack trace retained."
+            },
+            "original_result_path": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/matplotlib__matplotlib-20859/result.json",
+            "original_result": {
+              "instance_id": "matplotlib__matplotlib-20859",
+              "repo": "matplotlib/matplotlib",
+              "difficulty": "<15 min fix",
+              "resolved": false,
+              "eval": "error: ContreeTransportError: ContreeTransportError(request=RequestInfo(url='https://api.tokenfactory.nebius.com/sandboxes/v1/operations/01a09958-5e4f-7198-ae36-a4dc677ba73c', method='GET'), response=None, error='', _raw=ReadError",
+              "wall": 66.80999775021337
+            },
+            "original_result_sha256": "65ef3dc2de82a55ce457bb7074a7d5b96d611c93cfa110483555707603ca8020",
+            "original_events_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "source_tree": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/source-tree",
+            "source_hashes_path": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/source-hashes.json",
+            "settings": {
+              "model": "nvidia/nemotron-3-super-120b-a12b",
+              "llm_base_url": "https://api.tokenfactory.nebius.com/v1/",
+              "temperature": 1.0,
+              "top_p": 0.95,
+              "effort": "low",
+              "max_steps": 50,
+              "context_budget": 80000,
+              "command_timeout": 300,
+              "import_timeout": 900,
+              "investigate_model": null,
+              "investigate_steps": 6,
+              "system_prompt_file": null
+            },
+            "request_options": {
+              "max_tokens": 16384,
+              "top_p": 0.95,
+              "extra_body": {
+                "chat_template_kwargs": {
+                  "enable_thinking": true,
+                  "low_effort": true
+                }
+              }
+            },
+            "acceptance_check": false,
+            "review_before_finish": false,
+            "argv": [
+              "/Users/wangalrebt/code/prax_bot/.venv/bin/python",
+              "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/source-tree/scripts/swe_bench.py",
+              "run",
+              "--ids",
+              "matplotlib__matplotlib-20859",
+              "--max-steps",
+              "50",
+              "--parallel",
+              "1",
+              "--out",
+              "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/baseline-retry1"
+            ],
+            "cwd": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/source-tree",
+            "output": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/baseline-retry1",
+            "config_home": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/baseline-retry1/config",
+            "concurrency": "One task / one slot. Parent must wait for a free slot before launching; initial total concurrency cap remains4.",
+            "preservation": "Original baseline result/events/aggregate are never overwritten. New model activity/results remain under baseline-retry1. Retry follows an infrastructure failure before any model call, not a failed model solution."
+          },
+          "preflight": {
+            "agent_source": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/source-tree/src/prax_bot/core/agent.py",
+            "settings": {
+              "model": "nvidia/nemotron-3-super-120b-a12b",
+              "llm_base_url": "https://api.tokenfactory.nebius.com/v1/",
+              "temperature": 1.0,
+              "top_p": 0.95,
+              "effort": "low",
+              "max_steps": 50,
+              "context_budget": 80000,
+              "command_timeout": 300,
+              "import_timeout": 900,
+              "investigate_model": null,
+              "investigate_steps": 6,
+              "system_prompt_file": null
+            },
+            "request_options": {
+              "max_tokens": 16384,
+              "top_p": 0.95,
+              "extra_body": {
+                "chat_template_kwargs": {
+                  "enable_thinking": true,
+                  "low_effort": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "candidate": {
+        "instance_id": "matplotlib__matplotlib-20859",
+        "repo": "matplotlib/matplotlib",
+        "difficulty": "<15 min fix",
+        "finished": true,
+        "reason": "finish",
+        "steps": 50,
+        "tokens": 474207,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 50,
+            "prompt_tokens": 463311,
+            "completion_tokens": 10896
+          }
+        },
+        "sandbox_commands": 27,
+        "sandbox_cost": 0.10790071000000001,
+        "agent_elapsed": 227.37190250004642,
+        "diff_lines": 21,
+        "resolved": false,
+        "patch_applied": true,
+        "f2p": "0/1",
+        "p2p": "0/88",
+        "eval": "not resolved",
+        "eval_cost": 0.07187177,
+        "grading_attempts": 1,
+        "wall": 239.07451179088093,
+        "summary_present": false,
+        "effective_variant": "candidate-retry1",
+        "evidence": {
+          "acceptance-command.sh": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate-retry1/scratch/matplotlib__matplotlib-20859/acceptance-command.sh",
+            "sha256": "eddcd3637c54734a1e55ea612ce067cb12ef2564375c1382d4652e4ff61ddfbd",
+            "bytes": 1413
+          },
+          "acceptance.json": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate-retry1/scratch/matplotlib__matplotlib-20859/acceptance.json",
+            "sha256": "6829de0284250a6fcd9d8daaadfa7c64174e16d9b0c2ff822eaf7f7508c2634d",
+            "bytes": 10160
+          },
+          "eval.log": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate-retry1/scratch/matplotlib__matplotlib-20859/eval.log",
+            "sha256": "6dcc5d2b332589b97eefe1252a63808692a489e2b1b6cd245b819308c0daece5",
+            "bytes": 17981
+          },
+          "events.jsonl": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate-retry1/scratch/matplotlib__matplotlib-20859/events.jsonl",
+            "sha256": "31fe2a861302d6f6b98d7a1a1b0f02d729e0d6237e2f8cb75f7231c925c042ef",
+            "bytes": 99529
+          },
+          "patch.diff": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate-retry1/scratch/matplotlib__matplotlib-20859/patch.diff",
+            "sha256": "e4b649ec6036ae0bafe3147ec550a9083f3d10c43bf3ebb500bd2f1728bb9cab",
+            "bytes": 727
+          },
+          "result.json": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate-retry1/scratch/matplotlib__matplotlib-20859/result.json",
+            "sha256": "eac55b199082eb7a76e02aeff40662df8aebf04ecd0c9ca00b8ff10a4ea9eb72",
+            "bytes": 11106
+          }
+        },
+        "phase_usage": {
+          "author": {
+            "prompt_tokens": 89866,
+            "completion_tokens": 2096,
+            "calls": 12,
+            "tokens": 91962
+          },
+          "solver": {
+            "prompt_tokens": 312436,
+            "completion_tokens": 5636,
+            "calls": 30,
+            "tokens": 318072
+          },
+          "repair": {
+            "prompt_tokens": 61009,
+            "completion_tokens": 3164,
+            "calls": 8,
+            "tokens": 64173
+          }
+        },
+        "tools_by_phase": {
+          "author": {
+            "submit_acceptance_check": 2,
+            "search": 3,
+            "read_file": 4,
+            "edit_file": 1,
+            "write_file": 1,
+            "finish": 1
+          },
+          "solver": {
+            "read_file": 11,
+            "outline": 1,
+            "search": 7,
+            "edit_file": 5,
+            "run": 3,
+            "write_file": 2,
+            "finish": 1
+          },
+          "repair": {
+            "read_file": 4,
+            "search": 2,
+            "outline": 1,
+            "finish": 1
+          }
+        },
+        "acceptance": {
+          "author_budget": 12,
+          "repair_reserve": 8,
+          "phases": [
+            {
+              "phase": "author",
+              "budget": 12,
+              "offset": 0,
+              "finished": true,
+              "summary": "(no summary given)",
+              "steps": 12,
+              "reason": "finish",
+              "goal_met": false
+            },
+            {
+              "phase": "solver",
+              "budget": 30,
+              "offset": 12,
+              "finished": true,
+              "summary": "(no summary given)",
+              "steps": 30,
+              "reason": "finish",
+              "goal_met": false
+            },
+            {
+              "phase": "repair",
+              "budget": 8,
+              "offset": 42,
+              "finished": true,
+              "summary": "(no summary given)",
+              "steps": 8,
+              "reason": "finish",
+              "goal_met": false
+            }
+          ],
+          "check_status": "error",
+          "total_steps": 50,
+          "accepted": {
+            "spec": {
+              "requirement": "Check that adding a legend to a SubFigure works without raising TypeError.",
+              "setup": "import matplotlib.pyplot as plt\nsubfig = plt.figure().subfigures()\nax = subfig.subplots()\nax.plot([0, 1, 2], [0, 1, 2], label=\"test\")\ntry:\n    subfig.legend()\n    success = True\nexcept TypeError:\n    success = False",
+              "assertions": [
+                "success"
+              ]
+            },
+            "sha256": "51ad88a6938b130ad7be039829af6671e6ea5b80100f61095903df4a3e27fd79"
+          },
+          "attempts": [
+            {
+              "spec": {
+                "requirement": "Check that adding a legend to a SubFigure works without raising TypeError.",
+                "setup": "import matplotlib.pyplot as plt\nsubfig = plt.figure().subfigures()\nax = subfig.subplots()\nax.plot([0, 1, 2], [0, 1, 2], label=\"test\")\ntry:\n    subfig.legend()\n    success = True\nexcept TypeError:\n    success = False",
+                "assertions": [
+                  "success"
+                ]
+              },
+              "sha256": "51ad88a6938b130ad7be039829af6671e6ea5b80100f61095903df4a3e27fd79",
+              "status": "failed",
+              "execution": {
+                "name": "acceptance/baseline",
+                "image": "a9966b4b-a251-43fa-afa5-cdb436f58508",
+                "exit_code": 1,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0], \"status\": \"failed\"}\n",
+                "elapsed_s": 2.824118,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "failed": [
+                  0
+                ],
+                "status": "failed"
+              }
+            }
+          ],
+          "solver_check": {
+            "status": "error",
+            "execution": {
+              "name": "acceptance/solver",
+              "image": "8f4f50f1-0d37-47e3-a3e3-9fbb88c8866c",
+              "exit_code": 2,
+              "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"error\": \"ImportError: cannot import name 'FigureBase' from partially initialized module 'matplotlib.figure' (most likely due to a circular import) (/testbed/lib/matplotlib/figure.py)\", \"index\": null, \"phase\": \"setup\", \"status\": \"error\"}\n",
+              "elapsed_s": 0.736945,
+              "timed_out": false,
+              "error": null
+            },
+            "details": {
+              "error": "ImportError: cannot import name 'FigureBase' from partially initialized module 'matplotlib.figure' (most likely due to a circular import) (/testbed/lib/matplotlib/figure.py)",
+              "index": null,
+              "phase": "setup",
+              "status": "error"
+            }
+          },
+          "repair_check": {
+            "status": "error",
+            "execution": {
+              "name": "acceptance/repair",
+              "image": "8f4f50f1-0d37-47e3-a3e3-9fbb88c8866c",
+              "exit_code": 2,
+              "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"error\": \"ImportError: cannot import name 'FigureBase' from partially initialized module 'matplotlib.figure' (most likely due to a circular import) (/testbed/lib/matplotlib/figure.py)\", \"index\": null, \"phase\": \"setup\", \"status\": \"error\"}\n",
+              "elapsed_s": 0.736311,
+              "timed_out": false,
+              "error": null
+            },
+            "details": {
+              "error": "ImportError: cannot import name 'FigureBase' from partially initialized module 'matplotlib.figure' (most likely due to a circular import) (/testbed/lib/matplotlib/figure.py)",
+              "index": null,
+              "phase": "setup",
+              "status": "error"
+            }
+          },
+          "submission_tool_calls": 2,
+          "runtime_check_events": [
+            {
+              "t": 1789279871.278741,
+              "kind": "acceptance.check",
+              "phase": "baseline",
+              "sha256": "51ad88a6938b130ad7be039829af6671e6ea5b80100f61095903df4a3e27fd79",
+              "status": "failed",
+              "execution": {
+                "name": "acceptance/baseline",
+                "image": "a9966b4b-a251-43fa-afa5-cdb436f58508",
+                "exit_code": 1,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0], \"status\": \"failed\"}\n",
+                "elapsed_s": 2.824118,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "failed": [
+                  0
+                ],
+                "status": "failed"
+              }
+            },
+            {
+              "t": 1789280045.787752,
+              "kind": "acceptance.check",
+              "phase": "solver",
+              "sha256": "51ad88a6938b130ad7be039829af6671e6ea5b80100f61095903df4a3e27fd79",
+              "status": "error",
+              "execution": {
+                "name": "acceptance/solver",
+                "image": "8f4f50f1-0d37-47e3-a3e3-9fbb88c8866c",
+                "exit_code": 2,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"error\": \"ImportError: cannot import name 'FigureBase' from partially initialized module 'matplotlib.figure' (most likely due to a circular import) (/testbed/lib/matplotlib/figure.py)\", \"index\": null, \"phase\": \"setup\", \"status\": \"error\"}\n",
+                "elapsed_s": 0.736945,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "error": "ImportError: cannot import name 'FigureBase' from partially initialized module 'matplotlib.figure' (most likely due to a circular import) (/testbed/lib/matplotlib/figure.py)",
+                "index": null,
+                "phase": "setup",
+                "status": "error"
+              }
+            },
+            {
+              "t": 1789280073.4219909,
+              "kind": "acceptance.check",
+              "phase": "repair",
+              "sha256": "51ad88a6938b130ad7be039829af6671e6ea5b80100f61095903df4a3e27fd79",
+              "status": "error",
+              "execution": {
+                "name": "acceptance/repair",
+                "image": "8f4f50f1-0d37-47e3-a3e3-9fbb88c8866c",
+                "exit_code": 2,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"error\": \"ImportError: cannot import name 'FigureBase' from partially initialized module 'matplotlib.figure' (most likely due to a circular import) (/testbed/lib/matplotlib/figure.py)\", \"index\": null, \"phase\": \"setup\", \"status\": \"error\"}\n",
+                "elapsed_s": 0.736311,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "error": "ImportError: cannot import name 'FigureBase' from partially initialized module 'matplotlib.figure' (most likely due to a circular import) (/testbed/lib/matplotlib/figure.py)",
+                "index": null,
+                "phase": "setup",
+                "status": "error"
+              }
+            }
+          ]
+        },
+        "initial_infrastructure_failure": {
+          "result": {
+            "instance_id": "matplotlib__matplotlib-20859",
+            "repo": "matplotlib/matplotlib",
+            "difficulty": "<15 min fix",
+            "resolved": false,
+            "eval": "error: ContreeTransportError: ContreeTransportError(request=RequestInfo(url='https://api.tokenfactory.nebius.com/sandboxes/v1/operations/01a09958-54f7-7339-b45d-456366f4f677', method='GET'), response=None, error='', _raw=ReadError",
+            "wall": 53.659101666882634
+          },
+          "observed_model_calls": 0,
+          "evidence": {
+            "result.json": {
+              "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/matplotlib__matplotlib-20859/result.json",
+              "sha256": "56a81d77416ade92c65db23916430e36153ab360f0925364f8a0a08532942ebf",
+              "bytes": 412
+            },
+            "events.jsonl": {
+              "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/matplotlib__matplotlib-20859/events.jsonl",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          "retry_plan": {
+            "status": "prepared_not_started",
+            "instance_id": "matplotlib__matplotlib-20859",
+            "variant": "candidate",
+            "attempt": 2,
+            "reason": "Initial attempt failed during pre-agent sandbox preparation while polling a ConTree operation; no model call occurred.",
+            "phase_evidence": {
+              "events_bytes": 0,
+              "llm_call_events": 0,
+              "acceptance_phase_events": 0,
+              "exact_preparation_substep": "Unknown: operation-polling error does not distinguish OCI import from baseline command operation; no stack trace retained."
+            },
+            "original_result_path": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/matplotlib__matplotlib-20859/result.json",
+            "original_result": {
+              "instance_id": "matplotlib__matplotlib-20859",
+              "repo": "matplotlib/matplotlib",
+              "difficulty": "<15 min fix",
+              "resolved": false,
+              "eval": "error: ContreeTransportError: ContreeTransportError(request=RequestInfo(url='https://api.tokenfactory.nebius.com/sandboxes/v1/operations/01a09958-54f7-7339-b45d-456366f4f677', method='GET'), response=None, error='', _raw=ReadError",
+              "wall": 53.659101666882634
+            },
+            "original_result_sha256": "56a81d77416ade92c65db23916430e36153ab360f0925364f8a0a08532942ebf",
+            "original_events_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "source_tree": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/source-tree",
+            "source_hashes_path": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/source-hashes.json",
+            "settings": {
+              "model": "nvidia/nemotron-3-super-120b-a12b",
+              "llm_base_url": "https://api.tokenfactory.nebius.com/v1/",
+              "temperature": 1.0,
+              "top_p": 0.95,
+              "effort": "low",
+              "max_steps": 50,
+              "context_budget": 80000,
+              "command_timeout": 300,
+              "import_timeout": 900,
+              "investigate_model": null,
+              "investigate_steps": 6,
+              "system_prompt_file": null
+            },
+            "request_options": {
+              "max_tokens": 16384,
+              "top_p": 0.95,
+              "extra_body": {
+                "chat_template_kwargs": {
+                  "enable_thinking": true,
+                  "low_effort": true
+                }
+              }
+            },
+            "acceptance_check": true,
+            "review_before_finish": false,
+            "argv": [
+              "/Users/wangalrebt/code/prax_bot/.venv/bin/python",
+              "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/source-tree/scripts/swe_bench.py",
+              "run",
+              "--ids",
+              "matplotlib__matplotlib-20859",
+              "--max-steps",
+              "50",
+              "--parallel",
+              "1",
+              "--out",
+              "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/candidate-retry1",
+              "--acceptance-check"
+            ],
+            "cwd": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/source-tree",
+            "output": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/candidate-retry1",
+            "config_home": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/candidate-retry1/config",
+            "concurrency": "One task / one slot. Parent must wait for a free slot before launching; initial total concurrency cap remains4.",
+            "preservation": "Original candidate result/events/aggregate are never overwritten. New model activity/results remain under candidate-retry1. Retry follows an infrastructure failure before any model call, not a failed model solution."
+          },
+          "preflight": {
+            "agent_source": "/Users/wangalrebt/code/prax_bot/bench/swebench/scratch/20260913-acceptance-comparison/source-tree/src/prax_bot/core/agent.py",
+            "settings": {
+              "model": "nvidia/nemotron-3-super-120b-a12b",
+              "llm_base_url": "https://api.tokenfactory.nebius.com/v1/",
+              "temperature": 1.0,
+              "top_p": 0.95,
+              "effort": "low",
+              "max_steps": 50,
+              "context_budget": 80000,
+              "command_timeout": 300,
+              "import_timeout": 900,
+              "investigate_model": null,
+              "investigate_steps": 6,
+              "system_prompt_file": null
+            },
+            "request_options": {
+              "max_tokens": 16384,
+              "top_p": 0.95,
+              "extra_body": {
+                "chat_template_kwargs": {
+                  "enable_thinking": true,
+                  "low_effort": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "instance_id": "pydata__xarray-4687",
+      "repo": "pydata/xarray",
+      "difficulty": "15 min - 1 hour",
+      "role": "fresh",
+      "summary": "xr.where drops DataArray attributes; the report requests preservation or a keep_attrs option.",
+      "baseline": {
+        "instance_id": "pydata__xarray-4687",
+        "repo": "pydata/xarray",
+        "difficulty": "15 min - 1 hour",
+        "finished": true,
+        "reason": "finish",
+        "steps": 50,
+        "tokens": 1137659,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 50,
+            "prompt_tokens": 1095922,
+            "completion_tokens": 41737
+          }
+        },
+        "sandbox_commands": 27,
+        "sandbox_cost": 0.30786619,
+        "agent_elapsed": 572.6727071250789,
+        "diff_lines": 49,
+        "resolved": false,
+        "patch_applied": true,
+        "f2p": "0/1",
+        "p2p": "1717/1717",
+        "eval": "not resolved",
+        "eval_cost": 0.43457024000000005,
+        "grading_attempts": 1,
+        "wall": 626.3023757080082,
+        "summary_present": false,
+        "effective_variant": "baseline",
+        "evidence": {
+          "eval.log": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/pydata__xarray-4687/eval.log",
+            "sha256": "24c721d71799f2196c5719d4d65b135c44cc803dd88fbff6c778f93c65b18ce4",
+            "bytes": 228390
+          },
+          "events.jsonl": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/pydata__xarray-4687/events.jsonl",
+            "sha256": "b1465dfeef98890f8fdd5e4b439411b09c37af1cb725a254dc0b7bfaf38b558a",
+            "bytes": 158835
+          },
+          "patch.diff": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/pydata__xarray-4687/patch.diff",
+            "sha256": "798f13f326dba347877637ee1d55b650989a38a412fe2d8d3dcde9c46c3906e9",
+            "bytes": 1752
+          },
+          "result.json": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/pydata__xarray-4687/result.json",
+            "sha256": "62b8fe2c073a926c61e24d393fee2add5366f93b9bc0f1c431eaa4b33a500513",
+            "bytes": 691
+          }
+        },
+        "phase_usage": {
+          "solver": {
+            "prompt_tokens": 1095922,
+            "completion_tokens": 41737,
+            "calls": 50,
+            "tokens": 1137659
+          }
+        },
+        "tools_by_phase": {
+          "solver": {
+            "search": 4,
+            "read_file": 11,
+            "edit_file": 6,
+            "write_file": 11,
+            "run": 15,
+            "grep": 1,
+            "list_files": 1,
+            "finish": 1
+          }
+        }
+      },
+      "candidate": {
+        "instance_id": "pydata__xarray-4687",
+        "repo": "pydata/xarray",
+        "difficulty": "15 min - 1 hour",
+        "finished": true,
+        "reason": "finish",
+        "steps": 50,
+        "tokens": 964721,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 50,
+            "prompt_tokens": 908341,
+            "completion_tokens": 56380
+          }
+        },
+        "sandbox_commands": 32,
+        "sandbox_cost": 0.36202142,
+        "agent_elapsed": 613.8167056250386,
+        "diff_lines": 29,
+        "resolved": false,
+        "patch_applied": true,
+        "f2p": "0/1",
+        "p2p": "1696/1717",
+        "eval": "not resolved",
+        "eval_cost": 0.45468336000000004,
+        "grading_attempts": 1,
+        "wall": 669.8908266660292,
+        "summary_present": false,
+        "effective_variant": "candidate",
+        "evidence": {
+          "acceptance-command.sh": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/pydata__xarray-4687/acceptance-command.sh",
+            "sha256": "c5ea27d4cf373ce633aa44aa09b6026460ccbec5185bde1e9d339482d12f19ab",
+            "bytes": 1531
+          },
+          "acceptance.json": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/pydata__xarray-4687/acceptance.json",
+            "sha256": "ac987398cc49d176ad70551c39da58686dd3cacd015f5c456a111fc6230731ff",
+            "bytes": 10456
+          },
+          "eval.log": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/pydata__xarray-4687/eval.log",
+            "sha256": "ee533117457ce2dec256f416488782e28efd41895a9b180b209021ec05cf5679",
+            "bytes": 338782
+          },
+          "events.jsonl": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/pydata__xarray-4687/events.jsonl",
+            "sha256": "b0f27aa61a041d6de872cd8546a7774875e971b90f4022705c3b99f61d32d737",
+            "bytes": 190063
+          },
+          "patch.diff": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/pydata__xarray-4687/patch.diff",
+            "sha256": "09d0c63d17bb4026e9667d361eea8f6859ac1e41de2ecc0ac37be7ecc8561475",
+            "bytes": 918
+          },
+          "result.json": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/pydata__xarray-4687/result.json",
+            "sha256": "61c0ccadef06aa662cdc374dca0ced48f7dec0e6fa467658d8bff42e55b1f2a8",
+            "bytes": 11400
+          }
+        },
+        "phase_usage": {
+          "author": {
+            "prompt_tokens": 122352,
+            "completion_tokens": 4132,
+            "calls": 9,
+            "tokens": 126484
+          },
+          "solver": {
+            "prompt_tokens": 695906,
+            "completion_tokens": 47774,
+            "calls": 33,
+            "tokens": 743680
+          },
+          "repair": {
+            "prompt_tokens": 90083,
+            "completion_tokens": 4474,
+            "calls": 8,
+            "tokens": 94557
+          }
+        },
+        "tools_by_phase": {
+          "author": {
+            "search": 2,
+            "read_file": 3,
+            "run": 1,
+            "submit_acceptance_check": 1,
+            "finish": 2
+          },
+          "solver": {
+            "search": 4,
+            "read_file": 11,
+            "edit_file": 5,
+            "run": 9,
+            "outline": 1,
+            "grep": 1,
+            "write_file": 1,
+            "finish": 1
+          },
+          "repair": {
+            "search": 1,
+            "read_file": 1,
+            "write_file": 2,
+            "run": 2,
+            "edit_file": 1,
+            "finish": 1
+          }
+        },
+        "acceptance": {
+          "author_budget": 12,
+          "repair_reserve": 8,
+          "phases": [
+            {
+              "phase": "author",
+              "budget": 12,
+              "offset": 0,
+              "finished": true,
+              "summary": "Submitted acceptance check that fails on original repository (attributes and dtype not preserved). The check is accepted and frozen, ready for solver to implement fix.",
+              "steps": 9,
+              "reason": "finish",
+              "goal_met": false
+            },
+            {
+              "phase": "solver",
+              "budget": 33,
+              "offset": 9,
+              "finished": true,
+              "summary": "(no summary given)",
+              "steps": 33,
+              "reason": "finish",
+              "goal_met": false
+            },
+            {
+              "phase": "repair",
+              "budget": 8,
+              "offset": 42,
+              "finished": true,
+              "summary": "(no summary given)",
+              "steps": 8,
+              "reason": "finish",
+              "goal_met": false
+            }
+          ],
+          "check_status": "error",
+          "total_steps": 50,
+          "accepted": {
+            "spec": {
+              "requirement": "xr.where should preserve attributes and dtype of the input DataArray when all inputs are DataArrays with same dtype and attributes are from the first argument.",
+              "setup": "import numpy as np\nimport xarray as xr\n\ndata = xr.DataArray(np.ones([10,10], dtype=np.int8))\ndata.attrs[\"attr_1\"] = \"test1\"\ndata.attrs[\"attr_2\"] = \"test2\"\n\nresult = xr.where(data == 1, 5, 0)",
+              "assertions": [
+                "result.attrs == data.attrs",
+                "result.dtype == data.dtype"
+              ]
+            },
+            "sha256": "d27c44587fab2eaf4b7b3ac001f32d682443162d275d846525edb91cdc60fb36"
+          },
+          "attempts": [
+            {
+              "spec": {
+                "requirement": "xr.where should preserve attributes and dtype of the input DataArray when all inputs are DataArrays with same dtype and attributes are from the first argument.",
+                "setup": "import numpy as np\nimport xarray as xr\n\ndata = xr.DataArray(np.ones([10,10], dtype=np.int8))\ndata.attrs[\"attr_1\"] = \"test1\"\ndata.attrs[\"attr_2\"] = \"test2\"\n\nresult = xr.where(data == 1, 5, 0)",
+                "assertions": [
+                  "result.attrs == data.attrs",
+                  "result.dtype == data.dtype"
+                ]
+              },
+              "sha256": "d27c44587fab2eaf4b7b3ac001f32d682443162d275d846525edb91cdc60fb36",
+              "status": "failed",
+              "execution": {
+                "name": "acceptance/baseline",
+                "image": "c21354ef-0a8c-4d0c-a450-b10729c64315",
+                "exit_code": 1,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0, 1], \"status\": \"failed\"}\n",
+                "elapsed_s": 2.323467,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "failed": [
+                  0,
+                  1
+                ],
+                "status": "failed"
+              }
+            }
+          ],
+          "solver_check": {
+            "status": "failed",
+            "execution": {
+              "name": "acceptance/solver",
+              "image": "867919cd-c71c-4889-a285-5d533b7ae64a",
+              "exit_code": 1,
+              "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0, 1], \"status\": \"failed\"}\n",
+              "elapsed_s": 2.124615,
+              "timed_out": false,
+              "error": null
+            },
+            "details": {
+              "failed": [
+                0,
+                1
+              ],
+              "status": "failed"
+            }
+          },
+          "repair_check": {
+            "status": "error",
+            "execution": {
+              "name": "acceptance/repair",
+              "image": "52f7d9e7-7c89-4689-8a4a-698b443992f2",
+              "exit_code": 2,
+              "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"error\": \"NameError: name 'DataArray' is not defined\", \"index\": null, \"phase\": \"setup\", \"status\": \"error\"}\n",
+              "elapsed_s": 2.119375,
+              "timed_out": false,
+              "error": null
+            },
+            "details": {
+              "error": "NameError: name 'DataArray' is not defined",
+              "index": null,
+              "phase": "setup",
+              "status": "error"
+            }
+          },
+          "submission_tool_calls": 1,
+          "runtime_check_events": [
+            {
+              "t": 1789279493.201223,
+              "kind": "acceptance.check",
+              "phase": "baseline",
+              "sha256": "d27c44587fab2eaf4b7b3ac001f32d682443162d275d846525edb91cdc60fb36",
+              "status": "failed",
+              "execution": {
+                "name": "acceptance/baseline",
+                "image": "c21354ef-0a8c-4d0c-a450-b10729c64315",
+                "exit_code": 1,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0, 1], \"status\": \"failed\"}\n",
+                "elapsed_s": 2.323467,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "failed": [
+                  0,
+                  1
+                ],
+                "status": "failed"
+              }
+            },
+            {
+              "t": 1789280006.245329,
+              "kind": "acceptance.check",
+              "phase": "solver",
+              "sha256": "d27c44587fab2eaf4b7b3ac001f32d682443162d275d846525edb91cdc60fb36",
+              "status": "failed",
+              "execution": {
+                "name": "acceptance/solver",
+                "image": "867919cd-c71c-4889-a285-5d533b7ae64a",
+                "exit_code": 1,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0, 1], \"status\": \"failed\"}\n",
+                "elapsed_s": 2.124615,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "failed": [
+                  0,
+                  1
+                ],
+                "status": "failed"
+              }
+            },
+            {
+              "t": 1789280049.09259,
+              "kind": "acceptance.check",
+              "phase": "repair",
+              "sha256": "d27c44587fab2eaf4b7b3ac001f32d682443162d275d846525edb91cdc60fb36",
+              "status": "error",
+              "execution": {
+                "name": "acceptance/repair",
+                "image": "52f7d9e7-7c89-4689-8a4a-698b443992f2",
+                "exit_code": 2,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"error\": \"NameError: name 'DataArray' is not defined\", \"index\": null, \"phase\": \"setup\", \"status\": \"error\"}\n",
+                "elapsed_s": 2.119375,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "error": "NameError: name 'DataArray' is not defined",
+                "index": null,
+                "phase": "setup",
+                "status": "error"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instance_id": "sympy__sympy-19040",
+      "repo": "sympy/sympy",
+      "difficulty": "15 min - 1 hour",
+      "role": "fresh",
+      "summary": "Factoring a multivariate expression with a complex extension drops a multiplicative factor.",
+      "baseline": {
+        "instance_id": "sympy__sympy-19040",
+        "repo": "sympy/sympy",
+        "difficulty": "15 min - 1 hour",
+        "finished": true,
+        "reason": "finish",
+        "steps": 50,
+        "tokens": 814423,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 50,
+            "prompt_tokens": 801075,
+            "completion_tokens": 13348
+          }
+        },
+        "sandbox_commands": 23,
+        "sandbox_cost": 0.04548177,
+        "agent_elapsed": 330.88446158287115,
+        "diff_lines": 0,
+        "resolved": false,
+        "patch_applied": false,
+        "eval": "no diff produced",
+        "wall": 330.88453362486325,
+        "summary_present": false,
+        "effective_variant": "baseline",
+        "evidence": {
+          "events.jsonl": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/sympy__sympy-19040/events.jsonl",
+            "sha256": "0061b7c1a27ad3bb45e13e0c7e2f190a8fee195b8a6b9b9029d1f3a0b6bcb568",
+            "bytes": 109686
+          },
+          "patch.diff": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/sympy__sympy-19040/patch.diff",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "result.json": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/baseline/scratch/sympy__sympy-19040/result.json",
+            "sha256": "e3d1f590755452ef712c151db0a7b8cc65af285e6cfd1a33d708f1e2ba51876d",
+            "bytes": 593
+          }
+        },
+        "phase_usage": {
+          "solver": {
+            "prompt_tokens": 801075,
+            "completion_tokens": 13348,
+            "calls": 50,
+            "tokens": 814423
+          }
+        },
+        "tools_by_phase": {
+          "solver": {
+            "search": 13,
+            "read_file": 18,
+            "outline": 2,
+            "write_file": 11,
+            "run": 5,
+            "finish": 1
+          }
+        }
+      },
+      "candidate": {
+        "instance_id": "sympy__sympy-19040",
+        "repo": "sympy/sympy",
+        "difficulty": "15 min - 1 hour",
+        "finished": true,
+        "reason": "finish",
+        "steps": 50,
+        "tokens": 700301,
+        "usage_by_model": {
+          "nvidia/nemotron-3-super-120b-a12b": {
+            "calls": 50,
+            "prompt_tokens": 682300,
+            "completion_tokens": 18001
+          }
+        },
+        "sandbox_commands": 26,
+        "sandbox_cost": 0.0637192,
+        "agent_elapsed": 367.2767374590039,
+        "diff_lines": 0,
+        "resolved": false,
+        "patch_applied": false,
+        "eval": "no diff produced",
+        "wall": 367.2767969998531,
+        "summary_present": false,
+        "effective_variant": "candidate",
+        "evidence": {
+          "acceptance-command.sh": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/sympy__sympy-19040/acceptance-command.sh",
+            "sha256": "d6dd6a75189f37460bfe8fe525b6a6e9a413788cbff28006cb02ba38258665e6",
+            "bytes": 1354
+          },
+          "acceptance.json": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/sympy__sympy-19040/acceptance.json",
+            "sha256": "642c9ef098f7219e23582941ef8f1c1be4230f1668837e5ee160deb3660e683e",
+            "bytes": 8931
+          },
+          "events.jsonl": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/sympy__sympy-19040/events.jsonl",
+            "sha256": "08e14edf6a43e3d652acab6f8fa8349152578fd3ff016ef9e5cdba24555d6f6c",
+            "bytes": 116512
+          },
+          "patch.diff": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/sympy__sympy-19040/patch.diff",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "result.json": {
+            "path": "bench/swebench/scratch/20260913-acceptance-comparison/candidate/scratch/sympy__sympy-19040/result.json",
+            "sha256": "2cc9519de1f47161940fa6041c2ef4a8c5abda16d7118e1ddc7806e15ca1e819",
+            "bytes": 9768
+          }
+        },
+        "phase_usage": {
+          "author": {
+            "prompt_tokens": 23961,
+            "completion_tokens": 796,
+            "calls": 3,
+            "tokens": 24757
+          },
+          "solver": {
+            "prompt_tokens": 555480,
+            "completion_tokens": 16527,
+            "calls": 39,
+            "tokens": 572007
+          },
+          "repair": {
+            "prompt_tokens": 102859,
+            "completion_tokens": 678,
+            "calls": 8,
+            "tokens": 103537
+          }
+        },
+        "tools_by_phase": {
+          "author": {
+            "submit_acceptance_check": 1,
+            "finish": 2
+          },
+          "solver": {
+            "search": 9,
+            "read_file": 14,
+            "write_file": 10,
+            "run": 4,
+            "edit_file": 1,
+            "finish": 1
+          },
+          "repair": {
+            "search": 1,
+            "read_file": 5,
+            "outline": 1,
+            "finish": 1
+          }
+        },
+        "acceptance": {
+          "author_budget": 12,
+          "repair_reserve": 8,
+          "phases": [
+            {
+              "phase": "author",
+              "budget": 12,
+              "offset": 0,
+              "finished": true,
+              "summary": "(no summary given)",
+              "steps": 3,
+              "reason": "finish",
+              "goal_met": false
+            },
+            {
+              "phase": "solver",
+              "budget": 39,
+              "offset": 3,
+              "finished": true,
+              "summary": "(no summary given)",
+              "steps": 39,
+              "reason": "finish",
+              "goal_met": false
+            },
+            {
+              "phase": "repair",
+              "budget": 8,
+              "offset": 42,
+              "finished": true,
+              "summary": "(no summary given)",
+              "steps": 8,
+              "reason": "finish",
+              "goal_met": false
+            }
+          ],
+          "check_status": "failed",
+          "total_steps": 50,
+          "accepted": {
+            "spec": {
+              "requirement": "Factor with extension=True should not drop any factors; factoring (x-1)*(y-1) with extension=[I] should return (x-1)*(y-1).",
+              "setup": "import sympy\nfrom sympy.abc import x, y\nz = sympy.expand((x - 1) * (y - 1))",
+              "assertions": [
+                "sympy.factor(z, extension=[sympy.I]) == (x - 1)*(y - 1)"
+              ]
+            },
+            "sha256": "f6a25a57811cd876688150a5969a98e2ea5a22685685ddb2266eb43c9fb32ecc"
+          },
+          "attempts": [
+            {
+              "spec": {
+                "requirement": "Factor with extension=True should not drop any factors; factoring (x-1)*(y-1) with extension=[I] should return (x-1)*(y-1).",
+                "setup": "import sympy\nfrom sympy.abc import x, y\nz = sympy.expand((x - 1) * (y - 1))",
+                "assertions": [
+                  "sympy.factor(z, extension=[sympy.I]) == (x - 1)*(y - 1)"
+                ]
+              },
+              "sha256": "f6a25a57811cd876688150a5969a98e2ea5a22685685ddb2266eb43c9fb32ecc",
+              "status": "failed",
+              "execution": {
+                "name": "acceptance/baseline",
+                "image": "848dfb6e-3afd-461b-a4f0-4c2c19b8ef3c",
+                "exit_code": 1,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0], \"status\": \"failed\"}\n",
+                "elapsed_s": 1.084707,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "failed": [
+                  0
+                ],
+                "status": "failed"
+              }
+            }
+          ],
+          "solver_check": {
+            "status": "failed",
+            "execution": {
+              "name": "acceptance/solver",
+              "image": "39958b08-a398-4a34-b965-13dec102ddea",
+              "exit_code": 1,
+              "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0], \"status\": \"failed\"}\n",
+              "elapsed_s": 0.395006,
+              "timed_out": false,
+              "error": null
+            },
+            "details": {
+              "failed": [
+                0
+              ],
+              "status": "failed"
+            }
+          },
+          "repair_check": {
+            "status": "failed",
+            "execution": {
+              "name": "acceptance/repair",
+              "image": "39958b08-a398-4a34-b965-13dec102ddea",
+              "exit_code": 1,
+              "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0], \"status\": \"failed\"}\n",
+              "elapsed_s": 0.395313,
+              "timed_out": false,
+              "error": null
+            },
+            "details": {
+              "failed": [
+                0
+              ],
+              "status": "failed"
+            }
+          },
+          "submission_tool_calls": 1,
+          "runtime_check_events": [
+            {
+              "t": 1789279462.3238442,
+              "kind": "acceptance.check",
+              "phase": "baseline",
+              "sha256": "f6a25a57811cd876688150a5969a98e2ea5a22685685ddb2266eb43c9fb32ecc",
+              "status": "failed",
+              "execution": {
+                "name": "acceptance/baseline",
+                "image": "848dfb6e-3afd-461b-a4f0-4c2c19b8ef3c",
+                "exit_code": 1,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0], \"status\": \"failed\"}\n",
+                "elapsed_s": 1.084707,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "failed": [
+                  0
+                ],
+                "status": "failed"
+              }
+            },
+            {
+              "t": 1789279765.646785,
+              "kind": "acceptance.check",
+              "phase": "solver",
+              "sha256": "f6a25a57811cd876688150a5969a98e2ea5a22685685ddb2266eb43c9fb32ecc",
+              "status": "failed",
+              "execution": {
+                "name": "acceptance/solver",
+                "image": "39958b08-a398-4a34-b965-13dec102ddea",
+                "exit_code": 1,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0], \"status\": \"failed\"}\n",
+                "elapsed_s": 0.395006,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "failed": [
+                  0
+                ],
+                "status": "failed"
+              }
+            },
+            {
+              "t": 1789279806.097783,
+              "kind": "acceptance.check",
+              "phase": "repair",
+              "sha256": "f6a25a57811cd876688150a5969a98e2ea5a22685685ddb2266eb43c9fb32ecc",
+              "status": "failed",
+              "execution": {
+                "name": "acceptance/repair",
+                "image": "39958b08-a398-4a34-b965-13dec102ddea",
+                "exit_code": 1,
+                "output": "\nPRAXBOT_ACCEPTANCE_RESULT:{\"failed\": [0], \"status\": \"failed\"}\n",
+                "elapsed_s": 0.395313,
+                "timed_out": false,
+                "error": null
+              },
+              "details": {
+                "failed": [
+                  0
+                ],
+                "status": "failed"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "aggregates": {
+    "fresh": {
+      "baseline": {
+        "tasks": 3,
+        "resolved": 1,
+        "steps": 134,
+        "tokens": 2334978,
+        "sandbox_commands": 66,
+        "sandbox_cost": 0.5760166499999999,
+        "agent_elapsed": 1122.9760012079496,
+        "eval_cost": 0.5945789,
+        "wall": 1196.8410274167545,
+        "calls": 134,
+        "graded_patches": 2,
+        "grading_attempts": 2
+      },
+      "candidate": {
+        "tasks": 3,
+        "resolved": 0,
+        "steps": 150,
+        "tokens": 2139229,
+        "sandbox_commands": 85,
+        "sandbox_cost": 0.53364133,
+        "agent_elapsed": 1208.465345584089,
+        "eval_cost": 0.52655513,
+        "wall": 1276.2421354567632,
+        "calls": 150,
+        "graded_patches": 2,
+        "grading_attempts": 2,
+        "accepted_checks": 3,
+        "final_check_statuses": {
+          "error": 2,
+          "failed": 1
+        },
+        "runtime_check_executions": 9,
+        "repair_phases": 3,
+        "phase_usage": {
+          "author": {
+            "calls": 24,
+            "tokens": 243203,
+            "prompt_tokens": 236179,
+            "completion_tokens": 7024
+          },
+          "solver": {
+            "calls": 102,
+            "tokens": 1633759,
+            "prompt_tokens": 1563822,
+            "completion_tokens": 69937
+          },
+          "repair": {
+            "calls": 24,
+            "tokens": 262267,
+            "prompt_tokens": 253951,
+            "completion_tokens": 8316
+          }
+        }
+      },
+      "token_change_percent": -8.38333380442985
+    },
+    "development": {
+      "baseline": {
+        "tasks": 2,
+        "resolved": 1,
+        "steps": 76,
+        "tokens": 1075330,
+        "sandbox_commands": 63,
+        "sandbox_cost": 0.6981005500000004,
+        "agent_elapsed": 421.7189454997424,
+        "eval_cost": 0.07227987,
+        "wall": 438.68276829179376,
+        "calls": 76,
+        "graded_patches": 2,
+        "grading_attempts": 2
+      },
+      "candidate": {
+        "tasks": 2,
+        "resolved": 1,
+        "steps": 93,
+        "tokens": 1167704,
+        "sandbox_commands": 73,
+        "sandbox_cost": 0.44002573,
+        "agent_elapsed": 453.2084067079704,
+        "eval_cost": 0.04103816,
+        "wall": 463.56981179188006,
+        "calls": 93,
+        "graded_patches": 1,
+        "grading_attempts": 1,
+        "accepted_checks": 1,
+        "final_check_statuses": {
+          "unavailable": 1,
+          "failed": 1
+        },
+        "runtime_check_executions": 5,
+        "repair_phases": 1,
+        "phase_usage": {
+          "author": {
+            "calls": 22,
+            "tokens": 242056,
+            "prompt_tokens": 232897,
+            "completion_tokens": 9159
+          },
+          "solver": {
+            "calls": 63,
+            "tokens": 855595,
+            "prompt_tokens": 833102,
+            "completion_tokens": 22493
+          },
+          "repair": {
+            "calls": 8,
+            "tokens": 70053,
+            "prompt_tokens": 68893,
+            "completion_tokens": 1160
+          }
+        }
+      },
+      "token_change_percent": 8.590293212316213
+    },
+    "all_descriptive": {
+      "baseline": {
+        "tasks": 5,
+        "resolved": 2,
+        "steps": 210,
+        "tokens": 3410308,
+        "sandbox_commands": 129,
+        "sandbox_cost": 1.2741172000000003,
+        "agent_elapsed": 1544.694946707692,
+        "eval_cost": 0.66685877,
+        "wall": 1635.5237957085483,
+        "calls": 210,
+        "graded_patches": 4,
+        "grading_attempts": 4
+      },
+      "candidate": {
+        "tasks": 5,
+        "resolved": 1,
+        "steps": 243,
+        "tokens": 3306933,
+        "sandbox_commands": 158,
+        "sandbox_cost": 0.97366706,
+        "agent_elapsed": 1661.6737522920594,
+        "eval_cost": 0.56759329,
+        "wall": 1739.8119472486433,
+        "calls": 243,
+        "graded_patches": 3,
+        "grading_attempts": 3,
+        "accepted_checks": 4,
+        "final_check_statuses": {
+          "unavailable": 1,
+          "failed": 2,
+          "error": 2
+        },
+        "runtime_check_executions": 14,
+        "repair_phases": 4,
+        "phase_usage": {
+          "author": {
+            "calls": 46,
+            "tokens": 485259,
+            "prompt_tokens": 469076,
+            "completion_tokens": 16183
+          },
+          "solver": {
+            "calls": 165,
+            "tokens": 2489354,
+            "prompt_tokens": 2396924,
+            "completion_tokens": 92430
+          },
+          "repair": {
+            "calls": 32,
+            "tokens": 332320,
+            "prompt_tokens": 322844,
+            "completion_tokens": 9476
+          }
+        }
+      },
+      "token_change_percent": -3.031251136261004
+    }
+  },
+  "validation": {
+    "unit_tests_passed": 221,
+    "ruff_lint": "passed",
+    "ruff_format": "passed",
+    "wheel_prompt_templates": "all four acceptance templates present",
+    "frozen_source_inventory_verified": 130,
+    "accepted_source_hash_and_repeated_commands_verified": true
+  },
+  "limitations": [
+    "Two development and three fresh tasks; one stochastic model attempt per arm. Selection seed does not seed model generation.",
+    "Both initial Matplotlib preparations failed before model calls; preserved separately and retried once per arm with the same frozen source/settings.",
+    "Model usage includes all author/solver/repair calls. Runtime checks add sandbox commands outside the 50 model-tool-turn cap.",
+    "Sandbox cost is the SDK-reported unit, not total USD or model billing. Initial failed preparation costs are unavailable.",
+    "Agent elapsed includes patch export; sums of per-task wall times are not experiment elapsed time and exclude initial failed preparations.",
+    "Official grading is separate from the authored check. No-diff attempts are unresolved and not graded.",
+    "Existing network grading retries may overwrite earlier logs and retain only final evaluation cost; attempt counts are recorded.",
+    "No internal provider retry claim is made. No task received a second model attempt.",
+    "Accepted false assertions demonstrate reproduction of the authored expectation, not correctness or completeness of that expectation.",
+    "The three-attempt limit counts schema-valid proposals reaching the submission handler, including Python syntax errors; tool-schema rejections do not consume that limit but do consume model turns.",
+    "A model/API exception escaping an Agent phase can omit partial accounting from result.json; inspect event and acceptance logs. None occurred in these ten completed model attempts.",
+    "Scratch evidence is local and ignored by Git; compact provenance, check specifications, and results are retained in this manifest."
+  ]
+}
