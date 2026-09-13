@@ -29,6 +29,9 @@ jobs:
       - name: Format check
         run: uv run ruff format --check src tests scripts
 
+      - name: Type check
+        run: uv run pyright src/prax_bot
+
       - name: Test
         # The suite uses fake models and workspaces: no key, no sandbox, no network.
         run: uv run pytest -q
