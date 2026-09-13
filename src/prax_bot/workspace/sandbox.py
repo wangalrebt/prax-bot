@@ -160,9 +160,10 @@ class SandboxWorkspace:
         target = resolve_in_workdir(path, self.workdir)
         parent = posixpath.dirname(target)
         command = f"mkdir -p {shlex.quote(parent)} && mv -f {UPLOAD_TMP} {shlex.quote(target)}"
+        upload: dict[str, Any] = {UPLOAD_TMP: content}
         result_image = self.image.run(
             shell=command,
-            files={UPLOAD_TMP: content},
+            files=upload,
             disposable=False,
             timeout=60,
         ).wait()

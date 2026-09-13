@@ -242,7 +242,8 @@ def run_status(run: Run) -> RunStatus:
     elif recorded_state in ("working", "idle"):
         state = "inactive" if live is False else "unknown"
     elif "finished" in info:
-        state = "finished" if info.get("finished") else f"stopped: {info.get('reason', '')}"
+        reason = info.get("reason", "")
+        state = "finished" if info.get("finished") else "closed" if reason == "session" else f"stopped: {reason}"
     else:
         state = "unknown"
     diff = run.diff

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 from openai import OpenAI
 
@@ -81,7 +81,7 @@ class LLM:
         tool_fields = {"tools": tools, "tool_choice": tool_choice} if tools else {}
         response = self.client.chat.completions.create(
             model=chosen,
-            messages=messages,
+            messages=cast(Any, messages),  # plain dicts in the OpenAI wire shape; the SDK's TypedDicts add nothing here
             temperature=self.temperature if temperature is None else temperature,
             **tool_fields,
             **self.request_options(),

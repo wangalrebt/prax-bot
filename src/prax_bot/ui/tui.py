@@ -10,7 +10,7 @@ import re
 import threading
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import IO, Any, ClassVar, cast
 
 from rich.console import Console
 from rich.markup import escape
@@ -18,7 +18,7 @@ from rich.syntax import Syntax
 from rich.text import Text
 from textual import work
 from textual.app import App, ComposeResult
-from textual.binding import Binding
+from textual.binding import Binding, BindingType
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Header, Input, Label, RichLog, Static
@@ -95,7 +95,7 @@ class PraxApp(App[None]):
     #status { height: 1; padding: 0 1; background: $panel; color: $text-muted; }
     Input { border: tall $accent 50%; }
     """
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         Binding("f1", "help", "Help"),
         Binding("f2", "toggle_diff", "Diff"),
         Binding("f3", "apply", "Apply"),
@@ -112,7 +112,7 @@ class PraxApp(App[None]):
         self.settings, self.root, self.backend = settings, root, backend
         self.make_session = make_session
         self.session: Any = None
-        self.out = Console(file=PaneFile(self), force_terminal=True, color_system="truecolor", width=100)
+        self.out = Console(file=cast(IO[str], PaneFile(self)), force_terminal=True, color_system="truecolor", width=100)
         self.busy = True
         self.rounds: list[tuple[str, int]] = []
         self.pending_lines: list[str] = []

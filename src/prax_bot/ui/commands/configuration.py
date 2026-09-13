@@ -109,7 +109,7 @@ def prompt_command(
         console.print(f"[red]{escape(str(e))}[/]")
         raise typer.Exit(1) from None
     custom = settings.system_prompt_text() if name == "system" else None
-    if custom:
+    if custom and settings.system_prompt_file:
         kind, where = "system_prompt_file", Path(settings.system_prompt_file).expanduser()
     if path:
         console.print(f"{kind}: {where}")

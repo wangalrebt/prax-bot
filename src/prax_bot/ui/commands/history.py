@@ -9,6 +9,7 @@ from rich.markup import escape
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
+from rich.text import Text
 
 from prax_bot import __version__
 from prax_bot.settings import Settings
@@ -55,47 +56,28 @@ def status(
     if not runs:
         console.print('no runs yet. Start one with [bold]praxbot run "<task>"[/].')
         return
-    table = Table(box=None, padding=(0, 2), header_style="dim")
-    for col in (
-        "when",
-        "kind",
-        "task",
-        "status",
-        "recorded",
-        "last log",
-        "steps",
-        "tokens",
-        "diff",
-        "applied",
-        "run id",
-    ):
-        table.add_column(col, no_wrap=col != "task")
-    for r in runs:
-        result = {
-            "finished": "[green]finished[/]",
-            "in progress": "[green]in progress[/]",
-            "unknown": "[dim]unknown[/]",
-            "inactive": "[dim]inactive[/]",
-        }.get(r.state, f"[yellow]{escape(r.state)}[/]")
-        if r.goal:
-            result += " · goal met" if r.goal.get("met") else f" · goal not met ({r.goal.get('rounds', 0)} rounds)"
-        table.add_row(
-            ago(r.started),
-            r.kind,
-            escape(r.task[:60] + ("…" if len(r.task) > 60 else "")),
-            result,
-            r.last_recorded_state or "",
-            ago(r.last_activity),
-            "" if r.steps is None else str(r.steps),
-            "" if r.tokens is None else f"{r.tokens:,}",
-            f"{r.files_changed} file{'s' if r.files_changed != 1 else ''}" if r.files_changed else "none",
-            {True: "yes", False: "no"}.get(r.applied, ""),
-            r.run_id,
-        )
-    console.print(table)
+    styles = {"finished": "green", "in progress": "green", "closed": "dim", "unknown": "dim", "inactive": "dim"}
     console.print(
-        "[dim]Live status uses the event writer's lock; saved state and log age alone do not prove a run is live.[/]"
+        Text(
+            f"{'when':>8}  {'kind':<8}{'status':<28}{'steps':>5}  {'tokens':>9}  {'diff':<9}{'applied':<8} run id",
+            style="dim",
+        )
     )
+    for r in runs:
+        status = r.state
+        if r.goal:
+            status += " · goal met" if r.goal.get("met") else f" · goal not met ({r.goal.get('rounds', 0)} rounds)"
+        if r.state in ("inactive", "unknown") and r.last_recorded_state:
+            status += f" ({r.last_recorded_state}, log {ago(r.last_activity)})"
+        line = Text(f"{ago(r.started):>8}  {r.kind:<8}")
+        line.append(f"{status[:27]:<28}", style=styles.get(r.state, "yellow"))
+        line.append(
+            f"{'' if r.steps is None else r.steps:>5}  {'' if r.tokens is None else f'{r.tokens:,}':>9}  "
+            f"{(f'{r.files_changed} file' + ('s' if r.files_changed != 1 else '')) if r.files_changed else 'none':<9}"
+            f"{ {True: 'yes', False: 'no'}.get(r.applied, ''):<8} {r.run_id}"
+        )
+        console.print(line)
+        console.print(Text(f"{'':>18}{r.task[:90]}{'…' if len(r.task) > 90 else ''}", style="dim"))
     console.print("[dim]praxbot inspect <run id> for the steps; praxbot resume <run id> to continue one.[/]")
 
 
@@ -140,10 +122,10 @@ def inspect(
         console.print(f"[red]{escape(str(e))}[/]")
         raise typer.Exit(1) from None
 
-    if diff is not None or apply_step is not None:
-        step = diff if diff is not None else apply_step
+    step = diff if diff is not None else apply_step
+    if step is not None:
         try:
-            text = checkpoint_diff(run, int(step), settings)
+            text = checkpoint_diff(run, step, settings)
         except Exception as e:
             console.print(f"[red]could not compute the diff: {type(e).__name__}: {escape(str(e)[:300])}[/]")
             raise typer.Exit(1) from None
@@ -154,9 +136,7 @@ def inspect(
             console.print(Syntax(text, "diff", theme="ansi_dark", word_wrap=False))
             return
         root = repo_root(repo)
-        console.print(
-            f"applying the state of checkpoint {step} ({escape(run.checkpoints[int(step)]['label'])}) to {root}"
-        )
+        console.print(f"applying the state of checkpoint {step} ({escape(run.checkpoints[step]['label'])}) to {root}")
         try:
             apply_diff(root, text)
         except WorkspaceError as error:
@@ -189,6 +169,11 @@ def inspect(
             f"[{style}]{escape(str(c['result'])[:80])}[/]" if style else escape(str(c["result"])[:80]),
         )
     console.print(steps)
+    for e in run.events:
+        if e.get("kind") == "error":
+            console.print(f"[red]error at step {e.get('step')}: {escape(str(e.get('error', '')))}[/]")
+            if e.get("traceback"):
+                console.print(escape(str(e["traceback"]).rstrip()), style="dim")
     cps = Table(box=None, padding=(0, 2), title="checkpoints", title_justify="left")
     for col in ("step", "image", "label"):
         cps.add_column(col)

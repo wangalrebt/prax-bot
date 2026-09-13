@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import dataclasses
 import time
+import traceback
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -234,6 +235,12 @@ class Session:
                 self.cancel.set()
                 result = agent.cancelled()
             except Exception as error:
+                self.on_event(
+                    "error",
+                    step=agent.steps,
+                    error=f"{type(error).__name__}: {str(error)[:400]}",
+                    traceback=traceback.format_exc(),
+                )
                 result = AgentResult(
                     False, f"stopped by an error: {type(error).__name__}: {str(error)[:400]}", agent.steps, "error"
                 )

@@ -28,7 +28,7 @@ class ExtraTool:
     name: str
     description: str
     model: type[BaseModel]
-    handler: Callable[[Any, BaseModel], str | ToolResult]
+    handler: Callable[[Any, Any], str | ToolResult]
     source: str = ""
 
     def spec(self) -> dict[str, Any]:
@@ -45,7 +45,7 @@ def _load_one(path: Path, taken: set[str]) -> list[ExtraTool]:
     added: list[ExtraTool] = []
 
     def add(
-        name: str, description: str, model: type[BaseModel], handler: Callable[[Any, BaseModel], str | ToolResult]
+        name: str, description: str, model: type[BaseModel], handler: Callable[[Any, Any], str | ToolResult]
     ) -> None:
         if not NAME_RE.match(name):
             raise ValueError(f"tool name {name!r} must be lowercase letters, digits and underscores")

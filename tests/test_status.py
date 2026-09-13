@@ -104,3 +104,14 @@ def test_live_status_tracks_the_writer_lock_and_keeps_the_recorded_state(tmp_pat
     finally:
         session.active = False
         session.close()
+
+
+def test_a_closed_session_without_rounds_reads_closed_not_stopped(tmp_path: Path) -> None:
+    from prax_bot.runtime.runs import Run, run_status
+
+    directory = tmp_path / "runs" / "r1"
+    directory.mkdir(parents=True)
+    info = {"task": "(session)", "finished": False, "reason": "session"}
+    (directory / "run.json").write_text(json.dumps(info))
+    (directory / "events.jsonl").write_text("")
+    assert run_status(Run("r1", directory, info)).state == "closed"

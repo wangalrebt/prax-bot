@@ -18,7 +18,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.resources import files
 from pathlib import Path
-from typing import Any
+from typing import IO, Any, cast
 from urllib.parse import parse_qs, urlparse
 
 from rich.console import Console
@@ -70,7 +70,7 @@ class WebSession:
         self.settings, self.root, self.backend = settings, root, backend
         self.make_session = make_session
         self.session: Any = None
-        self.out = Console(file=LineSink(self.emit), force_terminal=False, width=110)
+        self.out = Console(file=cast(IO[str], LineSink(self.emit)), force_terminal=False, width=110)
         self.history: list[dict[str, Any]] = []
         self.clients: list[queue.Queue] = []
         self.lock = threading.Lock()

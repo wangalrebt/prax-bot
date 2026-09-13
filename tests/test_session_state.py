@@ -361,3 +361,22 @@ def test_record_label_does_not_replace_the_task_in_continuations(tmp_path: Path)
         assert "init: write AGENTS.md" not in followup_task
     finally:
         session.close()
+
+
+def test_an_agent_failure_is_recorded_with_its_traceback(tmp_path: Path) -> None:
+    class Broken:
+        usage = FakeLLM([]).usage
+
+        def complete(self, *args, **kwargs):
+            raise RuntimeError("model gateway down")
+
+    session = make_session(tmp_path, llm=Broken())
+    try:
+        result, _ = session.instruct("do something")
+        assert result.reason == "error" and "model gateway down" in result.summary
+        events = [json.loads(line) for line in (session.run_dir / "events.jsonl").read_text().splitlines()]
+        errors = [e for e in events if e["kind"] == "error"]
+        assert len(errors) == 1 and "RuntimeError: model gateway down" in errors[0]["error"]
+        assert "Traceback" in errors[0]["traceback"] and "raise RuntimeError" in errors[0]["traceback"]
+    finally:
+        session.close()

@@ -32,3 +32,10 @@ jobs:
       - name: Test
         # The suite uses fake models and workspaces: no key, no sandbox, no network.
         run: uv run pytest -q
+
+      - name: Build and check the wheel
+        # The prompts and web assets are data files; a wheel without them starts and fails on first use.
+        run: |
+          uv build
+          unzip -l dist/*.whl | grep -q 'prax_bot/core/prompts/system.md'
+          unzip -l dist/*.whl | grep -q 'prax_bot/ui/assets/app.js'
