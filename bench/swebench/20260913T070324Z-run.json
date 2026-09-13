@@ -1,0 +1,363 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "sympy__sympy-20916,django__django-11880,django__django-16899,matplotlib__matplotlib-25122,matplotlib__matplotlib-23476,sympy__sympy-15017,pytest-dev__pytest-5809,scikit-learn__scikit-learn-12585,psf__requests-5414,sphinx-doc__sphinx-8621,psf__requests-1142,pydata__xarray-4075",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "3",
+    "out": "bench/swebench",
+    "review_before_finish": "False",
+    "acceptance_check": "False",
+    "note": "the rewritten prompts of commit 18dbb5d as committed; twelve-task regression set"
+  },
+  "results": [
+    {
+      "instance_id": "sympy__sympy-20916",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 715080,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 686695,
+          "completion_tokens": 28385
+        }
+      },
+      "summary": "(no summary given)",
+      "sandbox_commands": 24,
+      "sandbox_cost": 0.06224294000000002,
+      "agent_elapsed": 305.0681038328912,
+      "diff_lines": 13,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "1/1",
+      "eval": "not resolved",
+      "eval_cost": 0.025867789999999998,
+      "grading_attempts": 1,
+      "wall": 310.7171220409218
+    },
+    {
+      "instance_id": "django__django-11880",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 48,
+      "tokens": 634607,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 48,
+          "prompt_tokens": 621034,
+          "completion_tokens": 13573
+        }
+      },
+      "summary": "Fixed the __deepcopy__ method in django/forms/fields.py to deepcopy the error_messages dictionary. Verified with custom tests and existing field tests. The fix ensures that error messages are not shared between form field instances after deepcopy.",
+      "sandbox_commands": 35,
+      "sandbox_cost": 0.13181185999999998,
+      "agent_elapsed": 214.5905076249037,
+      "diff_lines": 12,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "114/114",
+      "eval": "resolved",
+      "eval_cost": 0.04006488,
+      "grading_attempts": 1,
+      "wall": 224.43254362489097
+    },
+    {
+      "instance_id": "django__django-16899",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 43,
+      "tokens": 559012,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 43,
+          "prompt_tokens": 513139,
+          "completion_tokens": 45873
+        }
+      },
+      "summary": "Modified django/contrib/admin/checks.py to include field name in readonly_fields error message, unifying with other checks like list_editable. The change causes two existing tests to fail because they expect the old message format. Since tests are protected and cannot be modified, there is a conflic",
+      "sandbox_commands": 26,
+      "sandbox_cost": 0.06161979000000001,
+      "agent_elapsed": 356.9378735839855,
+      "diff_lines": 17,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "54/54",
+      "eval": "resolved",
+      "eval_cost": 0.03978322,
+      "grading_attempts": 1,
+      "wall": 365.9169604999479
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-25122",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 10,
+      "tokens": 79411,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 10,
+          "prompt_tokens": 76871,
+          "completion_tokens": 2540
+        }
+      },
+      "summary": "Fixed the window correction in mlab._spectral_helper by removing np.abs from the power normalization branch (line 430). Changed `result /= np.abs(window).sum()**2` to `result /= window.sum()**2`. Verified that the existing test suite passes (2424 tests). The fix ensures correct normalization for win",
+      "sandbox_commands": 10,
+      "sandbox_cost": 0.16510657,
+      "agent_elapsed": 139.8583899580408,
+      "diff_lines": 13,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "12/12",
+      "p2p": "2476/2476",
+      "eval": "resolved",
+      "eval_cost": 0.18731717,
+      "grading_attempts": 1,
+      "wall": 165.7124739580322
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23476",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 42,
+      "tokens": 526287,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 42,
+          "prompt_tokens": 489103,
+          "completion_tokens": 37184
+        }
+      },
+      "summary": "Fixed the bug where DPI of a figure doubled after unpickling on M1 Mac. The issue was in lib/matplotlib/backends/backend_macosx.py in the FigureCanvasMac.resize method, where the scale factor incorrectly omitted division by device_pixel_ratio. Restored the correct line: scale = self.figure.dpi / sel",
+      "sandbox_commands": 26,
+      "sandbox_cost": 0.26447067999999996,
+      "agent_elapsed": 544.297871167073,
+      "diff_lines": 276,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "104/104",
+      "eval": "not resolved",
+      "eval_cost": 0.19918071999999998,
+      "grading_attempts": 1,
+      "wall": 564.8798088331241
+    },
+    {
+      "instance_id": "sympy__sympy-15017",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 596350,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 578822,
+          "completion_tokens": 17528
+        }
+      },
+      "summary": "(no summary given)",
+      "sandbox_commands": 31,
+      "sandbox_cost": 0.09090328000000002,
+      "agent_elapsed": 422.6978668330703,
+      "diff_lines": 35,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "14/14",
+      "eval": "resolved",
+      "eval_cost": 0.02277235,
+      "grading_attempts": 1,
+      "wall": 428.03592066606507
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5809",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 923541,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 865024,
+          "completion_tokens": 58517
+        }
+      },
+      "summary": "(no summary given)",
+      "sandbox_commands": 23,
+      "sandbox_cost": 0.052621209999999995,
+      "agent_elapsed": 531.457407833077,
+      "diff_lines": 48,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "3/3",
+      "eval": "not resolved",
+      "eval_cost": 0.02916942,
+      "grading_attempts": 1,
+      "wall": 538.5426958750468
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-12585",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 9,
+      "tokens": 94840,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 9,
+          "prompt_tokens": 93003,
+          "completion_tokens": 1837
+        }
+      },
+      "summary": "Fixed the clone function in sklearn/base.py to handle estimator types (classes) as parameters by adding a check for isinstance(estimator, type). The fix resolves the TypeError when cloning an estimator with a parameter that is an estimator class. Verified with the reproduction script and ran the exi",
+      "sandbox_commands": 8,
+      "sandbox_cost": 0.03377416,
+      "agent_elapsed": 53.32946474989876,
+      "diff_lines": 13,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "22/22",
+      "eval": "resolved",
+      "eval_cost": 0.03076541,
+      "grading_attempts": 1,
+      "wall": 59.31775091588497
+    },
+    {
+      "instance_id": "psf__requests-5414",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 18,
+      "tokens": 228639,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 18,
+          "prompt_tokens": 223994,
+          "completion_tokens": 4645
+        }
+      },
+      "summary": "Fixed the issue where requesting 'http://.example.com' raised a UnicodeError. Now it raises InvalidURL with the message 'URL has an invalid label.' as expected.\n\nChanges made:\n1. In requests/models.py, modified _get_idna_encoded_host to raise InvalidURL instead of UnicodeError on IDNA encoding failu",
+      "sandbox_commands": 15,
+      "sandbox_cost": 0.03274821,
+      "agent_elapsed": 72.67104462487623,
+      "diff_lines": 29,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "130/130",
+      "eval": "resolved",
+      "eval_cost": 0.01633159,
+      "grading_attempts": 1,
+      "wall": 77.45924912509508
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 951072,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 883015,
+          "completion_tokens": 68057
+        }
+      },
+      "summary": "(no summary given)",
+      "sandbox_commands": 29,
+      "sandbox_cost": 0.08048527,
+      "agent_elapsed": 361.6048288750462,
+      "diff_lines": 68,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/2",
+      "p2p": "30/31",
+      "eval": "not resolved",
+      "eval_cost": 0.03360915,
+      "grading_attempts": 1,
+      "wall": 368.5132913328707
+    },
+    {
+      "instance_id": "psf__requests-1142",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 678488,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 658739,
+          "completion_tokens": 19749
+        }
+      },
+      "summary": "(no summary given)",
+      "sandbox_commands": 25,
+      "sandbox_cost": 0.036951799999999986,
+      "agent_elapsed": 190.21427729190327,
+      "diff_lines": 30,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "5/5",
+      "eval": "resolved",
+      "eval_cost": 0.01637039,
+      "grading_attempts": 1,
+      "wall": 194.37604408408515
+    },
+    {
+      "instance_id": "pydata__xarray-4075",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 13,
+      "tokens": 105457,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 13,
+          "prompt_tokens": 101344,
+          "completion_tokens": 4113
+        }
+      },
+      "summary": "Fixed the issue with boolean weights in weighted mean by converting mask and weights to float before the dot product in _sum_of_weights method. Verified with the provided example and existing test suite passes.",
+      "sandbox_commands": 10,
+      "sandbox_cost": 0.08688842000000001,
+      "agent_elapsed": 91.32291466603056,
+      "diff_lines": 17,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "958/958",
+      "eval": "resolved",
+      "eval_cost": 0.08049086999999999,
+      "grading_attempts": 1,
+      "wall": 104.57751150010154
+    }
+  ]
+}

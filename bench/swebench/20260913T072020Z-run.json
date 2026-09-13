@@ -1,0 +1,357 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "sympy__sympy-20916,django__django-11880,django__django-16899,matplotlib__matplotlib-25122,matplotlib__matplotlib-23476,sympy__sympy-15017,pytest-dev__pytest-5809,scikit-learn__scikit-learn-12585,psf__requests-5414,sphinx-doc__sphinx-8621,psf__requests-1142,pydata__xarray-4075",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "3",
+    "out": "bench/swebench",
+    "note": "hybrid: the measured rules of 82d7a22 with the environment and verification sections of 18dbb5d; run from a frozen worktree"
+  },
+  "results": [
+    {
+      "instance_id": "sympy__sympy-20916",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 734136,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 711993,
+          "completion_tokens": 22143
+        }
+      },
+      "sandbox_commands": 17,
+      "sandbox_cost": 0.04745141000000002,
+      "diff_lines": 0,
+      "summary": "(no summary given)",
+      "agent_elapsed": 229.3769480830524,
+      "resolved": false,
+      "patch_applied": false,
+      "eval": "no diff produced",
+      "wall": 229.37713541602716
+    },
+    {
+      "instance_id": "django__django-11880",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 41,
+      "tokens": 555919,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 41,
+          "prompt_tokens": 545421,
+          "completion_tokens": 10498
+        }
+      },
+      "sandbox_commands": 30,
+      "sandbox_cost": 0.11323881,
+      "diff_lines": 12,
+      "summary": "Fixed the __deepcopy__ method of the Field class in django/forms/fields.py to deepcopy the error_messages dictionary. Previously, the method performed a shallow copy, causing all instances of a field to share the same error_messages dictionary. The fix ensures that when a field is deepcopied, its er",
+      "agent_elapsed": 169.7175664580427,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "114/114",
+      "eval": "resolved",
+      "eval_cost": 0.04008382,
+      "grading_attempts": 1,
+      "wall": 184.60065712500364
+    },
+    {
+      "instance_id": "django__django-16899",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 48,
+      "tokens": 637661,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 48,
+          "prompt_tokens": 619358,
+          "completion_tokens": 18303
+        }
+      },
+      "sandbox_commands": 26,
+      "sandbox_cost": 0.061607010000000004,
+      "diff_lines": 17,
+      "summary": "Modified django/contrib/admin/checks.py in the _check_readonly_fields method to include the field name in the error message for admin.E035. Changed the message from \"The value of '%s' is not a callable, an attribute of '%s', or an attribute of '%s'.\" to \"The value of '%s' refers to '%s', which is no",
+      "agent_elapsed": 194.11989816697314,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "54/54",
+      "eval": "resolved",
+      "eval_cost": 0.04015974,
+      "grading_attempts": 1,
+      "wall": 203.52616637502797
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-25122",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 27,
+      "tokens": 331870,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 27,
+          "prompt_tokens": 315481,
+          "completion_tokens": 16389
+        }
+      },
+      "sandbox_commands": 20,
+      "sandbox_cost": 0.32668867000000007,
+      "diff_lines": 17,
+      "summary": "Fixed the window correction in mlab._spectral_helper by removing np.abs from two lines:\n- Changed `result /= (np.abs(window)**2).sum()` to `result /= (window**2).sum()`\n- Changed `result /= np.abs(window).sum()**2` to `result /= window.sum()**2`\nThis ensures correct scaling for windows with negative",
+      "agent_elapsed": 185.67994891596027,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "12/12",
+      "p2p": "2476/2476",
+      "eval": "resolved",
+      "eval_cost": 0.18896962,
+      "grading_attempts": 1,
+      "wall": 213.26657679094933
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23476",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 43,
+      "tokens": 538827,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 43,
+          "prompt_tokens": 505705,
+          "completion_tokens": 33122
+        }
+      },
+      "sandbox_commands": 28,
+      "sandbox_cost": 0.25793052,
+      "diff_lines": 60,
+      "summary": "Fixed the DPI doubling issue on macOS backend during figure unpickling by preserving the figure's _original_dpi in FigureCanvasMac.__init__. The fix saves the original _original_dpi before calling super().__init__ (which resets it) and restores it afterward. Verified that the existing test suite pas",
+      "agent_elapsed": 249.43343933299184,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "104/104",
+      "eval": "not resolved",
+      "eval_cost": 0.19141014999999997,
+      "grading_attempts": 1,
+      "wall": 268.592031332897
+    },
+    {
+      "instance_id": "sympy__sympy-15017",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 39,
+      "tokens": 460875,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 39,
+          "prompt_tokens": 451763,
+          "completion_tokens": 9112
+        }
+      },
+      "sandbox_commands": 21,
+      "sandbox_cost": 0.06958045,
+      "diff_lines": 22,
+      "summary": "Fixed the __len__ method for rank-0 arrays in sympy.tensor.array.NDimArray by changing the _loop_size initialization in DenseNDimArray._new from `functools.reduce(lambda x,y: x*y, shape) if shape else 0` to `functools.reduce(lambda x,y: x*y, shape, 1)`. This ensures that a scalar array (shape ()) ha",
+      "agent_elapsed": 130.33568212483078,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "14/14",
+      "eval": "resolved",
+      "eval_cost": 0.02303096,
+      "grading_attempts": 1,
+      "wall": 135.68500199983828
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5809",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 8,
+      "tokens": 74820,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 8,
+          "prompt_tokens": 72899,
+          "completion_tokens": 1921
+        }
+      },
+      "sandbox_commands": 10,
+      "sandbox_cost": 0.01680174,
+      "diff_lines": 13,
+      "summary": "Changed lexer from 'python3' to 'text' in src/_pytest/pastebin.py to avoid HTTP 400 errors when submitting to bpaste.net. The change affects the --pastebin feature. Verified that the pastebin tests pass except for the expected failure in test_create_new_paste which asserts the old lexer value. No ot",
+      "agent_elapsed": 35.352626292034984,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "3/3",
+      "eval": "resolved",
+      "eval_cost": 0.02987406,
+      "grading_attempts": 1,
+      "wall": 42.7460872088559
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-12585",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 7,
+      "tokens": 52359,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 7,
+          "prompt_tokens": 50758,
+          "completion_tokens": 1601
+        }
+      },
+      "sandbox_commands": 9,
+      "sandbox_cost": 0.035006129999999996,
+      "diff_lines": 13,
+      "summary": "Fixed the issue in sklearn/base.py where clone failed when an estimator's parameter was a class (type). Modified the condition in clone to also check for isinstance(estimator, type) so that such parameters are treated as non-estimators and cloned via deep copy when safe=False. Verified the fix with ",
+      "agent_elapsed": 35.666732833953574,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "22/22",
+      "eval": "resolved",
+      "eval_cost": 0.03039671,
+      "grading_attempts": 1,
+      "wall": 41.57724770903587
+    },
+    {
+      "instance_id": "psf__requests-5414",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 829768,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 781641,
+          "completion_tokens": 48127
+        }
+      },
+      "sandbox_commands": 27,
+      "sandbox_cost": 0.06691340000000001,
+      "diff_lines": 81,
+      "summary": "(no summary given)",
+      "agent_elapsed": 311.92081262520514,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "124/130",
+      "eval": "not resolved",
+      "eval_cost": 0.018348029999999998,
+      "grading_attempts": 1,
+      "wall": 318.0251151251141
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 990393,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 906181,
+          "completion_tokens": 84212
+        }
+      },
+      "sandbox_commands": 40,
+      "sandbox_cost": 0.14461525000000003,
+      "diff_lines": 28,
+      "summary": "(no summary given)",
+      "agent_elapsed": 434.2409500419162,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "1/2",
+      "p2p": "31/31",
+      "eval": "not resolved",
+      "eval_cost": 0.03283641,
+      "grading_attempts": 1,
+      "wall": 457.51099062501453
+    },
+    {
+      "instance_id": "psf__requests-1142",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 653201,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 620250,
+          "completion_tokens": 32951
+        }
+      },
+      "sandbox_commands": 20,
+      "sandbox_cost": 0.028124350000000003,
+      "diff_lines": 40,
+      "summary": "(no summary given)",
+      "agent_elapsed": 239.91148570808582,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "5/5",
+      "eval": "resolved",
+      "eval_cost": 0.017047479999999997,
+      "grading_attempts": 1,
+      "wall": 244.68667716695927
+    },
+    {
+      "instance_id": "pydata__xarray-4075",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 22,
+      "tokens": 263668,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 22,
+          "prompt_tokens": 256556,
+          "completion_tokens": 7112
+        }
+      },
+      "sandbox_commands": 16,
+      "sandbox_cost": 0.21354483999999999,
+      "diff_lines": 13,
+      "summary": "Fixed the issue where boolean weights were not properly normalized in weighted mean calculation.\nThe problem was in xarray/core/weighted.py in the _sum_of_weights method where the mask from da.notnull() was boolean, causing dot product with boolean weights to produce a boolean sum_of_weights.\nChange",
+      "agent_elapsed": 113.02798937517218,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "958/958",
+      "eval": "resolved",
+      "eval_cost": 0.08120556000000001,
+      "grading_attempts": 1,
+      "wall": 126.73736058315262
+    }
+  ]
+}

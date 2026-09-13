@@ -59,7 +59,7 @@ def test_disabling_code_style_keeps_runtime_context_with_a_custom_core_prompt(
         assert system.startswith("Terse.\n\nExecution environment:")
         assert "Code style:" not in system and SYSTEM_PROMPT not in system
         assert "remote Linux sandbox" in system
-        assert "No final verification commands are scheduled" in system
+        assert "No commands are scheduled by the runtime" in system
     finally:
         prompts.clear_cache()
 
@@ -181,3 +181,20 @@ def test_prompt_command_lists_and_prints_any_prompt(tmp_path: Path, monkeypatch:
     assert out.exit_code == 0 and "At most three restores" in out.output
     out = CliRunner().invoke(app, ["prompt", "nope"], env=env)
     assert out.exit_code == 1 and "no prompt named" in out.output
+
+
+def test_prompt_full_renders_the_assembled_system_message_for_a_backend(monkeypatch, tmp_path: Path) -> None:
+    from typer.testing import CliRunner
+
+    from prax_bot.ui.cli import app
+
+    monkeypatch.setenv("PRAXBOT_HOME", str(tmp_path))
+    monkeypatch.setenv("PRAXBOT_TEST_COMMAND", "pytest -q")
+    out = CliRunner().invoke(app, ["prompt", "--full", "--backend", "local"])
+    assert out.exit_code == 0, out.output
+    assert out.output.startswith("You are Prax Bot")
+    assert "Code style:" in out.output and "Execution environment:" in out.output
+    assert "on the user's machine" in out.output, "the local backend's environment section"
+    assert "Verification plan:" in out.output and "- tests: pytest -q" in out.output
+    plain = CliRunner().invoke(app, ["prompt", "--full"])
+    assert "remote Linux sandbox" in plain.output and "No commands are scheduled" not in plain.output

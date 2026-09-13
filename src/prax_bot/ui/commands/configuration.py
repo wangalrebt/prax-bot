@@ -86,11 +86,33 @@ def prompt_command(
     ),
     path: bool = typer.Option(False, "--path", help="Print where the prompt comes from instead of its text"),
     list_all: bool = typer.Option(False, "--list", help="List every prompt and where each comes from"),
+    full: bool = typer.Option(
+        False, "--full", help="Print the whole system message a run would send: rules, style, environment, plan"
+    ),
+    backend: str | None = typer.Option(
+        None, help="Backend to render the environment section for (default: the configured one)"
+    ),
 ) -> None:
-    """Print a prompt template; defaults to the core system rules, before runtime context is appended."""
+    """Print a prompt the model sees: built in, or your override under ~/.praxbot/prompts/; --full renders the assembled system message."""
+    from types import SimpleNamespace
+
     from prax_bot.core import prompts
 
-    settings = build_settings(repo_root=maybe_repo_root(Path(".")))
+    settings = build_settings(repo_root=maybe_repo_root(Path(".")), backend=backend)
+    if full:
+        from prax_bot.core.agent import Agent
+        from prax_bot.settings import WORKDIR
+
+        checks = tuple((n, c) for n, c in (("tests", settings.test_command), ("lint", settings.lint_command)) if c)
+        workspace = SimpleNamespace(backend=settings.backend, workdir=WORKDIR)
+        agent = Agent(
+            None,
+            SimpleNamespace(ws=workspace),
+            system_prompt=settings.system_prompt_text(),
+            verification_commands=checks,
+        )
+        print(agent.system_message())
+        return
     if list_all:
         table = Table(box=None, padding=(0, 2), header_style="dim")
         for column in ("prompt", "from", "file"):

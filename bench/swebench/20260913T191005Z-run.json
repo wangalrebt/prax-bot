@@ -1,0 +1,361 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "sympy__sympy-20916,django__django-11880,django__django-16899,matplotlib__matplotlib-25122,matplotlib__matplotlib-23476,sympy__sympy-15017,pytest-dev__pytest-5809,scikit-learn__scikit-learn-12585,psf__requests-5414,sphinx-doc__sphinx-8621,psf__requests-1142,pydata__xarray-4075",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "3",
+    "out": "bench/swebench",
+    "note": "the rewritten prompts of 18dbb5d with a two-sentence verification_manual.md; run from a frozen worktree"
+  },
+  "results": [
+    {
+      "instance_id": "sympy__sympy-20916",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 35,
+      "tokens": 462810,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 35,
+          "prompt_tokens": 448953,
+          "completion_tokens": 13857
+        }
+      },
+      "sandbox_commands": 21,
+      "sandbox_cost": 0.0470283,
+      "diff_lines": 14,
+      "summary": "Modified sympy/printing/pretty/pretty_symbology.py to include all Greek letters in the subscript mapping (sub dict). This enables subscript formatting for Greek letter symbols when followed by digits (e.g., omega0 -> \u03c9\u2080). Verified that the pprint output now shows subscripts on Greek letters as expec",
+      "agent_elapsed": 155.320036791265,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "1/1",
+      "eval": "not resolved",
+      "eval_cost": 0.02593234,
+      "grading_attempts": 1,
+      "wall": 161.59328375011683
+    },
+    {
+      "instance_id": "django__django-11880",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 21,
+      "tokens": 281002,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 21,
+          "prompt_tokens": 276232,
+          "completion_tokens": 4770
+        }
+      },
+      "sandbox_commands": 19,
+      "sandbox_cost": 0.0809129,
+      "diff_lines": 12,
+      "summary": "Fixed the __deepcopy__ method in django/forms/fields.py to deep copy the error_messages dictionary. Verified the fix with a custom test and ran the existing test suite for form fields and forms, which all passed. The change ensures that copies of form fields do not share the same error_messages dict",
+      "agent_elapsed": 99.03371941717342,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "114/114",
+      "eval": "resolved",
+      "eval_cost": 0.039908229999999996,
+      "grading_attempts": 1,
+      "wall": 108.7857504170388
+    },
+    {
+      "instance_id": "django__django-16899",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 37,
+      "tokens": 445738,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 37,
+          "prompt_tokens": 423966,
+          "completion_tokens": 21772
+        }
+      },
+      "sandbox_commands": 20,
+      "sandbox_cost": 0.046565739999999994,
+      "diff_lines": 17,
+      "summary": "Modified django/contrib/admin/checks.py in the _check_readonly_fields_item method to include the field name in the error message for non-existent readonly_fields, changing from \"The value of '%s' is not a callable, an attribute of '%s', or an attribute of '%s'.\" to \"The value of '%s' refers to '%s',",
+      "agent_elapsed": 170.10371987521648,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "54/54",
+      "eval": "resolved",
+      "eval_cost": 0.040169869999999996,
+      "grading_attempts": 1,
+      "wall": 180.27887537516654
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-25122",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 627358,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 573848,
+          "completion_tokens": 53510
+        }
+      },
+      "sandbox_commands": 18,
+      "sandbox_cost": 0.25747207000000005,
+      "diff_lines": 32,
+      "summary": "(no summary given)",
+      "agent_elapsed": 311.9375363746658,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "12/12",
+      "p2p": "2476/2476",
+      "eval": "resolved",
+      "eval_cost": 0.19096648000000002,
+      "grading_attempts": 1,
+      "wall": 337.9915947499685
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23476",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 681826,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 636035,
+          "completion_tokens": 45791
+        }
+      },
+      "sandbox_commands": 34,
+      "sandbox_cost": 0.08153088000000001,
+      "diff_lines": 45,
+      "summary": "(no summary given)",
+      "agent_elapsed": 283.6277132499963,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "104/104",
+      "eval": "not resolved",
+      "eval_cost": 0.19213011000000002,
+      "grading_attempts": 1,
+      "wall": 302.91565879108384
+    },
+    {
+      "instance_id": "sympy__sympy-15017",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 40,
+      "tokens": 523110,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 40,
+          "prompt_tokens": 503873,
+          "completion_tokens": 19237
+        }
+      },
+      "sandbox_commands": 26,
+      "sandbox_cost": 0.08108847,
+      "diff_lines": 13,
+      "summary": "Fixed sympy/tensor/array/ndim_array.py: modified __len__ method to return 1 for rank-0 arrays (scalars) instead of 0. This aligns with numpy behavior and the expectation that len() returns the number of elements. Verified with sympy.Array(3) now returns 1. However, one existing test in sympy/tensor/",
+      "agent_elapsed": 179.73322800034657,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "14/14",
+      "eval": "not resolved",
+      "eval_cost": 0.022810379999999998,
+      "grading_attempts": 1,
+      "wall": 185.35914925020188
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5809",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 11,
+      "tokens": 114647,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 11,
+          "prompt_tokens": 107197,
+          "completion_tokens": 7450
+        }
+      },
+      "sandbox_commands": 12,
+      "sandbox_cost": 0.02056947,
+      "diff_lines": 13,
+      "summary": "Fixed the issue by changing the lexer from 'python3' to 'text' in src/_pytest/pastebin.py (line 82). This prevents HTTP 400 errors when submitting pastebin contents that are not valid Python code. Verified the fix by running the project's pastebin tests: three tests pass (functional tests for --past",
+      "agent_elapsed": 63.130797875113785,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "3/3",
+      "eval": "resolved",
+      "eval_cost": 0.02884213,
+      "grading_attempts": 1,
+      "wall": 71.42762862471864
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-12585",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 10,
+      "tokens": 83683,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 10,
+          "prompt_tokens": 79340,
+          "completion_tokens": 4343
+        }
+      },
+      "sandbox_commands": 11,
+      "sandbox_cost": 0.03708979,
+      "diff_lines": 23,
+      "summary": "Fixed the issue by adding a check for `isinstance(estimator, type)` in the clone function in sklearn/base.py. The fix allows cloning estimators that have class types as parameters without error. Verified with the provided reproduction case and ran the sklearn base tests, all passing.",
+      "agent_elapsed": 51.80164487520233,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "22/22",
+      "eval": "resolved",
+      "eval_cost": 0.03132757,
+      "grading_attempts": 1,
+      "wall": 58.03487708326429
+    },
+    {
+      "instance_id": "psf__requests-5414",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 30,
+      "tokens": 371067,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 30,
+          "prompt_tokens": 359284,
+          "completion_tokens": 11783
+        }
+      },
+      "sandbox_commands": 22,
+      "sandbox_cost": 0.049306659999999995,
+      "diff_lines": 15,
+      "summary": "Fixed the issue where http://.example.com raised UnicodeError instead of InvalidURL. Modified requests/models.py to add a check for empty labels in the host part (e.g., leading dot, double dots) and raise InvalidURL with message \"URL has an invalid label.\" Verified that the fix works for the reprodu",
+      "agent_elapsed": 133.84913108404726,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "130/130",
+      "eval": "resolved",
+      "eval_cost": 0.01604427,
+      "grading_attempts": 1,
+      "wall": 138.6357005839236
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 990835,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 945422,
+          "completion_tokens": 45413
+        }
+      },
+      "sandbox_commands": 35,
+      "sandbox_cost": 0.08509439,
+      "diff_lines": 55,
+      "summary": "(no summary given)",
+      "agent_elapsed": 279.908483624924,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "31/31",
+      "eval": "resolved",
+      "eval_cost": 0.03360701,
+      "grading_attempts": 1,
+      "wall": 287.4516292498447
+    },
+    {
+      "instance_id": "psf__requests-1142",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 704464,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 680451,
+          "completion_tokens": 24013
+        }
+      },
+      "sandbox_commands": 31,
+      "sandbox_cost": 0.048727059999999996,
+      "diff_lines": 86,
+      "summary": "(no summary given)",
+      "agent_elapsed": 214.67925629206002,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "5/5",
+      "eval": "resolved",
+      "eval_cost": 0.01624516,
+      "grading_attempts": 1,
+      "wall": 219.11036570882425
+    },
+    {
+      "instance_id": "pydata__xarray-4075",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 10,
+      "tokens": 79263,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 10,
+          "prompt_tokens": 76945,
+          "completion_tokens": 2318
+        }
+      },
+      "sandbox_commands": 13,
+      "sandbox_cost": 0.10735810000000001,
+      "diff_lines": 29,
+      "summary": "Fixed the issue where boolean weights led to incorrect weighted mean due to boolean dot product returning True/False instead of integer counts. Changed mask = da.notnull() to mask = da.notnull() * 1 in xarray/core/weighted.py _sum_of_weights method. Verified with the provided MCVE and the existing t",
+      "agent_elapsed": 57.52723929192871,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "958/958",
+      "eval": "resolved",
+      "eval_cost": 0.08136017000000001,
+      "grading_attempts": 1,
+      "wall": 70.80803425004706
+    }
+  ]
+}
