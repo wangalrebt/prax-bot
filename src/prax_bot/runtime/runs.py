@@ -91,6 +91,15 @@ def latest_run_id(settings: Settings | None = None) -> str | None:
     return runs[0].run_id if runs else None
 
 
+def local_snapshot(run: Run, image: str, settings: Settings) -> Path:
+    """The directory holding one local-backend checkpoint of a past run."""
+    root = Path(run.info.get("workspace_root") or settings.home / "local" / run.run_id)
+    snap = root / "snapshots" / image.split(":", 1)[1]
+    if not snap.is_dir():
+        raise FileNotFoundError(f"local snapshot {snap} no longer exists")
+    return snap
+
+
 def checkpoint_diff(run: Run, step: int, settings: Settings | None = None) -> str:
     """The diff of a checkpoint against the run's baseline, recomputed from the stored state."""
     checkpoints = run.checkpoints
@@ -99,11 +108,7 @@ def checkpoint_diff(run: Run, step: int, settings: Settings | None = None) -> st
     image = checkpoints[step]["image"]
     command = "git add -A && git diff --cached --binary HEAD"
     if image.startswith("local:"):
-        settings = settings or Settings.from_env()
-        root = Path(run.info.get("workspace_root") or settings.home / "local" / run.run_id)
-        snap = root / "snapshots" / image.split(":", 1)[1]
-        if not snap.is_dir():
-            raise FileNotFoundError(f"local snapshot {snap} no longer exists")
+        snap = local_snapshot(run, image, settings or Settings.from_env())
         r = subprocess.run(["bash", "-c", command], cwd=snap, capture_output=True, text=True, check=False)
         if r.returncode != 0:
             raise RuntimeError(r.stderr.strip())
@@ -157,10 +162,8 @@ def reopen_workspace(
     if image.startswith("local:"):
         from prax_bot.workspace.local import LocalWorkspace, clone_dir
 
-        old_root = Path(run.info.get("workspace_root") or settings.home / "local" / run.run_id)
-        snap = old_root / "snapshots" / image.split(":", 1)[1]
-        if not snap.is_dir():
-            raise FileNotFoundError(f"local snapshot {snap} no longer exists")
+        snap = local_snapshot(run, image, settings)
+        old_root = snap.parents[1]
         root = settings.home / "local" / new_run_id
         if root.exists():
             shutil.rmtree(root)
@@ -207,64 +210,64 @@ def run_started(run_id: str) -> datetime | None:
         return None
 
 
+def _log_is_live(events_path: Path, info: dict[str, Any]) -> bool | None:
+    """True while a writer holds the event log's lock; False when the run tracks liveness that way and none does."""
+    if not events_path.exists():
+        return None
+    with events_path.open() as log:
+        try:
+            fcntl.flock(log, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return True
+        fcntl.flock(log, fcntl.LOCK_UN)
+    return False if info.get("activity_tracking") == "event_lock" else None
+
+
+def _run_kind(info: dict[str, Any]) -> str:
+    if info.get("kind"):
+        return str(info["kind"])
+    for key, kind in (("session", "session"), ("goal", "goal"), ("resumed_from", "resume")):
+        if info.get(key):
+            return kind
+    return "run"
+
+
+def _run_state(info: dict[str, Any], live: bool | None) -> str:
+    recorded = info.get("state")
+    if live:
+        return "in progress" if recorded == "working" else "idle" if recorded == "idle" else "starting"
+    if recorded in ("working", "idle"):
+        return "inactive" if live is False else "unknown"
+    if "finished" in info:
+        reason = info.get("reason", "")
+        return "finished" if info.get("finished") else "closed" if reason == "session" else f"stopped: {reason}"
+    return "unknown"
+
+
 def run_status(run: Run) -> RunStatus:
     """What one run is, what it did, and whether it is still going."""
     info = run.info
     events_path = run.directory / "events.jsonl"
-    last_activity = None
-    if events_path.exists():
-        last_activity = datetime.fromtimestamp(events_path.stat().st_mtime, tz=UTC)
-    live = None
-    if events_path.exists():
-        with events_path.open() as log:
-            try:
-                fcntl.flock(log, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
-                live = True
-            else:
-                fcntl.flock(log, fcntl.LOCK_UN)
-                if info.get("activity_tracking") == "event_lock":
-                    live = False
-    kind = info.get("kind") or (
-        "session"
-        if info.get("session")
-        else "goal"
-        if info.get("goal")
-        else "resume"
-        if info.get("resumed_from")
-        else "run"
-    )
+    live = _log_is_live(events_path, info)
     calls = [e for e in run.events if e.get("kind") == "tool.call"]
-    last_tool = f"{calls[-1].get('name')} (step {calls[-1].get('step')})" if calls else None
-    recorded_state = info.get("state")
-    if live:
-        state = "in progress" if recorded_state == "working" else "idle" if recorded_state == "idle" else "starting"
-    elif recorded_state in ("working", "idle"):
-        state = "inactive" if live is False else "unknown"
-    elif "finished" in info:
-        reason = info.get("reason", "")
-        state = "finished" if info.get("finished") else "closed" if reason == "session" else f"stopped: {reason}"
-    else:
-        state = "unknown"
-    diff = run.diff
     tokens = None
     if "prompt_tokens" in info:
         tokens = int(info.get("prompt_tokens") or 0) + int(info.get("completion_tokens") or 0)
     return RunStatus(
         run_id=run.run_id,
-        kind=kind,
+        kind=_run_kind(info),
         task=str(info.get("task") or "").strip(),
-        state=state,
+        state=_run_state(info, live),
         started=run_started(run.run_id),
-        last_activity=last_activity,
+        last_activity=datetime.fromtimestamp(events_path.stat().st_mtime, tz=UTC) if events_path.exists() else None,
         steps=info.get("steps"),
         tokens=tokens,
         cost=info.get("sandbox_cost"),
-        files_changed=diff.count("diff --git "),
+        files_changed=run.diff.count("diff --git "),
         applied=info.get("applied"),
-        last_recorded_state=recorded_state,
+        last_recorded_state=info.get("state"),
         live=live,
-        last_tool=last_tool,
+        last_tool=f"{calls[-1].get('name')} (step {calls[-1].get('step')})" if calls else None,
         goal=info.get("goal"),
     )
 

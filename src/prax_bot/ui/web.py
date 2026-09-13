@@ -30,6 +30,27 @@ from prax_bot.ui.session import handle_line
 
 HISTORY_LIMIT = 5000
 
+# What the page shows before the session exists; Session.state() supplies every key once it does.
+STARTING_STATE: dict[str, Any] = {
+    "rounds": 0,
+    "steps": 0,
+    "tokens": 0,
+    "context": 0,
+    "calls": 0,
+    "checkpoints": 0,
+    "cost": 0.0,
+    "files": [],
+    "excluded": [],
+    "scratch": [],
+    "binary": [],
+    "diff": "",
+    "summary": "",
+    "applied_rounds": 0,
+    "log": "",
+    "verification": "not run",
+    "checks": [],
+}
+
 
 class LineSink:
     """A file-like object for a Rich console; each complete line becomes a `log` event."""
@@ -118,31 +139,19 @@ class WebSession:
             if self.busy
             else "idle"
         )
-        state = {
-            "repo": str(self.root),
-            "name": self.root.name,
-            "backend": self.backend,
-            "model": self.settings.model,
-            "effort": self.settings.effort,
-            "rounds": 0,
-            "steps": 0,
-            "tokens": 0,
-            "context": 0,
-            "context_budget": self.settings.context_budget,
-            "calls": 0,
-            "checkpoints": 0,
-            "cost": 0.0,
-            "files": [],
-            "excluded": [],
-            "diff": "",
-            "summary": "",
-            "applied_rounds": 0,
-            "log": "",
-            "verification": "not run",
-            "checks": [],
-        }
-        if self.session is not None:
-            state.update(self.session.state())
+        state = (
+            self.session.state()
+            if self.session is not None
+            else {
+                **STARTING_STATE,
+                "repo": str(self.root),
+                "name": self.root.name,
+                "backend": self.backend,
+                "model": self.settings.model,
+                "effort": self.settings.effort,
+                "context_budget": self.settings.context_budget,
+            }
+        )
         return {
             **state,
             "status": status,
@@ -237,31 +246,24 @@ def make_handler(web: WebSession, token: str, page: str) -> type[BaseHTTPRequest
                 or parse_qs(urlparse(self.path).query).get("token", [""])[0] == token
             )
 
-        def _json(self, status: int, body: Any) -> None:
-            data = json.dumps(body).encode("utf-8")
+        def _send(self, status: int, data: bytes, content_type: str) -> None:
             self.send_response(status)
-            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
 
+        def _json(self, status: int, body: Any) -> None:
+            self._send(status, json.dumps(body).encode("utf-8"), "application/json")
+
         def do_GET(self) -> None:
             path = urlparse(self.path).path
             if path == "/":
-                data = page.replace("__TOKEN__", token).encode("utf-8")
-                self.send_response(HTTPStatus.OK)
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Content-Length", str(len(data)))
-                self.end_headers()
-                self.wfile.write(data)
+                self._send(HTTPStatus.OK, page.replace("__TOKEN__", token).encode("utf-8"), "text/html; charset=utf-8")
             elif path in ("/assets/app.css", "/assets/app.js"):
                 name = path.rsplit("/", 1)[-1]
-                data = (ASSETS / name).read_bytes()
-                self.send_response(HTTPStatus.OK)
-                self.send_header("Content-Type", "text/css" if name.endswith(".css") else "text/javascript")
-                self.send_header("Content-Length", str(len(data)))
-                self.end_headers()
-                self.wfile.write(data)
+                content_type = "text/css" if name.endswith(".css") else "text/javascript"
+                self._send(HTTPStatus.OK, (ASSETS / name).read_bytes(), content_type)
             elif path == "/state":
                 self._json(HTTPStatus.OK, web.state())
             elif path == "/events":

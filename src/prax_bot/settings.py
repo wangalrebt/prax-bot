@@ -231,29 +231,22 @@ class Settings:
         backend = str(pick("backend", "contree")).lower()
         if backend not in BACKENDS:
             raise ValueError(f"backend must be one of {', '.join(BACKENDS)}, not {backend!r}")
-        setup_value = pick("setup", None)
-        if backend == "local" and sources.get("setup") == "repo config":
-            warnings.append(
-                "the repository's config sets a setup command, which only runs inside a sandbox; "
-                "on the local backend pass --setup yourself to run it on this machine"
-            )
-            setup_value = None
-            sources["setup"] = "ignored"
         top_p_value = pick("top_p", 0.95, float)
         prompt_file = pick("system_prompt_file", None)
         if prompt_file:
             read_prompt_file(prompt_file)  # fail now, with the file named, not in the middle of a run
-        checks = {}
-        for key in ("test_command", "lint_command"):
+        # commands a repository's config provides run only inside a sandbox, never on this machine
+        commands: dict[str, str | None] = {}
+        for key in ("setup", "test_command", "lint_command"):
             value = pick(key, None)
             if backend == "local" and sources.get(key) == "repo config":
                 warnings.append(
-                    f"the repository's {key} only runs inside a sandbox; "
-                    f"on the local backend pass --{key.replace('_', '-')} yourself"
+                    f"the repository's config sets {key}, which only runs inside a sandbox; "
+                    f"on the local backend pass --{key.replace('_', '-')} yourself to run it on this machine"
                 )
                 value = None
                 sources[key] = "ignored"
-            checks[key] = value or None
+            commands[key] = value or None
         return cls(
             temperature=float(pick("temperature", 1.0, float)),
             top_p=None if top_p_value is None else float(top_p_value),
@@ -272,14 +265,15 @@ class Settings:
             investigate_steps=int(pick("investigate_steps", 6, int)),
             llm_base_url=str(pick("llm_base_url", DEFAULT_LLM_BASE_URL)),
             base_image=str(pick("base_image", DEFAULT_BASE_IMAGE)),
-            setup=setup_value or None,
+            setup=commands["setup"],
             max_steps=int(pick("max_steps", 40, int)),
             command_timeout=int(pick("command_timeout", 300, int)),
             setup_timeout=int(pick("setup_timeout", 900, int)),
             import_timeout=int(pick("import_timeout", 900, int)),
             context_budget=int(pick("context_budget", 80_000, int)),
             system_prompt_file=str(prompt_file) if prompt_file else None,
-            **checks,
+            test_command=commands["test_command"],
+            lint_command=commands["lint_command"],
             home=home,
             sources=sources,
             warnings=warnings,

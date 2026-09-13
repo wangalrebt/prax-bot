@@ -192,17 +192,7 @@ class Session:
         original_task: str | None = None,
     ) -> tuple[AgentResult, str]:
         self._require_ready()
-        self._round_states.append(
-            RoundState(
-                self.ws.current_step,
-                self.first_task,
-                list(self.instructions),
-                self.last_summary,
-                self.last_result,
-                self.rounds,
-                dict(self.goal_info) if self.goal_info is not None else None,
-            )
-        )
+        self._round_states.append(self._snapshot())
         if self.first_task is None:
             self.first_task = instruction or task
             self.task_label = original_task
@@ -211,7 +201,7 @@ class Session:
             self.on_event("followup", instruction=instruction)
         self.on_event("instruction", text=instruction or original_task or task)
         self.checks = []
-        self._expected_checks = tuple((name, command) for name, command in self.check_commands if command)
+        self._expected_checks = self.check_commands
         agent = Agent(
             self.llm,
             ToolBox(self.ws, protected=self.protect, skills=self.skills, plugins=self.plugins),
@@ -229,21 +219,7 @@ class Session:
         self.active = True
         try:
             self.record()
-            try:
-                result = agent.run(task)
-            except KeyboardInterrupt:
-                self.cancel.set()
-                result = agent.cancelled()
-            except Exception as error:
-                self.on_event(
-                    "error",
-                    step=agent.steps,
-                    error=f"{type(error).__name__}: {str(error)[:400]}",
-                    traceback=traceback.format_exc(),
-                )
-                result = AgentResult(
-                    False, f"stopped by an error: {type(error).__name__}: {str(error)[:400]}", agent.steps, "error"
-                )
+            result = self._run_agent(agent, task)
             self._agent = None
             self.steps += result.steps
             self.rounds += 1
@@ -279,6 +255,30 @@ class Session:
             self.cancel.clear()
             self.record()
 
+    def _snapshot(self) -> RoundState:
+        """What /undo restores besides the workspace: the conversation context before this round."""
+        return RoundState(
+            self.ws.current_step,
+            self.first_task,
+            list(self.instructions),
+            self.last_summary,
+            self.last_result,
+            self.rounds,
+            dict(self.goal_info) if self.goal_info is not None else None,
+        )
+
+    def _run_agent(self, agent: Agent, task: str) -> AgentResult:
+        """One agent transcript. An interrupt cancels it; any other failure is recorded with its traceback."""
+        try:
+            return agent.run(task)
+        except KeyboardInterrupt:
+            self.cancel.set()
+            return agent.cancelled()
+        except Exception as error:
+            message = f"{type(error).__name__}: {str(error)[:400]}"
+            self.on_event("error", step=agent.steps, error=message, traceback=traceback.format_exc())
+            return AgentResult(False, f"stopped by an error: {message}", agent.steps, "error")
+
     def instruct(self, text: str, *, goal: bool = False) -> tuple[AgentResult, str]:
         task = (
             text
@@ -288,23 +288,24 @@ class Session:
         return self.run_round(task, goal=goal, instruction=text)
 
     @property
-    def check_commands(self) -> tuple[tuple[str, str | None], ...]:
-        commands = (("tests", self.settings.test_command), ("lint", self.settings.lint_command))
+    def check_commands(self) -> tuple[tuple[str, str], ...]:
+        """The checks run after a round: the configured test and lint commands, plus a goal's own check."""
+        configured = (("tests", self.settings.test_command), ("lint", self.settings.lint_command))
+        commands = [(name, command) for name, command in configured if command]
         if self._goal_check and all(command != self._goal_check for _, command in commands):
-            commands += (("goal", self._goal_check),)
-        return commands
+            commands.append(("goal", self._goal_check))
+        return tuple(commands)
 
     @property
     def verification_status(self) -> VerificationStatus:
-        configured = self._expected_checks or tuple((name, command) for name, command in self.check_commands if command)
-        return verification_status(configured, self.checks, self.ws.image_id)
+        return verification_status(self._expected_checks or self.check_commands, self.checks, self.ws.image_id)
 
     def _verify(self) -> None:
         self.checks = []
-        self._expected_checks = tuple((name, command) for name, command in self.check_commands if command)
+        self._expected_checks = self.check_commands
         for name, command in self._expected_checks:
-            if not command or self.cancel.is_set():
-                continue
+            if self.cancel.is_set():
+                break
             self.on_event("verification.start", name=name, command=command)
             result = run_check(self.ws, name, command, self.settings.command_timeout)
             self.checks.append(result)

@@ -178,6 +178,14 @@ class LocalWorkspace:
         return self.changes().patch
 
 
+def _git(cwd: Path, *args: str) -> None:
+    """One git command while building the baseline; a failure names the command."""
+    env = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1"}
+    r = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, env=env, check=False)
+    if r.returncode != 0:
+        raise WorkspaceError(f"local baseline failed: git {' '.join(args)}: {r.stderr.strip()}")
+
+
 def create_local_workspace(
     settings: Settings,
     repo_root: Path,
@@ -200,38 +208,23 @@ def create_local_workspace(
     except tarfile.FilterError as e:
         raise WorkspaceError(f"the repository contains an entry the local backend refuses to extract: {e}") from None
 
-    git_env = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1"}
-    r = subprocess.run(
-        ["git", "-c", "init.defaultBranch=main", "init", "-q"],
-        cwd=current,
-        capture_output=True,
-        text=True,
-        env=git_env,
-        check=False,
-    )
-    if r.returncode != 0:
-        raise WorkspaceError(f"local baseline failed: git init: {r.stderr.strip()}")
+    _git(current, "-c", "init.defaultBranch=main", "init", "-q")
     exclude = current / ".git" / "info" / "exclude"
     exclude.parent.mkdir(parents=True, exist_ok=True)
     with exclude.open("a", encoding="utf-8") as f:
         f.write("\n".join(DIFF_EXCLUDES) + "\n")
-    for args in (
-        ["git", "add", "-A"],
-        [
-            "git",
-            "-c",
-            "user.email=praxbot@localhost",
-            "-c",
-            "user.name=praxbot",
-            "commit",
-            "-qm",
-            "baseline",
-            "--allow-empty",
-        ],
-    ):
-        r = subprocess.run(args, cwd=current, capture_output=True, text=True, env=git_env, check=False)
-        if r.returncode != 0:
-            raise WorkspaceError(f"local baseline failed: {' '.join(args)}: {r.stderr.strip()}")
+    _git(current, "add", "-A")
+    _git(
+        current,
+        "-c",
+        "user.email=praxbot@localhost",
+        "-c",
+        "user.name=praxbot",
+        "commit",
+        "-qm",
+        "baseline",
+        "--allow-empty",
+    )
 
     uv = shutil.which("uv")
     if uv is None:
