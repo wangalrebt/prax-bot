@@ -6,7 +6,6 @@ conversation pane, so the plain session and this interface share the same round 
 
 from __future__ import annotations
 
-import re
 import threading
 from collections.abc import Callable
 from pathlib import Path
@@ -27,8 +26,6 @@ from prax_bot.runtime.session import Session
 from prax_bot.settings import Settings
 from prax_bot.ui.common import create_session
 from prax_bot.ui.session import SESSION_HELP, handle_line
-
-FILE_RE = re.compile(r"^diff --git a/(\S+) b/", re.MULTILINE)
 
 
 class PaneFile:

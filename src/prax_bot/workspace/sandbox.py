@@ -37,15 +37,6 @@ from prax_bot.workspace.repository import (
 from prax_bot.workspace.types import Changes, Checkpoint, CommandResult, EventFn, WorkspaceError, noop
 
 UPLOAD_TMP = "/tmp/praxbot.upload"
-
-# Build artifacts that installs and test runs create inside the workspace. They are kept out
-# of diffs through .git/info/exclude, which lives outside the working tree.
-
-
-# Untracked files that are commonly secrets. They are not ignored by git, so they would be
-# uploaded with the repository; the CLI warns before that happens.
-
-
 TRANSPORT_TIMEOUT_S = 180.0  # per HTTP request; the SDK default of 10 s fails on multi-megabyte uploads
 
 

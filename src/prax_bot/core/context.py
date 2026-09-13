@@ -9,17 +9,9 @@ from typing import Any
 from prax_bot.core.prompts import prompt
 
 KEEP_FULL = 6  # the most recent tool results stay complete
-
-
 PRUNE_TIERS = ((12, 4096), (24, 1024))  # older results are cut to these sizes; beyond the last tier, a one-line digest
-
-
 COMPACT_KEEP_TURNS = 3  # assistant turns kept verbatim after a compaction
-
-
 COMPACT_MIN_GAP = 6  # steps between two compactions
-
-
 SUMMARY_SYSTEM = prompt("summary")
 
 
@@ -56,9 +48,6 @@ def compact_old_tool_results(
         if total <= max_chars:
             break
     return done
-
-
-elide_old_tool_results = compact_old_tool_results  # older name
 
 
 def _cut(text: str, cap: int) -> str:

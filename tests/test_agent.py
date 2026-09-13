@@ -3,7 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from prax_bot.core.agent import FORCE_FINISH, Agent, assistant_message
-from prax_bot.core.context import elide_old_tool_results
+from prax_bot.core.context import compact_old_tool_results
 from tests.fakes import FakeLLM, FakeToolBox, call, reply
 
 
@@ -80,9 +80,9 @@ def test_elision_keeps_recent_tool_outputs() -> None:
     for i in range(10):
         messages.append({"role": "assistant", "content": ""})
         messages.append({"role": "tool", "tool_call_id": str(i), "content": "x" * 1000})
-    elided = elide_old_tool_results(messages, max_chars=6500, keep_last=6)
+    elided = compact_old_tool_results(messages, max_chars=6500, keep_last=6)
     tool_msgs = [m for m in messages if m["role"] == "tool"]
     assert elided == 4
     assert all(m["content"].startswith("[elided") for m in tool_msgs[:4])
     assert all(m["content"] == "x" * 1000 for m in tool_msgs[4:])
-    assert elide_old_tool_results(messages, max_chars=10_000) == 0
+    assert compact_old_tool_results(messages, max_chars=10_000) == 0

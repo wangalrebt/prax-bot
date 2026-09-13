@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import fnmatch
+import hashlib
 import json
 import re
 import shlex
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from typing import Any
 
 from contree_sdk.sdk.exceptions import ContreeError
@@ -134,6 +136,8 @@ TOOL_MODELS: dict[str, type[BaseModel]] = {
 }
 
 TOOL_DESCRIPTIONS = {name: prompt(f"tools/{name}", scratch_dir=SCRATCH_DIR) for name in TOOL_MODELS}
+LOAD_SKILL_DESCRIPTION = prompt("tools/load_skill")
+PROTECTED_MSG = prompt("protected", scratch_dir=SCRATCH_DIR)
 
 
 def tool_specs(*, goal: bool = False) -> list[dict[str, Any]]:
@@ -168,9 +172,16 @@ def _limited(lines: list[str], limit: int, truncated: bool, what: str) -> str:
 
 
 def _digest(text: str) -> str:
-    import hashlib
-
     return hashlib.sha1(text.encode("utf-8", "replace")).hexdigest()
+
+
+def failed(message: str) -> ToolResult:
+    """A tool result the model reads as a failure and the runtime marks as one."""
+    return ToolResult(f"error: {message}", error=True)
+
+
+def clipped(text: str, limit: int) -> str:
+    return text[:limit] + ("\n… (truncated)" if len(text) > limit else "")
 
 
 def pytest_failures(output: str) -> list[str]:
@@ -226,17 +237,13 @@ class ToolBox:
     def compact(self, name: str, output: str) -> str:
         return compact_tool_output(name, output, self.defs_for)
 
-    LOAD_SKILL_DESCRIPTION = prompt("tools/load_skill")
-
     def specs(self, *, goal: bool = False) -> list[dict[str, Any]]:
         """Tool schemas for this run: the built-ins, load_skill when skills exist, and plugin tools."""
         from prax_bot.extensions.plugins import ExtraTool
 
         specs = tool_specs(goal=goal)
         if self._skills and "load_skill" not in self._extra:
-            self._extra["load_skill"] = ExtraTool(
-                "load_skill", self.LOAD_SKILL_DESCRIPTION, LoadSkill, self._load_skill
-            )
+            self._extra["load_skill"] = ExtraTool("load_skill", LOAD_SKILL_DESCRIPTION, LoadSkill, self._load_skill)
         return specs + [t.spec() for t in self._extra.values()]
 
     def skills_overview(self) -> str:
@@ -244,10 +251,7 @@ class ToolBox:
         from prax_bot.extensions.skills import overview, repo_skills
 
         if not self._paths and getattr(self.ws, "run", None):
-            r = self.ws.run(
-                "git ls-files -co --exclude-standard", timeout=60, mutate=False, truncate_output_at=2 * 1024 * 1024
-            )
-            self._paths = r.stdout.splitlines()
+            self._list_paths()
         for sk in repo_skills(self.ws, self._paths):
             self._skills.setdefault(sk.name, sk)
         return overview(list(self._skills.values()))
@@ -255,9 +259,7 @@ class ToolBox:
     def _load_skill(self, ws: Any, a: LoadSkill) -> str | ToolResult:
         sk = self._skills.get(a.name.strip())
         if sk is None:
-            return ToolResult(
-                f"error: no skill named {a.name!r}. Available: {', '.join(self._skills) or 'none'}", error=True
-            )
+            return failed(f"no skill named {a.name!r}. Available: {', '.join(self._skills) or 'none'}")
         return prompt("skill_loaded", name=sk.name, source=sk.source, text=sk.text())
 
     def nested_instructions(self, path: str, limit: int = 3_000) -> str:
@@ -279,8 +281,7 @@ class ToolBox:
                 self._shown_instructions.add(candidate)
                 if not text:
                     return ""
-                clipped = text[:limit] + ("\n… (truncated)" if len(text) > limit else "")
-                return "\n\n" + prompt("nested_instructions", path=candidate, text=clipped)
+                return "\n\n" + prompt("nested_instructions", path=candidate, text=clipped(text, limit))
         return ""
 
     def project_instructions(self, limit: int = 4_000) -> str:
@@ -291,17 +292,20 @@ class ToolBox:
             except (FileNotFoundError, IsADirectoryError, ValueError):
                 continue
             if text:
-                clipped = text[:limit] + ("\n… (truncated)" if len(text) > limit else "")
-                return prompt("project_instructions", name=name, text=clipped)
+                return prompt("project_instructions", name=name, text=clipped(text, limit))
         return ""
 
-    def repo_map(self, task: str, budget: int = REPO_MAP_BUDGET) -> str:
-        """Definitions with line numbers for the most relevant source files, within a character budget."""
+    def _list_paths(self) -> list[str]:
+        """Every path git would track or does not ignore, kept for the run so later lookups need no command."""
         r = self.ws.run(
             "git ls-files -co --exclude-standard", timeout=60, mutate=False, truncate_output_at=2 * 1024 * 1024
         )
         self._paths = r.stdout.splitlines()
-        files = rank_files(self._paths, task)[:REPO_MAP_MAX_FILES]
+        return self._paths
+
+    def repo_map(self, task: str, budget: int = REPO_MAP_BUDGET) -> str:
+        """Definitions with line numbers for the most relevant source files, within a character budget."""
+        files = rank_files(self._list_paths(), task)[:REPO_MAP_MAX_FILES]
         if not files:
             return ""
         defs = self.definitions(files)
@@ -345,36 +349,31 @@ class ToolBox:
         model = extra.model if extra else TOOL_MODELS.get(name)
         if model is None or name == "finish":
             available = list(TOOL_MODELS) + list(self._extra)
-            return ToolResult(f"error: unknown tool {name!r}. Available tools: {', '.join(available)}", error=True)
+            return failed(f"unknown tool {name!r}. Available tools: {', '.join(available)}")
         try:
             args = json.loads(raw_args) if isinstance(raw_args, str) else (raw_args or {})
             if not isinstance(args, dict):
                 raise TypeError("arguments must be a JSON object")
             parsed = model.model_validate(args)
         except (json.JSONDecodeError, TypeError, ValueError, ValidationError) as e:
-            return ToolResult(f"error: invalid arguments for {name}: {e}", error=True)
-        if extra:
-            handler: Callable[[Any], str | ToolResult] = lambda a: extra.handler(self.ws, a)  # noqa: E731
-        else:
-            handler = getattr(self, f"_{name}")
+            return failed(f"invalid arguments for {name}: {e}")
         try:
-            returned = handler(parsed)
+            returned = extra.handler(self.ws, parsed) if extra else getattr(self, f"_{name}")(parsed)
             result = returned if isinstance(returned, ToolResult) else ToolResult(returned)
             path = getattr(parsed, "path", None)
             if path and name in ("read_file", "edit_file", "write_file", "outline") and not result.error:
                 result = ToolResult(result.output + self.nested_instructions(path))
             return result
         except FileNotFoundError as e:
-            return ToolResult(f"error: file not found: {e}", error=True)
+            return failed(f"file not found: {e}")
         except IsADirectoryError as e:
-            return ToolResult(f"error: {e} is a directory, not a file", error=True)
+            return failed(f"{e} is a directory, not a file")
         except (ValueError, WorkspaceError) as e:
-            return ToolResult(f"error: {e}", error=True)
+            return failed(str(e))
         except (ContreeError, OSError) as e:
-            return ToolResult(
-                f"error: the workspace backend failed ({type(e).__name__}: {str(e)[:300]}). "
-                "Try the call again; if it keeps failing, call finish and say so.",
-                error=True,
+            return failed(
+                f"the workspace backend failed ({type(e).__name__}: {str(e)[:300]}). "
+                "Try the call again; if it keeps failing, call finish and say so."
             )
 
     def _list_files(self, a: ListFiles) -> str | ToolResult:
@@ -382,7 +381,7 @@ class ToolBox:
         resolve_in_workdir(path, self.ws.workdir)
         r = self.ws.run(f"git ls-files -co --exclude-standard -- {shlex.quote(path)}", timeout=60, mutate=False)
         if r.exit_code != 0:
-            return ToolResult(f"error: {r.stderr.strip() or 'listing failed'}", error=True)
+            return failed(r.stderr.strip() or "listing failed")
         lines = r.stdout.splitlines()
         if not lines:
             return f"(no files under {path})"
@@ -412,7 +411,7 @@ class ToolBox:
                 if "No such file" in r.stderr and self._paths:
                     tops = sorted({p.split("/", 1)[0] for p in self._paths if "/" in p})
                     hint = f" The repository's top-level directories are: {', '.join(tops[:25])}."
-                return ToolResult(f"error: {r.stderr.strip() or 'search failed'}.{hint}", error=True)
+                return failed(f"{r.stderr.strip() or 'search failed'}.{hint}")
             return (
                 "no matches. Do not guess names: search for a shorter substring, set ignore_case, "
                 "or call outline on the file to see what it defines." + note
@@ -426,12 +425,8 @@ class ToolBox:
         """The model has seen exactly this content, from a read or from its own last edit."""
         return self._observed.get(path) == _digest(text)
 
-    PROTECTED_MSG = prompt("protected", scratch_dir=SCRATCH_DIR)
-
     def _protected(self, path: str) -> bool:
         """True for an existing repository file matching a protected glob. New files and the scratch dir are free."""
-        import fnmatch
-
         raw = path.strip()
         if raw.startswith(SCRATCH_DIR):
             return False
@@ -456,11 +451,11 @@ class ToolBox:
             span = definition_span(text, a.symbol)
             if not isinstance(span, tuple):
                 hint = f"; did you mean {', '.join(span)}" if span else "; call outline to see what it defines"
-                return ToolResult(f"error: no definition named {a.symbol!r} in {a.path}{hint}", error=True)
+                return failed(f"no definition named {a.symbol!r} in {a.path}{hint}")
             start, end = span
             label = f" ({a.symbol})"
         if start > total:
-            return ToolResult(f"error: {a.path} has {total} lines; start_line {start} is past the end", error=True)
+            return failed(f"{a.path} has {total} lines; start_line {start} is past the end")
         end = min(end, total, start + MAX_READ_LINES - 1)
         body = number_lines(lines[start - 1 : end], start)
         note = "" if end == total else f"\n... {total - end} more lines; call read_file with start_line={end + 1}"
@@ -476,25 +471,20 @@ class ToolBox:
 
     def _edit_file(self, a: EditFile) -> str | ToolResult:
         if self._protected(a.path):
-            return ToolResult(f"error: {a.path} {self.PROTECTED_MSG}", error=True)
+            return failed(f"{a.path} {PROTECTED_MSG}")
         text = self.ws.read(a.path).decode("utf-8", "replace")
         if not self._fresh(a.path, text):
-            return ToolResult(
-                f"error: read {a.path} before editing it. "
-                + (
-                    "It has changed since you last read it."
-                    if a.path in self._observed
-                    else "You have not read it in this session."
-                ),
-                error=True,
+            why = (
+                "It has changed since you last read it."
+                if a.path in self._observed
+                else "You have not read it in this session."
             )
+            return failed(f"read {a.path} before editing it. {why}")
         new_text, error = apply_edit(text, a.old, a.new, replace_all=a.replace_all)
         if error:
-            return ToolResult(f"error: {error}", error=True)
+            return failed(error)
         self.ws.write(a.path, new_text.encode("utf-8"))
-        self._defs.pop(a.path, None)
-        self._note_repo_edit(a.path)
-        self._observe(a.path, new_text)
+        self._after_write(a.path, new_text)
         return (
             f"edited {a.path}: replaced {a.old.count(chr(10)) + 1} lines with {a.new.count(chr(10)) + 1} lines"
             f" (checkpoint {self.ws.current_step})"
@@ -502,17 +492,15 @@ class ToolBox:
 
     def _write_file(self, a: WriteFile) -> str | ToolResult:
         if self._protected(a.path):
-            return ToolResult(f"error: {a.path} {self.PROTECTED_MSG}", error=True)
+            return failed(f"{a.path} {PROTECTED_MSG}")
         try:
             self.ws.read(a.path)
         except FileNotFoundError:
             pass
         else:
-            return ToolResult(f"error: {a.path} already exists; use edit_file to change it", error=True)
+            return failed(f"{a.path} already exists; use edit_file to change it")
         self.ws.write(a.path, a.content.encode("utf-8"))
-        self._defs.pop(a.path, None)
-        self._note_repo_edit(a.path)
-        self._observe(a.path, a.content)
+        self._after_write(a.path, a.content)
         output = f"wrote {a.path} ({len(a.content)} characters, checkpoint {self.ws.current_step})"
         path = resolve_in_workdir(a.path, self.ws.workdir)
         if self.ws.backend == "local" and path.startswith(SCRATCH_DIR + "/"):
@@ -593,9 +581,12 @@ class ToolBox:
             notes.append("explicitly reported passing now: " + ", ".join(confirmed[:8]))
         return "note: " + "; ".join(notes) if notes else ""
 
-    def _note_repo_edit(self, path: str) -> None:
+    def _after_write(self, path: str, text: str) -> None:
+        """After the model changes a file: its outline is stale, it may count as a repository edit, and its content is seen."""
+        self._defs.pop(path, None)
         if not resolve_in_workdir(path, self.ws.workdir).startswith(SCRATCH_DIR):
             self._edit_steps.append(self.ws.current_step)
+        self._observe(path, text)
 
     @property
     def repo_edited(self) -> bool:
@@ -604,18 +595,16 @@ class ToolBox:
 
     def _restore(self, a: Restore) -> str | ToolResult:
         if self._restores >= MAX_RESTORES:
-            return ToolResult(
-                f"error: restore limit of {MAX_RESTORES} reached for this run. Keep the current state; "
-                "if tests fail for reasons unrelated to your change, say so in finish.",
-                error=True,
+            return failed(
+                f"restore limit of {MAX_RESTORES} reached for this run. Keep the current state; "
+                "if tests fail for reasons unrelated to your change, say so in finish."
             )
         if self._edit_steps and all(s > a.step for s in self._edit_steps):
             kept = ", ".join(str(s) for s in self._edit_steps)
-            return ToolResult(
-                f"error: restoring to checkpoint {a.step} would discard every change you have made to the repository "
+            return failed(
+                f"restoring to checkpoint {a.step} would discard every change you have made to the repository "
                 f"(your edits are checkpoints {kept}). Keep them: restore to a later checkpoint, or undo the one change "
-                "that is wrong with edit_file. Unrelated test failures are not a reason to start over.",
-                error=True,
+                "that is wrong with edit_file. Unrelated test failures are not a reason to start over."
             )
         self._restores += 1
         target = self.ws.restore(a.step)
