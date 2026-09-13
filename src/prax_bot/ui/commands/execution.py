@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import dataclasses
 import sys
+from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -62,7 +64,7 @@ ExportOpt = Annotated[Path | None, typer.Option(help="Also write the diff to thi
 
 
 ProtectOpt = Annotated[
-    list[str], typer.Option("--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable")
+    list[str] | None, typer.Option("--protect", help="Glob the model may not edit, e.g. 'tests/*'. Repeatable")
 ]
 
 
@@ -104,6 +106,51 @@ EffortOpt = Annotated[
 
 
 INIT_TASK = prompt("init_task")
+
+
+@dataclass
+class WorkspaceOptions:
+    """The options every command that opens a workspace accepts, resolved the same way each time."""
+
+    repo: Path
+    model: str | None = None
+    base_image: str | None = None
+    setup: str | None = None
+    max_steps: int | None = None
+    backend: str | None = None
+    protect: Sequence[str] | None = None
+    temperature: float | None = None
+    top_p: float | None = None
+    effort: str | None = None
+    context_budget: int | None = None
+    test_command: str | None = None
+    lint_command: str | None = None
+    investigate_model: str | None = None
+
+    def resolve(self) -> tuple[Path, Settings]:
+        """The repository root and the effective settings; exits when credentials are missing."""
+        root = repo_root(self.repo)
+        settings = build_settings(
+            model=self.model,
+            investigate_model=self.investigate_model,
+            base_image=self.base_image,
+            setup=self.setup,
+            max_steps=self.max_steps,
+            temperature=self.temperature,
+            top_p=self.top_p,
+            effort=self.effort,
+            context_budget=self.context_budget,
+            backend=self.backend,
+            repo_root=root,
+            test_command=self.test_command,
+            lint_command=self.lint_command,
+        )
+        _require_credentials(settings, need_project=settings.backend == "contree")
+        return root, settings
+
+    @property
+    def protected(self) -> list[str]:
+        return list(self.protect or ())
 
 
 def _require_credentials(settings: Settings, *, need_project: bool = True) -> None:
@@ -185,45 +232,6 @@ def _solve(
             console.print(f"[red]✗ {escape(str(error))}[/]")
 
 
-def _start_session(
-    repo: Path,
-    model: str | None,
-    base_image: str | None,
-    setup: str | None,
-    max_steps: int | None,
-    backend: str,
-    protect: list[str],
-    verbose: bool,
-    temperature: float | None,
-    top_p: float | None,
-    effort: str | None,
-    context_budget: int | None = None,
-    test_command: str | None = None,
-    lint_command: str | None = None,
-) -> None:
-    root = repo_root(repo)
-    settings = build_settings(
-        model=model,
-        base_image=base_image,
-        setup=setup,
-        max_steps=max_steps,
-        temperature=temperature,
-        top_p=top_p,
-        effort=effort,
-        context_budget=context_budget,
-        backend=backend,
-        repo_root=root,
-        test_command=test_command,
-        lint_command=lint_command,
-    )
-    backend = settings.backend
-    _require_credentials(settings, need_project=backend == "contree")
-    _header(settings, root, backend, "\n[dim]mode[/]   session: one sandbox, many instructions")
-    skills, plugins = load_extensions(settings)
-    session = create_session(settings, root, verbose=verbose, protect=protect, skills=skills, plugins=plugins)
-    session_loop(session, console)
-
-
 def session(
     repo: RepoOpt = Path("."),
     model: ModelOpt = None,
@@ -231,7 +239,7 @@ def session(
     setup: SetupOpt = None,
     max_steps: MaxStepsOpt = None,
     backend: BackendOpt = None,
-    protect: ProtectOpt = (),
+    protect: ProtectOpt = None,
     verbose: VerboseOpt = False,
     temperature: TemperatureOpt = None,
     top_p: TopPOpt = None,
@@ -241,7 +249,7 @@ def session(
     lint_command: LintCommandOpt = None,
 ) -> None:
     """Open a plain terminal session and keep giving it instructions."""
-    _start_session(
+    opts = WorkspaceOptions(
         repo,
         model,
         base_image,
@@ -249,14 +257,18 @@ def session(
         max_steps,
         backend,
         protect,
-        verbose,
         temperature,
         top_p,
         effort,
         context_budget,
-        test_command=test_command,
-        lint_command=lint_command,
+        test_command,
+        lint_command,
     )
+    root, settings = opts.resolve()
+    _header(settings, root, settings.backend, "\n[dim]mode[/]   session: one sandbox, many instructions")
+    skills, plugins = load_extensions(settings)
+    session = create_session(settings, root, verbose=verbose, protect=opts.protected, skills=skills, plugins=plugins)
+    session_loop(session, console)
 
 
 def ui(
@@ -266,7 +278,7 @@ def ui(
     setup: SetupOpt = None,
     max_steps: MaxStepsOpt = None,
     backend: BackendOpt = None,
-    protect: ProtectOpt = (),
+    protect: ProtectOpt = None,
     verbose: VerboseOpt = False,
     temperature: TemperatureOpt = None,
     top_p: TopPOpt = None,
@@ -276,7 +288,9 @@ def ui(
     lint_command: LintCommandOpt = None,
 ) -> None:
     """The full-screen terminal interface: conversation, sidebar, diff pane, one input line."""
-    _start_ui(
+    from prax_bot.ui.tui import run_ui
+
+    opts = WorkspaceOptions(
         repo,
         model,
         base_image,
@@ -284,53 +298,16 @@ def ui(
         max_steps,
         backend,
         protect,
-        verbose,
         temperature,
         top_p,
         effort,
         context_budget,
-        test_command=test_command,
-        lint_command=lint_command,
+        test_command,
+        lint_command,
     )
-
-
-def _start_ui(
-    repo: Path,
-    model: str | None,
-    base_image: str | None,
-    setup: str | None,
-    max_steps: int | None,
-    backend: str,
-    protect: list[str],
-    verbose: bool,
-    temperature: float | None,
-    top_p: float | None,
-    effort: str | None,
-    context_budget: int | None = None,
-    test_command: str | None = None,
-    lint_command: str | None = None,
-) -> None:
-    from prax_bot.ui.tui import run_ui
-
-    root = repo_root(repo)
-    settings = build_settings(
-        model=model,
-        base_image=base_image,
-        setup=setup,
-        max_steps=max_steps,
-        temperature=temperature,
-        top_p=top_p,
-        effort=effort,
-        context_budget=context_budget,
-        backend=backend,
-        repo_root=root,
-        test_command=test_command,
-        lint_command=lint_command,
-    )
-    backend = settings.backend
-    _require_credentials(settings, need_project=backend == "contree")
+    root, settings = opts.resolve()
     skills, plugins = load_extensions(settings)
-    run_ui(settings, root, backend, protect, skills, plugins, verbose)
+    run_ui(settings, root, settings.backend, opts.protected, skills, plugins, verbose)
 
 
 def web(
@@ -342,7 +319,7 @@ def web(
     setup: SetupOpt = None,
     max_steps: MaxStepsOpt = None,
     backend: BackendOpt = None,
-    protect: ProtectOpt = (),
+    protect: ProtectOpt = None,
     verbose: VerboseOpt = False,
     temperature: TemperatureOpt = None,
     top_p: TopPOpt = None,
@@ -352,25 +329,23 @@ def web(
     lint_command: LintCommandOpt = None,
 ) -> None:
     """The web interface on localhost: chat with tool calls, changes, to-dos and rounds in a sidebar, a slash-command menu."""
-
-    root = repo_root(repo)
-    settings = build_settings(
-        model=model,
-        base_image=base_image,
-        setup=setup,
-        max_steps=max_steps,
-        temperature=temperature,
-        top_p=top_p,
-        effort=effort,
-        context_budget=context_budget,
-        backend=backend,
-        repo_root=root,
-        test_command=test_command,
-        lint_command=lint_command,
+    opts = WorkspaceOptions(
+        repo,
+        model,
+        base_image,
+        setup,
+        max_steps,
+        backend,
+        protect,
+        temperature,
+        top_p,
+        effort,
+        context_budget,
+        test_command,
+        lint_command,
     )
-    backend = settings.backend
-    _require_credentials(settings, need_project=backend == "contree")
-    _start_web(settings, root, backend, protect, verbose, port, not no_browser)
+    root, settings = opts.resolve()
+    _start_web(settings, root, settings.backend, opts.protected, verbose, port, not no_browser)
 
 
 def _start_web(
@@ -410,7 +385,7 @@ def run(
     backend: BackendOpt = None,
     yes: YesOpt = False,
     export: ExportOpt = None,
-    protect: ProtectOpt = (),
+    protect: ProtectOpt = None,
     verbose: VerboseOpt = False,
     temperature: TemperatureOpt = None,
     top_p: TopPOpt = None,
@@ -420,32 +395,29 @@ def run(
     lint_command: LintCommandOpt = None,
 ) -> None:
     """Solve a task in the current repository. Runs entirely in a sandbox, shows the diff, takes follow-up instructions, then asks before applying."""
-    root = repo_root(repo)
-    settings = build_settings(
-        model=model,
-        investigate_model=investigate_model,
-        base_image=base_image,
-        setup=setup,
-        max_steps=max_steps,
-        temperature=temperature,
-        top_p=top_p,
-        effort=effort,
-        context_budget=context_budget,
-        backend=backend,
-        repo_root=root,
-        test_command=test_command,
-        lint_command=lint_command,
+    opts = WorkspaceOptions(
+        repo,
+        model,
+        base_image,
+        setup,
+        max_steps,
+        backend,
+        protect,
+        temperature,
+        top_p,
+        effort,
+        context_budget,
+        test_command,
+        lint_command,
+        investigate_model,
     )
-    backend = settings.backend
-    _require_credentials(settings, need_project=backend == "contree")
-
-    _header(settings, root, backend)
+    root, settings = opts.resolve()
+    _header(settings, root, settings.backend)
     console.print(f"[bold]task[/]  {escape(task)}")
     skills, plugins = load_extensions(settings)
     console.print()
-
     session = create_session(
-        settings, root, verbose=verbose, protect=protect, skills=skills, plugins=plugins, kind="run"
+        settings, root, verbose=verbose, protect=opts.protected, skills=skills, plugins=plugins, kind="run"
     )
     _solve(session, task, yes=yes, export=export)
 
@@ -462,12 +434,7 @@ def init(
     verbose: VerboseOpt = False,
 ) -> None:
     """Write an AGENTS.md for this repository: how to install, test and lint it, its layout and conventions, from what the agent finds."""
-    root = repo_root(repo)
-    settings = build_settings(
-        model=model, base_image=base_image, setup=setup, max_steps=max_steps, backend=backend, repo_root=root
-    )
-    backend = settings.backend
-    _require_credentials(settings, need_project=backend == "contree")
+    root, settings = WorkspaceOptions(repo, model, base_image, setup, max_steps, backend).resolve()
     if (root / "AGENTS.md").exists() and not force:
         console.print(f"{root / 'AGENTS.md'} already exists; pass --force to replace it, or edit it by hand.")
         raise typer.Exit(1)
@@ -476,7 +443,7 @@ def init(
         if force
         else "Create AGENTS.md at the repository root"
     )
-    _header(settings, root, backend)
+    _header(settings, root, settings.backend)
     console.print("[bold]task[/]  write AGENTS.md")
     skills, plugins = load_extensions(settings)
     console.print()
@@ -524,7 +491,7 @@ def goal(
     backend: BackendOpt = None,
     yes: YesOpt = False,
     export: ExportOpt = None,
-    protect: ProtectOpt = (),
+    protect: ProtectOpt = None,
     verbose: VerboseOpt = False,
     temperature: TemperatureOpt = None,
     top_p: TopPOpt = None,
@@ -534,28 +501,26 @@ def goal(
     lint_command: LintCommandOpt = None,
 ) -> None:
     """Work toward a goal in rounds until a check command passes or the model reports it met, then show the diff."""
-
-    root = repo_root(repo)
-    settings = build_settings(
-        model=model,
-        base_image=base_image,
-        setup=setup,
-        max_steps=max_steps,
-        temperature=temperature,
-        top_p=top_p,
-        effort=effort,
-        context_budget=context_budget,
-        backend=backend,
-        repo_root=root,
-        test_command=test_command,
-        lint_command=lint_command,
+    opts = WorkspaceOptions(
+        repo,
+        model,
+        base_image,
+        setup,
+        max_steps,
+        backend,
+        protect,
+        temperature,
+        top_p,
+        effort,
+        context_budget,
+        test_command,
+        lint_command,
     )
-    backend = settings.backend
-    _require_credentials(settings, need_project=backend == "contree")
+    root, settings = opts.resolve()
     _header(
         settings,
         root,
-        backend,
+        settings.backend,
         f"\n[dim]goal[/]   up to {rounds} rounds"
         + (f", met when `{escape(check)}` exits 0" if check else ", the model decides when it is met"),
     )
@@ -564,7 +529,7 @@ def goal(
     console.print()
 
     session = create_session(
-        settings, root, verbose=verbose, protect=protect, skills=skills, plugins=plugins, kind="goal"
+        settings, root, verbose=verbose, protect=opts.protected, skills=skills, plugins=plugins, kind="goal"
     )
     _solve(session, objective, yes=yes, export=export, objective=objective, check=check, rounds=rounds)
 
@@ -579,7 +544,7 @@ def resume(
     max_steps: MaxStepsOpt = None,
     yes: YesOpt = False,
     export: ExportOpt = None,
-    protect: ProtectOpt = (),
+    protect: ProtectOpt = None,
     verbose: VerboseOpt = False,
     temperature: TemperatureOpt = None,
     top_p: TopPOpt = None,
@@ -655,7 +620,7 @@ def resume(
         settings,
         root,
         verbose=verbose,
-        protect=protect,
+        protect=list(protect or ()),
         skills=skills,
         plugins=plugins,
         kind="resume",
