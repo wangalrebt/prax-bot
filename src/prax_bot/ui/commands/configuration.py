@@ -138,49 +138,29 @@ def prompt_command(
     print(custom or prompts.text(name))
 
 
-def doctor(
-    base_image: str | None = typer.Option(None, help="OCI image to test. Default: python:3.12"),
-    skip_sandbox: bool = typer.Option(False, help="Skip the sandbox checks"),
-) -> None:
-    """Check credentials, the Nemotron model, tool calling, and the sandbox."""
-    settings = build_settings(base_image=base_image, repo_root=maybe_repo_root(Path(".")))
-    ok = True
+def _row(status: bool, name: str, detail: str = "") -> None:
+    mark = "[green]✓[/]" if status else "[red]✗[/]"
+    console.print(f"  {mark} {escape(name)}  [dim]{escape(detail)}[/]")
 
-    def row(status: bool, name: str, detail: str = "") -> None:
-        mark = "[green]✓[/]" if status else "[red]✗[/]"
-        console.print(f"  {mark} {escape(name)}  [dim]{escape(detail)}[/]")
 
-    console.print("[bold]credentials[/]")
-    row(bool(settings.api_key), "NEBIUS_API_KEY", "set" if settings.api_key else "not set")
-    project_ok = bool(settings.project_id)
-    row(project_ok, "NEBIUS_PROJECT_ID", "set" if project_ok else "not set")
-    if not settings.api_key or (not project_ok and not skip_sandbox):
-        console.print(f"\n[dim]values are read from the environment or from {escape(str(contree_auth_ini()))}[/]")
-        console.print("\nSet the missing variables and run doctor again.")
-        raise typer.Exit(1)
-
-    console.print("\n[bold]config[/]")
-    row(True, "files", ", ".join(str(f) for f in settings.config_files) or "none (prax config --init writes one)")
-    for warning in settings.warnings:
-        row(False, "warning", warning)
-
-    console.print("\n[bold]token factory[/]")
+def _check_model(settings) -> bool:
+    """The model list and one tool-call round trip against the configured model."""
     from prax_bot.core.llm import LLM
 
+    ok = True
     llm = LLM(settings)
     try:
         models = llm.list_models()
         nvidia = [m for m in models if m.startswith("nvidia/")]
-        row(True, "model list", f"{len(models)} models, {len(nvidia)} from nvidia")
+        _row(True, "model list", f"{len(models)} models, {len(nvidia)} from nvidia")
         for m in nvidia:
             console.print(f"        {escape(m)}")
         available = settings.model in models
-        row(available, f"configured model {settings.model}", "available" if available else "not in the list")
+        _row(available, f"configured model {settings.model}", "available" if available else "not in the list")
         ok &= available
     except Exception as e:
-        row(False, "model list", f"{type(e).__name__}: {e}")
+        _row(False, "model list", f"{type(e).__name__}: {e}")
         ok = False
-
     ping_tool = [
         {
             "type": "function",
@@ -209,61 +189,89 @@ def doctor(
             detail = f"{calls[0].function.name}({calls[0].function.arguments})"
         elif msg.content:
             detail = f"model answered in prose: {msg.content[:80]!r}"
-        row(good, "tool-call round trip", f"{time.monotonic() - t0:.1f}s · {detail}")
+        _row(good, "tool-call round trip", f"{time.monotonic() - t0:.1f}s · {detail}")
         ok &= good
     except Exception as e:
-        row(False, "tool-call round trip", f"{type(e).__name__}: {e}")
+        _row(False, "tool-call round trip", f"{type(e).__name__}: {e}")
         ok = False
+    return ok
 
-    if not skip_sandbox:
-        console.print("\n[bold]sandbox[/]")
-        from contree_sdk.sdk.exceptions import ForbiddenError
 
-        try:
-            from prax_bot.workspace.sandbox import make_client
+def _check_sandbox(settings) -> bool:
+    """Auth, the base image, a command, fork isolation, and a file upload in a sandbox."""
+    from contree_sdk.sdk.exceptions import ForbiddenError
 
-            client = make_client()
-            info = client.get_token_info()
-            limits = ", ".join(f"{k}={v}" for k, v in sorted(info.limits.items())) or "none reported"
-            row(True, "auth", f"limits: {limits}")
+    try:
+        from prax_bot.workspace.sandbox import make_client
 
-            t0 = time.monotonic()
-            base = client.images.oci(settings.base_image, timeout=settings.import_timeout)
-            row(True, f"base image {settings.base_image}", f"{base.uuid} · {time.monotonic() - t0:.1f}s")
+        client = make_client()
+        info = client.get_token_info()
+        limits = ", ".join(f"{k}={v}" for k, v in sorted(info.limits.items())) or "none reported"
+        _row(True, "auth", f"limits: {limits}")
 
-            t0 = time.monotonic()
-            a = base.run(shell="echo hello > /tmp/a && cat /tmp/a", disposable=False, timeout=60).wait()
-            ran = a.exit_code == 0 and "hello" in str(a.stdout or "")
-            row(ran, "run a command", f"exit {a.exit_code} · {time.monotonic() - t0:.1f}s · new image {a.uuid}")
-            ok &= ran
+        t0 = time.monotonic()
+        base = client.images.oci(settings.base_image, timeout=settings.import_timeout)
+        _row(True, f"base image {settings.base_image}", f"{base.uuid} · {time.monotonic() - t0:.1f}s")
 
-            b = base.run(shell="echo hello > /tmp/b", disposable=False, timeout=60).wait()
-            a_sees_b = a.run(shell="test -e /tmp/b", disposable=True, timeout=60).wait().exit_code == 0
-            b_sees_a = b.run(shell="test -e /tmp/a", disposable=True, timeout=60).wait().exit_code == 0
-            isolated = not a_sees_b and not b_sees_a
-            row(
-                isolated,
-                "fork isolation",
-                "two runs from one image cannot see each other's files" if isolated else "files leaked between forks",
-            )
-            ok &= isolated
+        t0 = time.monotonic()
+        a = base.run(shell="echo hello > /tmp/a && cat /tmp/a", disposable=False, timeout=60).wait()
+        ran = a.exit_code == 0 and "hello" in str(a.stdout or "")
+        _row(ran, "run a command", f"exit {a.exit_code} · {time.monotonic() - t0:.1f}s · new image {a.uuid}")
 
-            c = a.apply_files({"/tmp/c.txt": b"upload ok"})
-            content = c.read("/tmp/c.txt")
-            row(content == b"upload ok", "upload and read a file", f"{len(content)} bytes")
-            ok &= content == b"upload ok"
-        except ForbiddenError:
-            row(False, "sandbox access", NO_SANDBOX_ACCESS)
-            ok = False
-        except Exception as e:
-            row(False, "sandbox", f"{type(e).__name__}: {e}")
-            ok = False
+        b = base.run(shell="echo hello > /tmp/b", disposable=False, timeout=60).wait()
+        a_sees_b = a.run(shell="test -e /tmp/b", disposable=True, timeout=60).wait().exit_code == 0
+        b_sees_a = b.run(shell="test -e /tmp/a", disposable=True, timeout=60).wait().exit_code == 0
+        isolated = not a_sees_b and not b_sees_a
+        _row(
+            isolated,
+            "fork isolation",
+            "two runs from one image cannot see each other's files" if isolated else "files leaked between forks",
+        )
 
-    console.print("\n[bold]local backend[/]")
+        c = a.apply_files({"/tmp/c.txt": b"upload ok"})
+        content = c.read("/tmp/c.txt")
+        uploaded = content == b"upload ok"
+        _row(uploaded, "upload and read a file", f"{len(content)} bytes")
+        return ran and isolated and uploaded
+    except ForbiddenError:
+        _row(False, "sandbox access", NO_SANDBOX_ACCESS)
+    except Exception as e:
+        _row(False, "sandbox", f"{type(e).__name__}: {e}")
+    return False
+
+
+def doctor(
+    base_image: str | None = typer.Option(None, help="OCI image to test. Default: python:3.12"),
+    skip_sandbox: bool = typer.Option(False, help="Skip the sandbox checks"),
+) -> None:
+    """Check credentials, the Nemotron model, tool calling, and the sandbox."""
     import shutil
 
+    settings = build_settings(base_image=base_image, repo_root=maybe_repo_root(Path(".")))
+
+    console.print("[bold]credentials[/]")
+    _row(bool(settings.api_key), "NEBIUS_API_KEY", "set" if settings.api_key else "not set")
+    project_ok = bool(settings.project_id)
+    _row(project_ok, "NEBIUS_PROJECT_ID", "set" if project_ok else "not set")
+    if not settings.api_key or (not project_ok and not skip_sandbox):
+        console.print(f"\n[dim]values are read from the environment or from {escape(str(contree_auth_ini()))}[/]")
+        console.print("\nSet the missing variables and run doctor again.")
+        raise typer.Exit(1)
+
+    console.print("\n[bold]config[/]")
+    _row(True, "files", ", ".join(str(f) for f in settings.config_files) or "none (prax config --init writes one)")
+    for warning in settings.warnings:
+        _row(False, "warning", warning)
+
+    console.print("\n[bold]token factory[/]")
+    ok = _check_model(settings)
+    if not skip_sandbox:
+        console.print("\n[bold]sandbox[/]")
+        ok &= _check_sandbox(settings)
+
+    console.print("\n[bold]local backend[/]")
     for tool in ("git", "uv", "bash"):
-        row(shutil.which(tool) is not None, tool, shutil.which(tool) or "not found on PATH")
+        _row(shutil.which(tool) is not None, tool, shutil.which(tool) or "not found on PATH")
 
     console.print()
     console.print("[green]all checks passed[/]" if ok else "[red]some checks failed[/]")

@@ -12,6 +12,7 @@ from rich.table import Table
 from rich.text import Text
 
 from prax_bot import __version__
+from prax_bot.runtime.runs import Run
 from prax_bot.settings import Settings
 from prax_bot.ui.common import (
     console,
@@ -91,65 +92,81 @@ def inspect(
     list_runs_: bool = typer.Option(False, "--list", help="List recent runs"),
 ) -> None:
     """Look at a past run: its steps, its checkpoint chain, and the diff at any checkpoint."""
-    from prax_bot.runtime.runs import checkpoint_diff, latest_run_id, list_runs, load_run
+    from prax_bot.runtime.runs import latest_run_id, load_run
 
     settings = Settings.from_env()
     if list_runs_ or (run_id is None and diff is None and apply_step is None and latest_run_id(settings) is None):
-        runs = list_runs(settings, limit=15)
-        if not runs:
-            console.print(f"no runs under {settings.home / 'runs'}")
-            return
-        table = Table(box=None, padding=(0, 2))
-        for col in ("run", "result", "steps", "tokens", "backend", "task"):
-            table.add_column(col)
-        for r in runs:
-            i = r.info
-            table.add_row(
-                r.run_id,
-                "finished" if i.get("finished") else str(i.get("reason", "?")),
-                str(i.get("steps", "")),
-                f"{(i.get('prompt_tokens') or 0) + (i.get('completion_tokens') or 0):,}",
-                str(i.get("backend", "")),
-                escape(str(i.get("task", ""))[:60]),
-            )
-        console.print(table)
+        _print_recent_runs(settings)
         return
-
     run_id = run_id or latest_run_id(settings)
     try:
         run = load_run(run_id, settings)  # type: ignore[arg-type]
     except FileNotFoundError as e:
         console.print(f"[red]{escape(str(e))}[/]")
         raise typer.Exit(1) from None
-
     step = diff if diff is not None else apply_step
     if step is not None:
-        try:
-            text = checkpoint_diff(run, step, settings)
-        except Exception as e:
-            console.print(f"[red]could not compute the diff: {type(e).__name__}: {escape(str(e)[:300])}[/]")
-            raise typer.Exit(1) from None
-        if not text.strip():
-            console.print(f"checkpoint {step} has no changes against the baseline")
-            return
-        if diff is not None:
-            console.print(Syntax(text, "diff", theme="ansi_dark", word_wrap=False))
-            return
-        root = repo_root(repo)
-        console.print(f"applying the state of checkpoint {step} ({escape(run.checkpoints[step]['label'])}) to {root}")
-        try:
-            apply_diff(root, text)
-        except WorkspaceError as error:
-            console.print(f"[red]{escape(str(error))}[/]")
-            raise typer.Exit(1) from None
-        console.print("applied to the working tree")
+        _checkpoint_action(run, step, settings, apply_to=repo_root(repo) if apply_step is not None else None)
+    else:
+        _print_run(run)
+
+
+def _print_recent_runs(settings: Settings) -> None:
+    from prax_bot.runtime.runs import list_runs
+
+    runs = list_runs(settings, limit=15)
+    if not runs:
+        console.print(f"no runs under {settings.home / 'runs'}")
         return
+    table = Table(box=None, padding=(0, 2))
+    for col in ("run", "result", "steps", "tokens", "backend", "task"):
+        table.add_column(col)
+    for r in runs:
+        i = r.info
+        table.add_row(
+            r.run_id,
+            "finished" if i.get("finished") else str(i.get("reason", "?")),
+            str(i.get("steps", "")),
+            f"{(i.get('prompt_tokens') or 0) + (i.get('completion_tokens') or 0):,}",
+            str(i.get("backend", "")),
+            escape(str(i.get("task", ""))[:60]),
+        )
+    console.print(table)
+
+
+def _checkpoint_action(run: Run, step: int, settings: Settings, apply_to: Path | None) -> None:
+    """Show one checkpoint's diff against the baseline, or apply it to a working tree."""
+    from prax_bot.runtime.runs import checkpoint_diff
+
+    try:
+        text = checkpoint_diff(run, step, settings)
+    except Exception as e:
+        console.print(f"[red]could not compute the diff: {type(e).__name__}: {escape(str(e)[:300])}[/]")
+        raise typer.Exit(1) from None
+    if not text.strip():
+        console.print(f"checkpoint {step} has no changes against the baseline")
+        return
+    if apply_to is None:
+        console.print(Syntax(text, "diff", theme="ansi_dark", word_wrap=False))
+        return
+    console.print(f"applying the state of checkpoint {step} ({escape(run.checkpoints[step]['label'])}) to {apply_to}")
+    try:
+        apply_diff(apply_to, text)
+    except WorkspaceError as error:
+        console.print(f"[red]{escape(str(error))}[/]")
+        raise typer.Exit(1) from None
+    console.print("applied to the working tree")
+
+
+def _print_run(run: Run) -> None:
+    from prax_bot.runtime.runs import run_status
+    from prax_bot.ui.render import describe_call
 
     i = run.info
     console.print(
         Panel.fit(
             f"[bold]run[/] {run.run_id}\n[dim]task[/]     {escape(str(i.get('task', '')))}\n"
-            f"[dim]result[/]   {'finished' if i.get('finished') else 'stopped: ' + str(i.get('reason', ''))}\n"
+            f"[dim]result[/]   {escape(run_status(run).state)}\n"
             f"[dim]model[/]    {escape(str(i.get('model', '')))}   [dim]backend[/] {i.get('backend', '')}\n"
             f"[dim]tokens[/]   {(i.get('prompt_tokens') or 0) + (i.get('completion_tokens') or 0):,}   [dim]elapsed[/] {int(i.get('elapsed_s') or 0)} s",
             border_style="cyan",
@@ -158,8 +175,6 @@ def inspect(
     steps = Table(box=None, padding=(0, 2))
     for col in ("step", "tool", "arguments", "result"):
         steps.add_column(col)
-    from prax_bot.ui.render import describe_call
-
     for c in run.tool_calls:
         style = "red" if c.get("error") else ""
         steps.add_row(
