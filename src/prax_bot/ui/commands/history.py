@@ -59,7 +59,7 @@ def status(
     styles = {"finished": "green", "in progress": "green", "closed": "dim", "unknown": "dim", "inactive": "dim"}
     console.print(
         Text(
-            f"{'when':>8}  {'kind':<8}{'status':<28}{'steps':>5}  {'tokens':>9}  {'diff':<9}{'applied':<8} run id",
+            f"{'when':>8}  {'kind':<8}{'status':<22}{'steps':>5}  {'tokens':>9}  {'diff':<8}{'apply':<6} run id",
             style="dim",
         )
     )
@@ -70,14 +70,14 @@ def status(
         if r.state in ("inactive", "unknown") and r.last_recorded_state:
             status += f" ({r.last_recorded_state}, log {ago(r.last_activity)})"
         line = Text(f"{ago(r.started):>8}  {r.kind:<8}")
-        line.append(f"{status[:27]:<28}", style=styles.get(r.state, "yellow"))
+        line.append(f"{status[:21]:<22}", style=styles.get(r.state, "yellow"))
         line.append(
             f"{'' if r.steps is None else r.steps:>5}  {'' if r.tokens is None else f'{r.tokens:,}':>9}  "
-            f"{(f'{r.files_changed} file' + ('s' if r.files_changed != 1 else '')) if r.files_changed else 'none':<9}"
-            f"{ {True: 'yes', False: 'no'}.get(r.applied, ''):<8} {r.run_id}"
+            f"{(f'{r.files_changed} file' + ('s' if r.files_changed != 1 else '')) if r.files_changed else 'none':<8}"
+            f"{ {True: 'yes', False: 'no'}.get(r.applied, ''):<6} {r.run_id}"
         )
         console.print(line)
-        console.print(Text(f"{'':>18}{r.task[:90]}{'…' if len(r.task) > 90 else ''}", style="dim"))
+        console.print(Text(f"{'':>10}{r.task[:80]}{'…' if len(r.task) > 80 else ''}", style="dim"))
     console.print("[dim]praxbot inspect <run id> for the steps; praxbot resume <run id> to continue one.[/]")
 
 
