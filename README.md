@@ -479,6 +479,10 @@ The same seventeen were then run with the harness changes on top: the symbol rea
 Ten of seventeen both times, at 15% fewer tokens. Matplotlib-20676 resolved for the first time in seven attempts, django-16899 came back, and requests-5414 was lost to four real regressions from an over-broad patch this time, not to the grading sandbox. The model read a definition by name in 12 of its 126 file reads, mostly in the two matplotlib tasks, and the halfway nudge fired once, on matplotlib-23476, moving its first edit from step 46 to 39 without changing the outcome. Kept.
 
 
+### Against the published leaderboard
+
+Every official SWE-bench Verified submission publishes the instances it resolved, so published harnesses can be scored on our 31 tasks without running anything (`scripts/leaderboard.py`; the analysis is in [bench/swebench/20260914-published-comparison.md](bench/swebench/20260914-published-comparison.md)). On those 31, the bash-only board (every model through mini-SWE-agent) runs from 15 for gpt-oss-120b to 28 for Claude 4.6 Opus; the top 30 submissions overall average 25.5. Prax Bot on Nemotron 3 Super resolves 23, alongside GPT-5 mini, GPT-5.1, Claude 4.5 Haiku and Gemini 3.5 Flash, whose full-500 scores run from 59.8% to 71.8%; the fit across the board puts 23 at about 65%. NVIDIA reports the model at 60.47% under OpenHands. The four tasks we never solve are resolved by 1% to 16% of all submissions.
+
 Thirty-one tasks is still a small sample and these are the easier tier of Verified, so this is not comparable to leaderboard numbers on the full 500. It is a genuine measurement on real GitHub issues with hidden tests, run once, with the harness frozen before the run.
 
 ## Development

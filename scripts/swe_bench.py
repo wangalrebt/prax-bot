@@ -286,6 +286,38 @@ def reeval_instance(row, args, scratch: Path) -> dict:
     return result
 
 
+def stage_predictions(preds_path: Path, scratch: Path, traj_dir: Path | None) -> list[str]:
+    """Write another harness's predictions into the layout reeval grades: scratch/<id>/patch.diff (+ result.json).
+
+    preds_path is the SWE-bench predictions format, {instance_id: {"model_patch": ...}} or a list of such
+    records. With traj_dir (mini-SWE-agent's output directory), the model call count is taken from each
+    trajectory so the comparison table can show steps.
+    """
+    data = json.loads(preds_path.read_text())
+    records = list(data.values()) if isinstance(data, dict) else data
+    ids: list[str] = []
+    for rec in records:
+        iid = rec["instance_id"]
+        out = scratch / iid
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "patch.diff").write_text(rec.get("model_patch") or "")
+        info: dict = {}
+        traj = traj_dir / iid / f"{iid}.traj.json" if traj_dir else None
+        if traj and traj.exists():
+            t = json.loads(traj.read_text())
+            turns = [m for m in t.get("messages", []) if m.get("role") == "assistant"]
+            calls = t.get("info", {}).get("model_stats", {}).get("api_calls") or len(turns)
+            tokens = 0
+            for m in turns:
+                response = (m.get("extra") or {}).get("response") or {}
+                usage = response.get("usage") if isinstance(response, dict) else None
+                tokens += int((usage or {}).get("total_tokens") or 0)
+            info = {"steps": calls, "tokens": tokens, "exit_status": t.get("info", {}).get("exit_status")}
+        (out / "result.json").write_text(json.dumps(info))
+        ids.append(iid)
+    return ids
+
+
 def markdown(results: list[dict], args) -> str:
     rows = [
         "| instance | repo | difficulty | resolved | F2P | P2P | steps | tokens | evaluation |",
@@ -302,6 +334,7 @@ def markdown(results: list[dict], args) -> str:
         + (f", investigation model {args.investigate_model}" if getattr(args, "investigate_model", None) else "")
         + (", bounded finish review enabled" if getattr(args, "review_before_finish", False) else "")
         + (", frozen acceptance check enabled" if getattr(args, "acceptance_check", False) else "")
+        + (f", graded from {args.preds}" if getattr(args, "preds", None) else "")
         + f", max steps {getattr(args, 'max_steps', '-')}. Graded with the official swebench harness in a fresh sandbox per task."
     )
     return head + "\n\n" + "\n".join(rows) + "\n"
@@ -316,9 +349,12 @@ def main() -> int:
     ls.add_argument("--n", type=int, default=20)
     ls.add_argument("--seed", type=int, default=0)
     ls.add_argument("--exclude-repos", default="")
-    for name in ("run", "reeval"):
+    for name in ("run", "reeval", "grade"):
         p = sub.add_parser(name)
-        p.add_argument("--ids", required=True, help="comma-separated instance ids")
+        p.add_argument("--ids", required=name != "grade", default="", help="comma-separated instance ids")
+        if name == "grade":
+            p.add_argument("--preds", type=Path, required=True, help="another harness's predictions JSON")
+            p.add_argument("--traj-dir", type=Path, default=None, help="mini-SWE-agent output dir, for step counts")
         p.add_argument("--max-steps", type=int, default=50)
         p.add_argument("--investigate-model", default=None)
         p.add_argument("--parallel", type=int, default=1)
@@ -364,13 +400,16 @@ def main() -> int:
             print(f"  {iid:<40} {r.repo:<28} {r.difficulty}")
         return 0
 
+    scratch = args.out / "scratch"
+    scratch.mkdir(parents=True, exist_ok=True)
     ids = [i for i in args.ids.split(",") if i]
+    if args.cmd == "grade":
+        staged = stage_predictions(args.preds, scratch, args.traj_dir)
+        ids = [i for i in staged if i in ids] if ids else staged
     missing = [i for i in ids if i not in set(table.instance_id)]
     if missing:
         ap.error(f"unknown instance ids: {missing}")
     rows = [table[table.instance_id == i].iloc[0].to_dict() for i in ids]
-    scratch = args.out / "scratch"
-    scratch.mkdir(parents=True, exist_ok=True)
     worker = run_instance if args.cmd == "run" else reeval_instance
 
     results: list[dict] = []

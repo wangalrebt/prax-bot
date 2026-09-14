@@ -1,0 +1,1433 @@
+{
+ "ids": [
+  "astropy__astropy-14309",
+  "astropy__astropy-14995",
+  "astropy__astropy-7166",
+  "django__django-11880",
+  "django__django-12193",
+  "django__django-16899",
+  "matplotlib__matplotlib-20676",
+  "matplotlib__matplotlib-23476",
+  "matplotlib__matplotlib-25122",
+  "pallets__flask-5014",
+  "psf__requests-1142",
+  "psf__requests-2317",
+  "psf__requests-5414",
+  "pydata__xarray-4075",
+  "pydata__xarray-4094",
+  "pydata__xarray-4629",
+  "pylint-dev__pylint-4970",
+  "pylint-dev__pylint-6903",
+  "pylint-dev__pylint-7277",
+  "pytest-dev__pytest-5262",
+  "pytest-dev__pytest-5809",
+  "pytest-dev__pytest-7521",
+  "scikit-learn__scikit-learn-12585",
+  "scikit-learn__scikit-learn-13328",
+  "scikit-learn__scikit-learn-25232",
+  "sphinx-doc__sphinx-8621",
+  "sphinx-doc__sphinx-9258",
+  "sphinx-doc__sphinx-9591",
+  "sympy__sympy-15017",
+  "sympy__sympy-17655",
+  "sympy__sympy-20916"
+ ],
+ "tiers": {
+  "easy": 194,
+  "mid": 261
+ },
+ "rows": [
+  {
+   "entry": "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "bash_only": false,
+   "resolved": 396,
+   "easy_tier": 171,
+   "mid_tier": 203,
+   "ours": 27
+  },
+  {
+   "entry": "20251215_livesweagent_claude-opus-4-5",
+   "bash_only": false,
+   "resolved": 396,
+   "easy_tier": 172,
+   "mid_tier": 200,
+   "ours": 27
+  },
+  {
+   "entry": "20250928_trae_doubao_seed_code",
+   "bash_only": false,
+   "resolved": 394,
+   "easy_tier": 169,
+   "mid_tier": 205,
+   "ours": 25
+  },
+  {
+   "entry": "20251127_openhands_claude-opus-4-5",
+   "bash_only": false,
+   "resolved": 388,
+   "easy_tier": 169,
+   "mid_tier": 199,
+   "ours": 26
+  },
+  {
+   "entry": "20251120_livesweagent_gemini-3-pro-preview",
+   "bash_only": false,
+   "resolved": 387,
+   "easy_tier": 171,
+   "mid_tier": 198,
+   "ours": 24
+  },
+  {
+   "entry": "20250804_epam-ai-run-claude-4-sonnet",
+   "bash_only": false,
+   "resolved": 384,
+   "easy_tier": 175,
+   "mid_tier": 194,
+   "ours": 27
+  },
+  {
+   "entry": "20250902_atlassian-rovo-dev",
+   "bash_only": false,
+   "resolved": 384,
+   "easy_tier": 173,
+   "mid_tier": 192,
+   "ours": 26
+  },
+  {
+   "entry": "20260217_mini-v2.0.0_claude-4-5-opus-high",
+   "bash_only": true,
+   "resolved": 384,
+   "easy_tier": 173,
+   "mid_tier": 195,
+   "ours": 27
+  },
+  {
+   "entry": "20250819_ACoder",
+   "bash_only": false,
+   "resolved": 382,
+   "easy_tier": 173,
+   "mid_tier": 192,
+   "ours": 27
+  },
+  {
+   "entry": "20260217_mini-v2.0.0_gemini-3-flash-high",
+   "bash_only": true,
+   "resolved": 379,
+   "easy_tier": 170,
+   "mid_tier": 192,
+   "ours": 27
+  },
+  {
+   "entry": "20260217_mini-v2.0.0_minimax-2-5-high",
+   "bash_only": true,
+   "resolved": 379,
+   "easy_tier": 168,
+   "mid_tier": 194,
+   "ours": 24
+  },
+  {
+   "entry": "20250901_warp",
+   "bash_only": false,
+   "resolved": 378,
+   "easy_tier": 166,
+   "mid_tier": 193,
+   "ours": 25
+  },
+  {
+   "entry": "20260217_mini-v2.0.0_claude-4-6-opus",
+   "bash_only": true,
+   "resolved": 378,
+   "easy_tier": 171,
+   "mid_tier": 188,
+   "ours": 28
+  },
+  {
+   "entry": "20250612_trae",
+   "bash_only": false,
+   "resolved": 376,
+   "easy_tier": 171,
+   "mid_tier": 190,
+   "ours": 24
+  },
+  {
+   "entry": "20250731_harness_ai",
+   "bash_only": false,
+   "resolved": 374,
+   "easy_tier": 174,
+   "mid_tier": 185,
+   "ours": 27
+  },
+  {
+   "entry": "20251103_sonar-foundation-agent_claude-sonnet-4-5",
+   "bash_only": false,
+   "resolved": 374,
+   "easy_tier": 164,
+   "mid_tier": 193,
+   "ours": 27
+  },
+  {
+   "entry": "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "bash_only": false,
+   "resolved": 373,
+   "easy_tier": 170,
+   "mid_tier": 186,
+   "ours": 25
+  },
+  {
+   "entry": "20250915_JoyCode",
+   "bash_only": false,
+   "resolved": 373,
+   "easy_tier": 167,
+   "mid_tier": 187,
+   "ours": 26
+  },
+  {
+   "entry": "20250603_Refact_Agent_claude-4-sonnet",
+   "bash_only": false,
+   "resolved": 372,
+   "easy_tier": 169,
+   "mid_tier": 186,
+   "ours": 26
+  },
+  {
+   "entry": "20251015_Prometheus_v1.2.1_gpt5",
+   "bash_only": false,
+   "resolved": 372,
+   "easy_tier": 165,
+   "mid_tier": 188,
+   "ours": 28
+  },
+  {
+   "entry": "20251124_mini-v1.16.0_claude-opus-4-5-20251101",
+   "bash_only": true,
+   "resolved": 372,
+   "easy_tier": 164,
+   "mid_tier": 189,
+   "ours": 24
+  },
+  {
+   "entry": "20251118_mini-v1.15.0_gemini-3-pro-preview-20251118",
+   "bash_only": true,
+   "resolved": 371,
+   "easy_tier": 168,
+   "mid_tier": 190,
+   "ours": 23
+  },
+  {
+   "entry": "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "bash_only": false,
+   "resolved": 369,
+   "easy_tier": 165,
+   "mid_tier": 190,
+   "ours": 24
+  },
+  {
+   "entry": "20250522_tools_claude-4-opus",
+   "bash_only": false,
+   "resolved": 366,
+   "easy_tier": 163,
+   "mid_tier": 184,
+   "ours": 26
+  },
+  {
+   "entry": "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "bash_only": false,
+   "resolved": 365,
+   "easy_tier": 164,
+   "mid_tier": 182,
+   "ours": 25
+  },
+  {
+   "entry": "20260217_mini-v2.0.0_glm-5-high",
+   "bash_only": true,
+   "resolved": 364,
+   "easy_tier": 165,
+   "mid_tier": 183,
+   "ours": 25
+  },
+  {
+   "entry": "20260217_mini-v2.0.0_gpt-5-2-high",
+   "bash_only": true,
+   "resolved": 364,
+   "easy_tier": 164,
+   "mid_tier": 183,
+   "ours": 25
+  },
+  {
+   "entry": "20250522_tools_claude-4-sonnet",
+   "bash_only": false,
+   "resolved": 362,
+   "easy_tier": 160,
+   "mid_tier": 187,
+   "ours": 24
+  },
+  {
+   "entry": "20250807_openhands_gpt5",
+   "bash_only": false,
+   "resolved": 359,
+   "easy_tier": 165,
+   "mid_tier": 179,
+   "ours": 23
+  },
+  {
+   "entry": "20251211_mini-v1.17.2_gpt-5.2-2025-12-11-high",
+   "bash_only": true,
+   "resolved": 359,
+   "easy_tier": 161,
+   "mid_tier": 182,
+   "ours": 24
+  },
+  {
+   "entry": "20260901_mini-v2.4.2_gemini-3-5-flash",
+   "bash_only": true,
+   "resolved": 359,
+   "easy_tier": 157,
+   "mid_tier": 182,
+   "ours": 23
+  },
+  {
+   "entry": "20260217_mini-v2.0.0_claude-4-5-sonnet-high",
+   "bash_only": true,
+   "resolved": 357,
+   "easy_tier": 165,
+   "mid_tier": 177,
+   "ours": 25
+  },
+  {
+   "entry": "20250710_bloop",
+   "bash_only": false,
+   "resolved": 356,
+   "easy_tier": 165,
+   "mid_tier": 176,
+   "ours": 24
+  },
+  {
+   "entry": "20250715_qodo_command",
+   "bash_only": false,
+   "resolved": 356,
+   "easy_tier": 167,
+   "mid_tier": 175,
+   "ours": 25
+  },
+  {
+   "entry": "20250929_Prometheus_v1.2_gpt5",
+   "bash_only": false,
+   "resolved": 356,
+   "easy_tier": 159,
+   "mid_tier": 182,
+   "ours": 26
+  },
+  {
+   "entry": "20251014_Lingxi_kimi_k2",
+   "bash_only": false,
+   "resolved": 356,
+   "easy_tier": 168,
+   "mid_tier": 172,
+   "ours": 24
+  },
+  {
+   "entry": "20250623_warp",
+   "bash_only": false,
+   "resolved": 355,
+   "easy_tier": 161,
+   "mid_tier": 177,
+   "ours": 25
+  },
+  {
+   "entry": "20250611_moatless_claude-4-sonnet-20250514",
+   "bash_only": false,
+   "resolved": 354,
+   "easy_tier": 163,
+   "mid_tier": 177,
+   "ours": 23
+  },
+  {
+   "entry": "20260217_mini-v2.0.0_kimi-k2-5-high",
+   "bash_only": true,
+   "resolved": 354,
+   "easy_tier": 164,
+   "mid_tier": 176,
+   "ours": 25
+  },
+  {
+   "entry": "20250519_trae",
+   "bash_only": false,
+   "resolved": 353,
+   "easy_tier": 165,
+   "mid_tier": 174,
+   "ours": 24
+  },
+  {
+   "entry": "20250929_mini-v1.13.3_sonnet-4-5-20250929",
+   "bash_only": true,
+   "resolved": 353,
+   "easy_tier": 159,
+   "mid_tier": 180,
+   "ours": 25
+  },
+  {
+   "entry": "20250515_Refact_Agent",
+   "bash_only": false,
+   "resolved": 352,
+   "easy_tier": 164,
+   "mid_tier": 177,
+   "ours": 26
+  },
+  {
+   "entry": "20250524_openhands_claude_4_sonnet",
+   "bash_only": false,
+   "resolved": 352,
+   "easy_tier": 164,
+   "mid_tier": 173,
+   "ours": 23
+  },
+  {
+   "entry": "20250610_augment_agent_v1",
+   "bash_only": false,
+   "resolved": 352,
+   "easy_tier": 163,
+   "mid_tier": 172,
+   "ours": 26
+  },
+  {
+   "entry": "20250519_devlo",
+   "bash_only": false,
+   "resolved": 351,
+   "easy_tier": 167,
+   "mid_tier": 171,
+   "ours": 26
+  },
+  {
+   "entry": "20250430_zencoder_ai",
+   "bash_only": false,
+   "resolved": 350,
+   "easy_tier": 164,
+   "mid_tier": 174,
+   "ours": 24
+  },
+  {
+   "entry": "20260217_mini-v2.0.0_deepseek-3-2-high",
+   "bash_only": true,
+   "resolved": 350,
+   "easy_tier": 160,
+   "mid_tier": 177,
+   "ours": 24
+  },
+  {
+   "entry": "20250805_openhands-Qwen3-Coder-480B-A35B-Instruct",
+   "bash_only": false,
+   "resolved": 348,
+   "easy_tier": 165,
+   "mid_tier": 168,
+   "ours": 24
+  },
+  {
+   "entry": "20251211_mini-v1.17.2_gpt-5.2-2025-12-11",
+   "bash_only": true,
+   "resolved": 345,
+   "easy_tier": 154,
+   "mid_tier": 179,
+   "ours": 24
+  },
+  {
+   "entry": "20250516_cortexa_o3",
+   "bash_only": false,
+   "resolved": 341,
+   "easy_tier": 158,
+   "mid_tier": 171,
+   "ours": 26
+  },
+  {
+   "entry": "20250930_zai_glm4-6",
+   "bash_only": false,
+   "resolved": 341,
+   "easy_tier": 160,
+   "mid_tier": 169,
+   "ours": 23
+  },
+  {
+   "entry": "20250802_mini-v1.0.0_claude-4-opus-20250514",
+   "bash_only": true,
+   "resolved": 338,
+   "easy_tier": 161,
+   "mid_tier": 165,
+   "ours": 26
+  },
+  {
+   "entry": "20250522_sweagent_claude-4-sonnet-20250514",
+   "bash_only": false,
+   "resolved": 333,
+   "easy_tier": 157,
+   "mid_tier": 164,
+   "ours": 21
+  },
+  {
+   "entry": "20260217_mini-v2.0.0_claude-4-5-haiku-high",
+   "bash_only": true,
+   "resolved": 333,
+   "easy_tier": 159,
+   "mid_tier": 163,
+   "ours": 23
+  },
+  {
+   "entry": "20250514_aime_coder",
+   "bash_only": false,
+   "resolved": 332,
+   "easy_tier": 152,
+   "mid_tier": 170,
+   "ours": 21
+  },
+  {
+   "entry": "20251120_mini-v1.15.0_gpt-5.1-2025-11-13",
+   "bash_only": true,
+   "resolved": 330,
+   "easy_tier": 152,
+   "mid_tier": 167,
+   "ours": 23
+  },
+  {
+   "entry": "20251124_mini-v1.16.0_gpt-5.1-codex",
+   "bash_only": true,
+   "resolved": 330,
+   "easy_tier": 154,
+   "mid_tier": 165,
+   "ours": 23
+  },
+  {
+   "entry": "20250415_openhands",
+   "bash_only": false,
+   "resolved": 329,
+   "easy_tier": 157,
+   "mid_tier": 159,
+   "ours": 22
+  },
+  {
+   "entry": "20250316_augment_agent_v0",
+   "bash_only": false,
+   "resolved": 327,
+   "easy_tier": 156,
+   "mid_tier": 162,
+   "ours": 25
+  },
+  {
+   "entry": "20250405_amazon-q-developer-agent-20250405-dev",
+   "bash_only": false,
+   "resolved": 327,
+   "easy_tier": 158,
+   "mid_tier": 158,
+   "ours": 23
+  },
+  {
+   "entry": "20250716_openhands_kimi_k2",
+   "bash_only": false,
+   "resolved": 327,
+   "easy_tier": 156,
+   "mid_tier": 159,
+   "ours": 23
+  },
+  {
+   "entry": "20250807_mini-v1.7.0_gpt-5",
+   "bash_only": true,
+   "resolved": 325,
+   "easy_tier": 153,
+   "mid_tier": 162,
+   "ours": 22
+  },
+  {
+   "entry": "20250726_mini-v1.0.0_claude-sonnet-4-20250514",
+   "bash_only": true,
+   "resolved": 324,
+   "easy_tier": 155,
+   "mid_tier": 157,
+   "ours": 22
+  },
+  {
+   "entry": "20250117_wandb_programmer_o1_crosscheck5",
+   "bash_only": false,
+   "resolved": 323,
+   "easy_tier": 150,
+   "mid_tier": 162,
+   "ours": 21
+  },
+  {
+   "entry": "20250503_patchpilot-v1.1-o4-mini",
+   "bash_only": false,
+   "resolved": 323,
+   "easy_tier": 152,
+   "mid_tier": 160,
+   "ours": 22
+  },
+  {
+   "entry": "20250728_zai_glm4-5",
+   "bash_only": false,
+   "resolved": 321,
+   "easy_tier": 152,
+   "mid_tier": 156,
+   "ours": 23
+  },
+  {
+   "entry": "20250206_agentscope",
+   "bash_only": false,
+   "resolved": 317,
+   "easy_tier": 158,
+   "mid_tier": 148,
+   "ours": 25
+  },
+  {
+   "entry": "20251210_mini-v1.17.2_kimi-k2-thinking",
+   "bash_only": true,
+   "resolved": 317,
+   "easy_tier": 152,
+   "mid_tier": 154,
+   "ours": 21
+  },
+  {
+   "entry": "20250224_tools_claude-3-7-sonnet",
+   "bash_only": false,
+   "resolved": 316,
+   "easy_tier": 154,
+   "mid_tier": 152,
+   "ours": 25
+  },
+  {
+   "entry": "20250110_blackboxai_agent_v1.1",
+   "bash_only": false,
+   "resolved": 314,
+   "easy_tier": 156,
+   "mid_tier": 147,
+   "ours": 25
+  },
+  {
+   "entry": "20250228_epam-ai-run-claude-3-5-sonnet",
+   "bash_only": false,
+   "resolved": 314,
+   "easy_tier": 158,
+   "mid_tier": 146,
+   "ours": 25
+  },
+  {
+   "entry": "20250225_sweagent_claude-3-7-sonnet",
+   "bash_only": false,
+   "resolved": 312,
+   "easy_tier": 156,
+   "mid_tier": 147,
+   "ours": 21
+  },
+  {
+   "entry": "20241221_codestory_midwit_claude-3-5-sonnet_swe-search",
+   "bash_only": false,
+   "resolved": 311,
+   "easy_tier": 155,
+   "mid_tier": 147,
+   "ours": 23
+  },
+  {
+   "entry": "20251124_mini-v1.17.0_minimax-m2",
+   "bash_only": true,
+   "resolved": 305,
+   "easy_tier": 146,
+   "mid_tier": 148,
+   "ours": 21
+  },
+  {
+   "entry": "20250203_openhands_4x_scaled",
+   "bash_only": false,
+   "resolved": 304,
+   "easy_tier": 149,
+   "mid_tier": 143,
+   "ours": 23
+  },
+  {
+   "entry": "20250901_entroPO_R2E_QwenCoder30BA3B_tts",
+   "bash_only": false,
+   "resolved": 302,
+   "easy_tier": 150,
+   "mid_tier": 143,
+   "ours": 24
+  },
+  {
+   "entry": "20250110_learn_by_interact_claude3.5",
+   "bash_only": false,
+   "resolved": 301,
+   "easy_tier": 154,
+   "mid_tier": 139,
+   "ours": 22
+  },
+  {
+   "entry": "20251201_mini-v1.17.1_deepseek-v3.2-reasoner",
+   "bash_only": true,
+   "resolved": 300,
+   "easy_tier": 146,
+   "mid_tier": 145,
+   "ours": 21
+  },
+  {
+   "entry": "20250807_mini-v1.7.0_gpt-5-mini",
+   "bash_only": true,
+   "resolved": 299,
+   "easy_tier": 150,
+   "mid_tier": 139,
+   "ours": 23
+  },
+  {
+   "entry": "20250629_deepswerl_r2eagent_tts",
+   "bash_only": false,
+   "resolved": 294,
+   "easy_tier": 151,
+   "mid_tier": 137,
+   "ours": 24
+  },
+  {
+   "entry": "20250726_mini-v1.0.0_o3-2025-04-16",
+   "bash_only": true,
+   "resolved": 292,
+   "easy_tier": 146,
+   "mid_tier": 137,
+   "ours": 20
+  },
+  {
+   "entry": "20241213_devlo",
+   "bash_only": false,
+   "resolved": 291,
+   "easy_tier": 142,
+   "mid_tier": 140,
+   "ours": 21
+  },
+  {
+   "entry": "20250410_cortexa",
+   "bash_only": false,
+   "resolved": 291,
+   "easy_tier": 144,
+   "mid_tier": 140,
+   "ours": 19
+  },
+  {
+   "entry": "20241223_emergent",
+   "bash_only": false,
+   "resolved": 286,
+   "easy_tier": 145,
+   "mid_tier": 132,
+   "ours": 22
+  },
+  {
+   "entry": "20241208_gru",
+   "bash_only": false,
+   "resolved": 285,
+   "easy_tier": 149,
+   "mid_tier": 130,
+   "ours": 22
+  },
+  {
+   "entry": "20250924_artemis_agent_v2",
+   "bash_only": false,
+   "resolved": 285,
+   "easy_tier": 142,
+   "mid_tier": 132,
+   "ours": 20
+  },
+  {
+   "entry": "20250405_swe-rizzo_claude37",
+   "bash_only": false,
+   "resolved": 283,
+   "easy_tier": 144,
+   "mid_tier": 131,
+   "ours": 17
+  },
+  {
+   "entry": "20251209_mini-v1.17.2_devstral-small-2512",
+   "bash_only": true,
+   "resolved": 282,
+   "easy_tier": 139,
+   "mid_tier": 132,
+   "ours": 20
+  },
+  {
+   "entry": "20260217_mini-v2.0.0_gpt-5-mini",
+   "bash_only": true,
+   "resolved": 281,
+   "easy_tier": 148,
+   "mid_tier": 126,
+   "ours": 21
+  },
+  {
+   "entry": "20241212_epam-ai-run-claude-3-5-sonnet",
+   "bash_only": false,
+   "resolved": 277,
+   "easy_tier": 143,
+   "mid_tier": 126,
+   "ours": 22
+  },
+  {
+   "entry": "20250802_mini-v1.0.0_qwen3-coder-480b-a35b-instruct",
+   "bash_only": true,
+   "resolved": 277,
+   "easy_tier": 136,
+   "mid_tier": 134,
+   "ours": 18
+  },
+  {
+   "entry": "20251201_mini-v1.17.1_glm-4.6",
+   "bash_only": true,
+   "resolved": 277,
+   "easy_tier": 135,
+   "mid_tier": 134,
+   "ours": 19
+  },
+  {
+   "entry": "20241202_amazon-q-developer-agent-20241202-dev",
+   "bash_only": false,
+   "resolved": 275,
+   "easy_tier": 140,
+   "mid_tier": 129,
+   "ours": 20
+  },
+  {
+   "entry": "20241108_devlo",
+   "bash_only": false,
+   "resolved": 271,
+   "easy_tier": 138,
+   "mid_tier": 123,
+   "ours": 22
+  },
+  {
+   "entry": "20250822_mini-v1.9.1_glm-4.5",
+   "bash_only": true,
+   "resolved": 271,
+   "easy_tier": 139,
+   "mid_tier": 127,
+   "ours": 19
+  },
+  {
+   "entry": "20251209_mini-v1.17.2_devstral-2512",
+   "bash_only": true,
+   "resolved": 269,
+   "easy_tier": 128,
+   "mid_tier": 131,
+   "ours": 18
+  },
+  {
+   "entry": "20250726_mini-v1.0.0_gemini-2.5-pro",
+   "bash_only": true,
+   "resolved": 268,
+   "easy_tier": 137,
+   "mid_tier": 125,
+   "ours": 21
+  },
+  {
+   "entry": "20251110_frogboss-32b",
+   "bash_only": false,
+   "resolved": 268,
+   "easy_tier": 136,
+   "mid_tier": 127,
+   "ours": 20
+  },
+  {
+   "entry": "20250804_codesweep_sweagent_kimi_k2_instruct",
+   "bash_only": false,
+   "resolved": 267,
+   "easy_tier": 139,
+   "mid_tier": 124,
+   "ours": 20
+  },
+  {
+   "entry": "20250120_Bracket",
+   "bash_only": false,
+   "resolved": 266,
+   "easy_tier": 128,
+   "mid_tier": 130,
+   "ours": 17
+  },
+  {
+   "entry": "20241029_OpenHands-CodeAct-2.1-sonnet-20241022",
+   "bash_only": false,
+   "resolved": 265,
+   "easy_tier": 141,
+   "mid_tier": 115,
+   "ours": 24
+  },
+  {
+   "entry": "20241212_google_jules_gemini_2.0_flash_experimental",
+   "bash_only": false,
+   "resolved": 261,
+   "easy_tier": 135,
+   "mid_tier": 122,
+   "ours": 21
+  },
+  {
+   "entry": "20250901_entroPO_R2E_QwenCoder30BA3B",
+   "bash_only": false,
+   "resolved": 261,
+   "easy_tier": 137,
+   "mid_tier": 118,
+   "ours": 20
+  },
+  {
+   "entry": "20241125_enginelabs",
+   "bash_only": false,
+   "resolved": 259,
+   "easy_tier": 132,
+   "mid_tier": 118,
+   "ours": 20
+  },
+  {
+   "entry": "20250122_autocoderover-v2.1-claude-3-5-sonnet-20241022",
+   "bash_only": false,
+   "resolved": 258,
+   "easy_tier": 136,
+   "mid_tier": 116,
+   "ours": 21
+  },
+  {
+   "entry": "20250805_openhands-Qwen3-Coder-30B-A3B-Instruct",
+   "bash_only": false,
+   "resolved": 258,
+   "easy_tier": 139,
+   "mid_tier": 114,
+   "ours": 20
+  },
+  {
+   "entry": "20241202_agentless-1.5_claude-3.5-sonnet-20241022",
+   "bash_only": false,
+   "resolved": 254,
+   "easy_tier": 137,
+   "mid_tier": 111,
+   "ours": 21
+  },
+  {
+   "entry": "20241028_solver",
+   "bash_only": false,
+   "resolved": 250,
+   "easy_tier": 132,
+   "mid_tier": 115,
+   "ours": 20
+  },
+  {
+   "entry": "20241125_marscode-agent-dev",
+   "bash_only": false,
+   "resolved": 250,
+   "easy_tier": 134,
+   "mid_tier": 109,
+   "ours": 19
+  },
+  {
+   "entry": "20241105_nfactorial",
+   "bash_only": false,
+   "resolved": 246,
+   "easy_tier": 137,
+   "mid_tier": 103,
+   "ours": 20
+  },
+  {
+   "entry": "20241022_tools_claude-3-5-sonnet-updated",
+   "bash_only": false,
+   "resolved": 245,
+   "easy_tier": 128,
+   "mid_tier": 110,
+   "ours": 20
+  },
+  {
+   "entry": "20241025_composio_swekit",
+   "bash_only": false,
+   "resolved": 243,
+   "easy_tier": 135,
+   "mid_tier": 102,
+   "ours": 20
+  },
+  {
+   "entry": "20241106_navie-2-gpt4o-sonnet",
+   "bash_only": false,
+   "resolved": 236,
+   "easy_tier": 130,
+   "mid_tier": 101,
+   "ours": 18
+  },
+  {
+   "entry": "20250616_Skywork-SWE-32B+TTS_Bo8",
+   "bash_only": false,
+   "resolved": 235,
+   "easy_tier": 124,
+   "mid_tier": 108,
+   "ours": 20
+  },
+  {
+   "entry": "20250520_openhands_devstral_small",
+   "bash_only": false,
+   "resolved": 234,
+   "easy_tier": 127,
+   "mid_tier": 99,
+   "ours": 15
+  },
+  {
+   "entry": "20241023_emergent",
+   "bash_only": false,
+   "resolved": 233,
+   "easy_tier": 126,
+   "mid_tier": 103,
+   "ours": 17
+  },
+  {
+   "entry": "20241108_autocoderover-v2.0-claude-3-5-sonnet-20241022",
+   "bash_only": false,
+   "resolved": 231,
+   "easy_tier": 128,
+   "mid_tier": 100,
+   "ours": 21
+  },
+  {
+   "entry": "20250528_patchpilot_Co-PatcheR",
+   "bash_only": false,
+   "resolved": 230,
+   "easy_tier": 124,
+   "mid_tier": 103,
+   "ours": 16
+  },
+  {
+   "entry": "20240924_solver",
+   "bash_only": false,
+   "resolved": 227,
+   "easy_tier": 128,
+   "mid_tier": 96,
+   "ours": 19
+  },
+  {
+   "entry": "20240824_gru",
+   "bash_only": false,
+   "resolved": 226,
+   "easy_tier": 126,
+   "mid_tier": 97,
+   "ours": 19
+  },
+  {
+   "entry": "20250726_mini-v1.0.0_o4-mini-2025-04-16",
+   "bash_only": true,
+   "resolved": 225,
+   "easy_tier": 122,
+   "mid_tier": 98,
+   "ours": 20
+  },
+  {
+   "entry": "20251110_frogmini-14b",
+   "bash_only": false,
+   "resolved": 225,
+   "easy_tier": 118,
+   "mid_tier": 103,
+   "ours": 15
+  },
+  {
+   "entry": "20250118_codeshellagent_gemini_2.0_flash_experimental",
+   "bash_only": false,
+   "resolved": 221,
+   "easy_tier": 127,
+   "mid_tier": 91,
+   "ours": 18
+  },
+  {
+   "entry": "20250807_mini-v1.7.0_kimi-k2-instruct",
+   "bash_only": true,
+   "resolved": 219,
+   "easy_tier": 110,
+   "mid_tier": 105,
+   "ours": 19
+  },
+  {
+   "entry": "20240920_solver",
+   "bash_only": false,
+   "resolved": 218,
+   "easy_tier": 120,
+   "mid_tier": 95,
+   "ours": 20
+  },
+  {
+   "entry": "20250214_agentless_lite_o3_mini",
+   "bash_only": false,
+   "resolved": 212,
+   "easy_tier": 120,
+   "mid_tier": 87,
+   "ours": 18
+  },
+  {
+   "entry": "20250527_amazon.nova-premier-v1.0",
+   "bash_only": false,
+   "resolved": 212,
+   "easy_tier": 114,
+   "mid_tier": 95,
+   "ours": 19
+  },
+  {
+   "entry": "20250629_deepswerl_r2eagent",
+   "bash_only": false,
+   "resolved": 211,
+   "easy_tier": 114,
+   "mid_tier": 92,
+   "ours": 17
+  },
+  {
+   "entry": "20250806_SWE-Exp_DeepSeek-V3",
+   "bash_only": false,
+   "resolved": 210,
+   "easy_tier": 116,
+   "mid_tier": 90,
+   "ours": 19
+  },
+  {
+   "entry": "20241030_nfactorial",
+   "bash_only": false,
+   "resolved": 208,
+   "easy_tier": 118,
+   "mid_tier": 86,
+   "ours": 17
+  },
+  {
+   "entry": "20250112_ugaiforge",
+   "bash_only": false,
+   "resolved": 208,
+   "easy_tier": 120,
+   "mid_tier": 85,
+   "ours": 18
+  },
+  {
+   "entry": "20250226_swerl_llama3_70b",
+   "bash_only": false,
+   "resolved": 206,
+   "easy_tier": 111,
+   "mid_tier": 94,
+   "ours": 18
+  },
+  {
+   "entry": "20240820_honeycomb",
+   "bash_only": false,
+   "resolved": 203,
+   "easy_tier": 115,
+   "mid_tier": 85,
+   "ours": 17
+  },
+  {
+   "entry": "20241016_composio_swekit",
+   "bash_only": false,
+   "resolved": 203,
+   "easy_tier": 118,
+   "mid_tier": 81,
+   "ours": 18
+  },
+  {
+   "entry": "20241022_tools_claude-3-5-haiku",
+   "bash_only": false,
+   "resolved": 203,
+   "easy_tier": 117,
+   "mid_tier": 79,
+   "ours": 19
+  },
+  {
+   "entry": "20241113_nebius-search-open-weight-models-11-24",
+   "bash_only": false,
+   "resolved": 203,
+   "easy_tier": 119,
+   "mid_tier": 83,
+   "ours": 16
+  },
+  {
+   "entry": "20250511_sweagent_lm_32b",
+   "bash_only": false,
+   "resolved": 201,
+   "easy_tier": 116,
+   "mid_tier": 82,
+   "ours": 18
+  },
+  {
+   "entry": "20241029_epam-ai-run-claude-3-5-sonnet",
+   "bash_only": false,
+   "resolved": 198,
+   "easy_tier": 108,
+   "mid_tier": 86,
+   "ours": 17
+  },
+  {
+   "entry": "20240721_amazon-q-developer-agent-20240719-dev",
+   "bash_only": false,
+   "resolved": 194,
+   "easy_tier": 115,
+   "mid_tier": 75,
+   "ours": 16
+  },
+  {
+   "entry": "20241028_agentless-1.5_gpt4o",
+   "bash_only": false,
+   "resolved": 194,
+   "easy_tier": 111,
+   "mid_tier": 81,
+   "ours": 15
+  },
+  {
+   "entry": "20240628_autocoderover-v20240620",
+   "bash_only": false,
+   "resolved": 192,
+   "easy_tier": 109,
+   "mid_tier": 80,
+   "ours": 15
+  },
+  {
+   "entry": "20250616_Skywork-SWE-32B",
+   "bash_only": false,
+   "resolved": 190,
+   "easy_tier": 112,
+   "mid_tier": 76,
+   "ours": 16
+  },
+  {
+   "entry": "20250725_sweagent_devstral_small_2507",
+   "bash_only": false,
+   "resolved": 190,
+   "easy_tier": 112,
+   "mid_tier": 77,
+   "ours": 17
+  },
+  {
+   "entry": "20240617_factory_code_droid",
+   "bash_only": false,
+   "resolved": 185,
+   "easy_tier": 106,
+   "mid_tier": 76,
+   "ours": 17
+  },
+  {
+   "entry": "20250807_mini-v1.7.0_gpt-5-nano",
+   "bash_only": true,
+   "resolved": 174,
+   "easy_tier": 97,
+   "mid_tier": 72,
+   "ours": 12
+  },
+  {
+   "entry": "20240620_sweagent_claude3.5sonnet",
+   "bash_only": false,
+   "resolved": 168,
+   "easy_tier": 93,
+   "mid_tier": 73,
+   "ours": 13
+  },
+  {
+   "entry": "20250306_SWE-Fixer_Qwen2.5-7b-retriever_Qwen2.5-72b-editor",
+   "bash_only": false,
+   "resolved": 164,
+   "easy_tier": 101,
+   "mid_tier": 61,
+   "ours": 18
+  },
+  {
+   "entry": "20240612_MASAI_gpt4o",
+   "bash_only": false,
+   "resolved": 163,
+   "easy_tier": 93,
+   "mid_tier": 68,
+   "ours": 16
+  },
+  {
+   "entry": "20241120_artemis_agent",
+   "bash_only": false,
+   "resolved": 160,
+   "easy_tier": 87,
+   "mid_tier": 69,
+   "ours": 13
+  },
+  {
+   "entry": "20241007_nfactorial",
+   "bash_only": false,
+   "resolved": 158,
+   "easy_tier": 99,
+   "mid_tier": 58,
+   "ours": 15
+  },
+  {
+   "entry": "20241128_SWE-Fixer_Qwen2.5-7b-retriever_Qwen2.5-72b-editor_20241128",
+   "bash_only": false,
+   "resolved": 151,
+   "easy_tier": 95,
+   "mid_tier": 55,
+   "ours": 17
+  },
+  {
+   "entry": "20241002_lingma-agent_lingma-swe-gpt-72b",
+   "bash_only": false,
+   "resolved": 144,
+   "easy_tier": 87,
+   "mid_tier": 55,
+   "ours": 14
+  },
+  {
+   "entry": "20241016_epam-ai-run-gpt-4o",
+   "bash_only": false,
+   "resolved": 135,
+   "easy_tier": 91,
+   "mid_tier": 44,
+   "ours": 15
+  },
+  {
+   "entry": "20240615_appmap-navie_gpt4o",
+   "bash_only": false,
+   "resolved": 131,
+   "easy_tier": 80,
+   "mid_tier": 51,
+   "ours": 12
+  },
+  {
+   "entry": "20250807_mini-v1.7.0_gpt-oss-120b",
+   "bash_only": true,
+   "resolved": 130,
+   "easy_tier": 81,
+   "mid_tier": 48,
+   "ours": 15
+  },
+  {
+   "entry": "20241001_nfactorial",
+   "bash_only": false,
+   "resolved": 129,
+   "easy_tier": 78,
+   "mid_tier": 50,
+   "ours": 13
+  },
+  {
+   "entry": "20240509_amazon-q-developer-agent-20240430-dev",
+   "bash_only": false,
+   "resolved": 128,
+   "easy_tier": 79,
+   "mid_tier": 48,
+   "ours": 13
+  },
+  {
+   "entry": "20240918_lingma-agent_lingma-swe-gpt-72b",
+   "bash_only": false,
+   "resolved": 125,
+   "easy_tier": 79,
+   "mid_tier": 45,
+   "ours": 14
+  },
+  {
+   "entry": "20240820_epam-ai-run-gpt-4o",
+   "bash_only": false,
+   "resolved": 120,
+   "easy_tier": 73,
+   "mid_tier": 46,
+   "ours": 11
+  },
+  {
+   "entry": "20240728_sweagent_gpt4o",
+   "bash_only": false,
+   "resolved": 116,
+   "easy_tier": 71,
+   "mid_tier": 44,
+   "ours": 12
+  },
+  {
+   "entry": "20250627_agentless_MCTS-Refine-7B",
+   "bash_only": false,
+   "resolved": 116,
+   "easy_tier": 71,
+   "mid_tier": 45,
+   "ours": 13
+  },
+  {
+   "entry": "20240402_sweagent_gpt4",
+   "bash_only": false,
+   "resolved": 112,
+   "easy_tier": 71,
+   "mid_tier": 41,
+   "ours": 10
+  },
+  {
+   "entry": "20250720_mini-v0.0.0-Llama-4-Maverick-17B-Instruct",
+   "bash_only": true,
+   "resolved": 105,
+   "easy_tier": 66,
+   "mid_tier": 39,
+   "ours": 10
+  },
+  {
+   "entry": "20241002_lingma-agent_lingma-swe-gpt-7b",
+   "bash_only": false,
+   "resolved": 91,
+   "easy_tier": 62,
+   "mid_tier": 28,
+   "ours": 8
+  },
+  {
+   "entry": "20240402_sweagent_claude3opus",
+   "bash_only": false,
+   "resolved": 79,
+   "easy_tier": 53,
+   "mid_tier": 26,
+   "ours": 11
+  },
+  {
+   "entry": "20240918_lingma-agent_lingma-swe-gpt-7b",
+   "bash_only": false,
+   "resolved": 51,
+   "easy_tier": 36,
+   "mid_tier": 15,
+   "ours": 7
+  },
+  {
+   "entry": "20250720_mini-v0.0.0-claude-3-7-sonnet-20250219",
+   "bash_only": true,
+   "resolved": 51,
+   "easy_tier": 24,
+   "mid_tier": 27,
+   "ours": 6
+  },
+  {
+   "entry": "20250803_mini-v1.0.0_qwen2-5-coder-32b-instruct",
+   "bash_only": true,
+   "resolved": 45,
+   "easy_tier": 32,
+   "mid_tier": 13,
+   "ours": 3
+  },
+  {
+   "entry": "20240402_rag_claude3opus",
+   "bash_only": false,
+   "resolved": 35,
+   "easy_tier": 26,
+   "mid_tier": 9,
+   "ours": 6
+  },
+  {
+   "entry": "20231010_rag_claude2",
+   "bash_only": false,
+   "resolved": 22,
+   "easy_tier": 17,
+   "mid_tier": 5,
+   "ours": 5
+  },
+  {
+   "entry": "20240402_rag_gpt4",
+   "bash_only": false,
+   "resolved": 14,
+   "easy_tier": 11,
+   "mid_tier": 3,
+   "ours": 1
+  },
+  {
+   "entry": "20231010_rag_swellama7b",
+   "bash_only": false,
+   "resolved": 7,
+   "easy_tier": 3,
+   "mid_tier": 4,
+   "ours": 0
+  },
+  {
+   "entry": "20231010_rag_swellama13b",
+   "bash_only": false,
+   "resolved": 6,
+   "easy_tier": 3,
+   "mid_tier": 3,
+   "ours": 0
+  },
+  {
+   "entry": "20231010_rag_gpt35",
+   "bash_only": false,
+   "resolved": 2,
+   "easy_tier": 1,
+   "mid_tier": 1,
+   "ours": 0
+  }
+ ]
+}
