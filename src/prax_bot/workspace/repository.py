@@ -203,7 +203,9 @@ fi
 git read-tree HEAD
 rm -f "${{TMPDIR:-/tmp}}/praxbot/scratch/applied.patch"
 """
-    result = workspace.run(command, timeout=120, mutate=True)
+    result = workspace.run(
+        command, timeout=120, mutate=True, label=f"apply: baseline advanced from {changes.base[:12]}"
+    )
     if result.exit_code != 0 or result.timed_out:
         raise WorkspaceError(
             "the working tree was updated, but the workspace baseline could not be recorded: "

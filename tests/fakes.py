@@ -86,7 +86,7 @@ class ShellFakeWorkspace(FakeWorkspace):
         self.results = list(results or [])
         self.commands: list[str] = []
 
-    def run(self, command, *, timeout=None, mutate=True, truncate_output_at=None):
+    def run(self, command, *, timeout=None, mutate=True, truncate_output_at=None, label=None):
         self.commands.append(command)
         exit_code, stdout, stderr, truncated = self.results.pop(0)
         return CommandResult(command, exit_code, stdout, stderr, 0.01, truncated, False, None, 0.0)

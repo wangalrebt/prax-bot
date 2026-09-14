@@ -78,6 +78,7 @@ class Workspace(Protocol):
         timeout: int | None = None,
         mutate: bool = True,
         truncate_output_at: int | None = None,
+        label: str | None = None,
     ) -> CommandResult: ...
 
     def read(self, path: str) -> bytes: ...

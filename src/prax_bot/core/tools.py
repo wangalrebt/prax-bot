@@ -208,6 +208,7 @@ class ToolBox:
         self._extra: dict[str, Any] = {t.name: t for t in plugins}
         self._shown_instructions: set[str] = set()  # nested AGENTS.md files already shown to the model
         self._reported_failures: dict[tuple[str, str], list[str]] = {}
+        self._baseline_failures: set[str] = set()  # tests seen failing before any repository edit
         self._observed: dict[str, str] = {}  # path -> digest of the content the model last saw
         self._outputs = 0
         self.todos: list[dict[str, str]] = []
@@ -565,18 +566,39 @@ class ToolBox:
         )
 
     def _note_test_observations(self, output: str, *, command: str, workdir: str) -> str:
-        """Compare observations from the same command without inferring unreported passes."""
+        """What this test output means next to earlier ones, without inferring passes that were not reported.
+
+        Failures seen before any repository edit are the baseline: the model is told about them once, and a
+        later run that still shows them is told they are not its doing. Failures repeated by the same command
+        after an edit are pointed out, and a test explicitly reported passing after failing earlier is named.
+        """
         failures = pytest_failures(output)
         scope = (command, workdir)
         previous = self._reported_failures.get(scope, [])
         passed = set(re.findall(r"^(?:PASSED (\S+)|(\S+) PASSED(?:\s|$))", output, re.MULTILINE))
         passed_ids = {name for pair in passed for name in pair if name}
-        repeated = [name for name in failures if name in previous]
-        confirmed = [name for name in previous if name in passed_ids]
         self._reported_failures[scope] = list(dict.fromkeys([*previous, *failures]))
         notes = []
-        if repeated:
-            notes.append("also reported failing by this command earlier: " + ", ".join(repeated[:8]))
+        if not self.repo_edited:
+            new_baseline = [name for name in failures if name not in self._baseline_failures]
+            self._baseline_failures.update(failures)
+            if new_baseline:
+                notes.append(
+                    f"{len(new_baseline)} tests fail before any edit; failures in this list later are not caused by "
+                    "your changes: " + ", ".join(new_baseline[:12]) + (" …" if len(new_baseline) > 12 else "")
+                )
+        else:
+            old = [name for name in failures if name in self._baseline_failures]
+            repeated = [name for name in failures if name in previous and name not in self._baseline_failures]
+            if old:
+                notes.append(
+                    f"{len(old)} of these failures were already failing before your edits: "
+                    + ", ".join(old[:8])
+                    + (" …" if len(old) > 8 else "")
+                )
+            if repeated:
+                notes.append("also reported failing by this command earlier: " + ", ".join(repeated[:8]))
+        confirmed = [name for name in previous if name in passed_ids]
         if confirmed:
             notes.append("explicitly reported passing now: " + ", ".join(confirmed[:8]))
         return "note: " + "; ".join(notes) if notes else ""

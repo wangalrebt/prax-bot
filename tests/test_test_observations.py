@@ -22,17 +22,22 @@ def test_pytest_failures_parses_ids() -> None:
     assert pytest_failures(out) == ["tests/test_a.py::test_x", "tests/test_b.py::test_y"]
 
 
-def test_repeated_failures_are_pointed_out() -> None:
+def test_failures_before_any_edit_are_the_baseline_and_named_again_later() -> None:
     first = "FAILED t/test_net.py::test_http - ConnectionError\nFAILED t/test_a.py::test_bug\n2 failed, 10 passed"
-    later = "FAILED t/test_net.py::test_http - ConnectionError\n1 failed, 11 passed"
-    box = ToolBox(RunFake([first, later]))
+    later = "FAILED t/test_net.py::test_http - ConnectionError\nFAILED t/test_a.py::test_new\n2 failed, 11 passed"
+    box = ToolBox(RunFake([first, later, later]))
     out1 = box.call("run", {"command": "pytest"}).output
-    assert "t/test_net.py::test_http" in out1 and "note:" not in out1
+    assert "note: 2 tests fail before any edit; failures in this list later are not caused by your changes" in out1
+    assert "t/test_net.py::test_http, t/test_a.py::test_bug" in out1
     box.call("read_file", {"path": "a.py"})
     box.call("edit_file", {"path": "a.py", "old": "x = 1", "new": "x = 2"})
     out2 = box.call("run", {"command": "pytest"}).output
-    assert "also reported failing by this command earlier: t/test_net.py::test_http" in out2
+    assert "1 of these failures were already failing before your edits: t/test_net.py::test_http" in out2
+    assert "also reported failing" not in out2, "a new failure is not repeated the first time it appears"
     assert "passing" not in out2, "absence from the failure list is not evidence that a test ran and passed"
+    out3 = box.call("run", {"command": "pytest"}).output
+    assert "also reported failing by this command earlier: t/test_a.py::test_new" in out3
+    assert "already failing before your edits: t/test_net.py::test_http" in out3
 
 
 def test_first_test_run_after_an_edit_is_not_treated_as_baseline() -> None:

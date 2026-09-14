@@ -101,7 +101,9 @@ class LocalWorkspace:
         timeout: int | None = None,
         mutate: bool = True,
         truncate_output_at: int | None = None,
+        label: str | None = None,
     ) -> CommandResult:
+        """Run a shell command; a mutating run becomes a checkpoint labelled with the command, or with `label`."""
         timeout = timeout or self.command_timeout
         limit = truncate_output_at or DEFAULT_TRUNCATE
         self.commands += 1
@@ -135,7 +137,7 @@ class LocalWorkspace:
         elapsed = time.monotonic() - started
         truncated = len(out) > limit or len(err) > limit
         if mutate:
-            self._checkpoint(f"run: {command}")
+            self._checkpoint(label or f"run: {command}")
         return CommandResult(
             command=command,
             exit_code=124 if timed_out else proc.returncode,

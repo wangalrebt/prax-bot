@@ -94,7 +94,8 @@ def test_explicit_goal_check_is_recorded_without_test_configuration(tmp_path: Pa
 def test_only_explicit_passes_from_the_same_command_are_reported_as_fixed() -> None:
     box = ToolBox(FakeWorkspace())
     failed = "FAILED tests/test_bug.py::test_bug - AssertionError\n1 failed"
-    assert not box._note_test_observations(failed, command="pytest -v", workdir=".")
+    first = box._note_test_observations(failed, command="pytest -v", workdir=".")
+    assert "1 tests fail before any edit" in first and "tests/test_bug.py::test_bug" in first
     assert not box._note_test_observations("1 passed", command="pytest -v", workdir=".")
     assert not box._note_test_observations("tests/test_bug.py::test_bug PASSED", command="other tests", workdir=".")
     output = box._note_test_observations("tests/test_bug.py::test_bug PASSED [100%]", command="pytest -v", workdir=".")

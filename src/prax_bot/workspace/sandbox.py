@@ -88,11 +88,12 @@ class SandboxWorkspace:
         timeout: int | None = None,
         mutate: bool = True,
         truncate_output_at: int | None = None,
+        label: str | None = None,
     ) -> CommandResult:
         """Run a shell command in the workdir.
 
-        With mutate=True the resulting filesystem becomes the current state and a
-        checkpoint is recorded. With mutate=False the run is disposable.
+        With mutate=True the resulting filesystem becomes the current state and a checkpoint is
+        recorded, labelled with the command or with `label`. With mutate=False the run is disposable.
         """
         timeout = timeout or self.command_timeout
         started = time.monotonic()
@@ -124,7 +125,7 @@ class SandboxWorkspace:
         image_id = str(result_image.uuid) if result_image.uuid else None
         if mutate and result_image.uuid:
             self.image = result_image
-            self._checkpoint(f"run: {command}")
+            self._checkpoint(label or f"run: {command}")
         return CommandResult(
             command=command,
             exit_code=result_image.exit_code,
