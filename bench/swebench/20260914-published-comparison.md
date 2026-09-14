@@ -50,3 +50,16 @@ NVIDIA's model card reports the model on the full Verified set: 60.47% under Ope
 - The four tasks we never solve are the four the field never solves; there is no harness change waiting there.
 - Everything we have measured is the easy tier. The published runs lose 14 points from the easy tier to the middle tier, and the middle tier is 261 of the 500 tasks. A stratified sample from it is the measurement that would turn the 65% estimate into a number.
 - The gap between our harness and the published harnesses is smaller than the gap between models on the bash-only board: two tiers of model separate gpt-oss-120b (15 of our 31) from Claude 4.6 Opus (28). Harness work moves a task or two; the model moves ten.
+
+## Addendum: the reference harness run on the same model, same tasks
+
+Before the decision to rely on published numbers, mini-SWE-agent 2.4.6 had already been run on the 31 with Nemotron 3 Super: the same sampling, effort and 50-step cap as ours, in Token Factory sandboxes through its own sandbox environment, graded with the same official harness (`scripts/swe_bench.py grade`; results in `minisweagent/`). The only change to its published configuration is the removal of `parallel_tool_calls`, which the endpoint rejects.
+
+| | resolved of 31 | steps | tokens |
+|---|---|---|---|
+| mini-SWE-agent, Nemotron 3 Super, 50 steps | 20 | 709 | 6.8M |
+| Prax Bot, Nemotron 3 Super, 50 steps | 23 | 933 | 12.2M |
+
+Eighteen tasks resolved under both. Five resolved only under Prax Bot: django-12193 (the reference's patch was wrong) and four where the reference ran out of its 50 steps without submitting (django-16899, xarray-4094, pylint-7277, sphinx-9591). Two resolved only under the reference: requests-5414 and pytest-7521, both tasks Prax Bot has resolved in other runs. The reference submitted nothing on seven tasks in all; its published leaderboard runs use a 250-step limit, so at its own budget it would likely have closed some of those. The four tasks neither solves are the four the field rarely solves.
+
+The reference used 44% fewer tokens for three fewer tasks. The difference is where the steps go: the reference reads with `cat` and `sed` and stops when it has a patch; Prax Bot spends steps on its post-fix verification, which the earlier traces put at a third of all steps.
