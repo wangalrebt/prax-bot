@@ -37,7 +37,6 @@ REPEAT_NUDGE = prompt("nudge_repeat")
 REPEAT_LIMIT = 3
 REPEAT_WINDOW = 8
 FORCE_FINISH = {"type": "function", "function": {"name": "finish"}}
-FINISH_REVIEW_STEPS = 5  # at most four work turns and a final finish, within the original step budget
 
 
 @dataclass
@@ -80,12 +79,10 @@ class Agent:
         context_budget: int = 80_000,
         system_prompt: str | None = None,
         verification_commands: Sequence[tuple[str, str]] = (),
-        review_before_finish: bool = False,
         cancel: Event | None = None,
     ) -> None:
         self.system_prompt = system_prompt or SYSTEM_PROMPT
         self.verification_commands = tuple(verification_commands)
-        self.review_before_finish = review_before_finish
         self.cancel = cancel or Event()
         self.steps = 0
         self.llm = llm
@@ -169,16 +166,13 @@ class Agent:
         step = 0  # model turns that called at least one tool; turns without a tool call do not count
         edited = False
         empty_finish_refused = False
-        review_deadline: int | None = None
-        review_requested_at: int | None = None
         blank_retries = 0
         last_compacted_at = -COMPACT_MIN_GAP
         while True:
             if self.cancel.is_set():
                 return self.cancelled()
             stalled = nudges >= MAX_NUDGES
-            step_limit = review_deadline if review_deadline is not None else self.max_steps
-            force_finish = step >= step_limit - 1 or stalled
+            force_finish = step >= self.max_steps - 1 or stalled
             investigating = self.investigate_model and step < self.investigate_steps and not edited
             model = self.investigate_model if investigating else None
             context = int(getattr(self.llm, "last_prompt_tokens", 0) or 0)
@@ -273,23 +267,6 @@ class Agent:
                         messages.append({"role": "tool", "tool_call_id": tc.id, "content": output})
                         call_names[tc.id] = name
                         continue
-                    if review_requested_at == step or (
-                        self.review_before_finish
-                        and review_deadline is None
-                        and getattr(self.toolbox, "repo_edited", edited)
-                        and _has_summary(raw_args)
-                        and not force_finish
-                        and step < self.max_steps - 1
-                    ):
-                        if review_deadline is None:
-                            review_requested_at = step
-                            review_deadline = min(self.max_steps, step + FINISH_REVIEW_STEPS)
-                            self.on_event("review.requested", step=step, deadline=review_deadline)
-                        output = prompt("finish_review", left=review_deadline - step)
-                        self.on_event("tool.result", step=step, name=name, output=output, error=False)
-                        messages.append({"role": "tool", "tool_call_id": tc.id, "content": output})
-                        call_names[tc.id] = name
-                        continue
                     summary = _finish_summary(raw_args)
                     goal_met = _finish_flag(raw_args, "goal_met")
                     self.on_event("finish", step=step, summary=summary, goal_met=goal_met)
@@ -299,9 +276,8 @@ class Agent:
                     edited = True
                 if name == "todo_write":
                     self.on_event("todo", step=step, todos=list(getattr(self.toolbox, "todos", [])))
-                step_limit = review_deadline if review_deadline is not None else self.max_steps
-                output = f"{tool_result.output}\n(step {step} of {step_limit})"
-                left = step_limit - step
+                output = f"{tool_result.output}\n(step {step} of {self.max_steps})"
+                left = self.max_steps - step
                 repo_edited = getattr(self.toolbox, "repo_edited", edited)
                 if 0 < left <= max(3, self.max_steps // LATE_FRACTION):
                     output += " " + (LATE_EDITED if repo_edited else LATE_NO_EDIT).format(left=left)
@@ -318,8 +294,7 @@ class Agent:
                 self.on_event("nudge", step=step, reason="the same call was repeated three times")
                 recent_calls = [c for c in recent_calls if c != recent_calls[-1]]
 
-            step_limit = review_deadline if review_deadline is not None else self.max_steps
-            if step >= step_limit:
+            if step >= self.max_steps:
                 return AgentResult(False, "step budget exhausted before finish was called", step, "budget")
 
     def cancelled(self) -> AgentResult:

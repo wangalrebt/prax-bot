@@ -1,5 +1,7 @@
 # Executable acceptance-check comparison — 2026-09-13
 
+> The code behind this experiment (the runner flag, its prompts and tests) was removed from the product after this report; it is complete at commit 8dd6ea1 of this repository.
+
 The acceptance workflow did **not improve this sample**. Baseline resolved **1/3 fresh tasks**, versus **0/3** with acceptance checks. Both resolved **1/2 development cases**, on different tasks. Four checks were accepted and executed after solving and repair; none finished passing. The candidate's only solved task, Django, had no accepted check. Keep this experiment disabled by default.
 
 ## Implementation and method

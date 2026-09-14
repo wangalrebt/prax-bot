@@ -203,36 +203,16 @@ def run_instance(row, args, scratch: Path) -> dict:
             "testing/*",
             "*/testing/*",
         )
-        workspaces = [ws]
-        if args.acceptance_check:
-            from swe_acceptance import run_acceptance_experiment
-
-            author_ws = TestbedWorkspace(client, baseline, workdir=TESTBED, command_timeout=settings.command_timeout)
-            baseline_ws = TestbedWorkspace(client, baseline, workdir=TESTBED, command_timeout=settings.command_timeout)
-            workspaces.extend((author_ws, baseline_ws))
-            agent_result, acceptance = run_acceptance_experiment(
-                llm,
-                ws,
-                author_workspace=author_ws,
-                baseline_workspace=baseline_ws,
-                task=task_text(row),
-                output_dir=out,
-                settings=settings,
-                protected=protected,
-                on_event=on_event,
-            )
-            result["acceptance"] = acceptance
-        else:
-            agent = Agent(
-                llm,
-                ToolBox(ws, protected=protected),
-                max_steps=settings.max_steps,
-                on_event=on_event,
-                investigate_model=settings.investigate_model,
-                investigate_steps=settings.investigate_steps,
-                review_before_finish=args.review_before_finish,
-            )
-            agent_result = agent.run(task_text(row))
+        agent = Agent(
+            llm,
+            ToolBox(ws, protected=protected),
+            max_steps=settings.max_steps,
+            on_event=on_event,
+            investigate_model=settings.investigate_model,
+            investigate_steps=settings.investigate_steps,
+            context_budget=settings.context_budget,
+        )
+        agent_result = agent.run(task_text(row))
         # Keep model usage even if exporting a patch fails (e.g. non-UTF-8 generated files).
         result.update(
             {
@@ -249,9 +229,7 @@ def run_instance(row, args, scratch: Path) -> dict:
             (out / "patch.diff").write_text(diff)
         finally:
             result.update(
-                sandbox_commands=sum(workspace.commands for workspace in workspaces),
-                sandbox_cost=sum(workspace.total_cost for workspace in workspaces),
-                agent_elapsed=time.monotonic() - started,
+                sandbox_commands=ws.commands, sandbox_cost=ws.total_cost, agent_elapsed=time.monotonic() - started
             )
         result["diff_lines"] = len(diff.splitlines())
         if not diff.strip():
@@ -332,8 +310,6 @@ def markdown(results: list[dict], args) -> str:
     head = (
         f"SWE-bench Verified subset: {ok} of {n} resolved. Model {Settings.from_env().model}"
         + (f", investigation model {args.investigate_model}" if getattr(args, "investigate_model", None) else "")
-        + (", bounded finish review enabled" if getattr(args, "review_before_finish", False) else "")
-        + (", frozen acceptance check enabled" if getattr(args, "acceptance_check", False) else "")
         + (f", graded from {args.preds}" if getattr(args, "preds", None) else "")
         + f", max steps {getattr(args, 'max_steps', '-')}. Graded with the official swebench harness in a fresh sandbox per task."
     )
@@ -359,21 +335,7 @@ def main() -> int:
         p.add_argument("--investigate-model", default=None)
         p.add_argument("--parallel", type=int, default=1)
         p.add_argument("--out", type=Path, default=ROOT / "bench" / "swebench")
-        if name == "run":
-            experiment = p.add_mutually_exclusive_group()
-            experiment.add_argument(
-                "--review-before-finish",
-                action="store_true",
-                help="Trial one focused review before finishing, within the existing step budget",
-            )
-            experiment.add_argument(
-                "--acceptance-check",
-                action="store_true",
-                help="Trial authoring, freezing and executing a Python acceptance check within the step budget",
-            )
     args = ap.parse_args()
-    if args.cmd == "run" and args.acceptance_check and args.max_steps < 10:
-        ap.error("--acceptance-check requires --max-steps of at least 10")
 
     cache = ROOT / "bench" / "swebench" / "scratch" / "verified.pkl"
     table = load_dataset(cache)

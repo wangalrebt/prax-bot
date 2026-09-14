@@ -1,5 +1,7 @@
 # Bounded finish review experiment — 2026-09-12
 
+> The code behind this experiment (the runner flag, its prompts and tests) was removed from the product after this report; it is complete at commit 8dd6ea1 of this repository.
+
 The review did not correct an observed defect in this experiment. It was requested on three of four candidate tasks, adding six model calls and 88,627 tokens after the first finish requests. No candidate changed repository source during review. The feature remains opt-in; these results do not justify enabling it by default.
 
 ## Method
