@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from prax_bot.core.agent import DEFAULT_SYSTEM_PROMPT_PATH, SYSTEM_PROMPT, Agent
+from prax_bot.core import prompts
+from prax_bot.core.agent import SYSTEM_PROMPT, Agent
 from prax_bot.core.tools import ToolBox
 from prax_bot.settings import Settings
 from prax_bot.ui.cli import app
@@ -17,7 +18,7 @@ from tests.helpers import make_session
 
 
 def test_the_built_in_prompt_is_the_packaged_file_and_says_the_important_things() -> None:
-    assert Path(str(DEFAULT_SYSTEM_PROMPT_PATH)).read_text(encoding="utf-8").strip() == SYSTEM_PROMPT
+    assert (prompts.PACKAGED / "system.md").read_text(encoding="utf-8").strip() == SYSTEM_PROMPT
     for phrase in (
         "For bug reports",
         "only with baseline evidence",
@@ -45,13 +46,11 @@ def test_agent_uses_the_built_in_prompt_unless_given_another() -> None:
 def test_disabling_code_style_keeps_runtime_context_with_a_custom_core_prompt(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from prax_bot.core import prompts
-
     home = tmp_path / "home"
     (home / "prompts").mkdir(parents=True)
     (home / "prompts" / "code_style.md").write_text("\n")  # an empty override switches it off
     monkeypatch.setenv("PRAXBOT_HOME", str(home))
-    prompts.clear_cache()
+    prompts.text.cache_clear()
     try:
         llm = FakeLLM([reply(None, call("finish", summary="x")), reply(None, call("finish", summary="y"))])
         Agent(llm, FakeToolBox(), max_steps=3, system_prompt="Terse.").run("t")
@@ -61,7 +60,7 @@ def test_disabling_code_style_keeps_runtime_context_with_a_custom_core_prompt(
         assert "remote Linux sandbox" in system
         assert "No commands are scheduled by the runtime" in system
     finally:
-        prompts.clear_cache()
+        prompts.text.cache_clear()
 
 
 @pytest.mark.parametrize("workdir", ["/work", "/testbed"])
@@ -138,8 +137,6 @@ def test_prompt_command_prints_the_text_and_the_source(tmp_path: Path, monkeypat
 
 
 def test_prompt_loader_lists_renders_and_overrides(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    from prax_bot.core import prompts
-
     names = prompts.names()
     assert {"system", "tools/run", "continuation", "environment/local", "environment/contree"} <= set(names)
     assert prompts.source("system")[0] == "built-in"
@@ -155,14 +152,14 @@ def test_prompt_loader_lists_renders_and_overrides(tmp_path: Path, monkeypatch: 
     (home / "prompts" / "nudge.md").write_text("Carry on.\n")
     (home / "prompts" / "tools" / "run.md").write_text("Run a command in {scratch_dir}.\n")
     monkeypatch.setenv("PRAXBOT_HOME", str(home))
-    prompts.clear_cache()
+    prompts.text.cache_clear()
     try:
         assert prompts.source("nudge") == ("override", home / "prompts" / "nudge.md")
         assert prompts.prompt("nudge") == "Carry on."
         assert prompts.prompt("tools/run", scratch_dir="/tmp/s") == "Run a command in /tmp/s."
         assert prompts.source("system")[0] == "built-in", "only the files present are overridden"
     finally:
-        prompts.clear_cache()
+        prompts.text.cache_clear()
 
 
 def test_prompt_command_lists_and_prints_any_prompt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

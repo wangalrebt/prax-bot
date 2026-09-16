@@ -1317,13 +1317,15 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
-dev = [
+bench = [
     { name = "huggingface-hub" },
     { name = "pyarrow" },
+    { name = "swebench" },
+]
+dev = [
     { name = "pyright" },
     { name = "pytest" },
     { name = "ruff" },
-    { name = "swebench" },
 ]
 
 [package.metadata]
@@ -1337,13 +1339,15 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [
+bench = [
     { name = "huggingface-hub", specifier = ">=1.30.0" },
     { name = "pyarrow", specifier = ">=25.0.1" },
+    { name = "swebench", specifier = ">=5.0.2" },
+]
+dev = [
     { name = "pyright", specifier = ">=1.1" },
     { name = "pytest", specifier = ">=8" },
     { name = "ruff", specifier = ">=0.16.6" },
-    { name = "swebench", specifier = ">=5.0.2" },
 ]
 
 [[package]]

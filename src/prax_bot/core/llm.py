@@ -49,7 +49,6 @@ class LLM:
         self.usage = Usage()
         self.last_finish_reason: str | None = None
         self.last_prompt_tokens = 0  # the context the most recent call sent, in tokens
-        self.last_completion_tokens = 0
         self.temperature = settings.temperature
         self.top_p = settings.top_p
         self.effort = settings.effort
@@ -90,7 +89,7 @@ class LLM:
         usage = getattr(response, "usage", None)
         prompt = (getattr(usage, "prompt_tokens", 0) or 0) if usage is not None else 0
         completion = (getattr(usage, "completion_tokens", 0) or 0) if usage is not None else 0
-        self.last_prompt_tokens, self.last_completion_tokens = prompt, completion
+        self.last_prompt_tokens = prompt
         self.usage.add(chosen, prompt, completion)
         return response.choices[0].message
 

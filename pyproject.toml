@@ -24,11 +24,14 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "huggingface-hub>=1.30.0",
-    "pyarrow>=25.0.1",
     "pyright>=1.1",
     "pytest>=8",
     "ruff>=0.16.6",
+]
+# scripts/swe_bench.py only: the dataset and the official grader. `uv run --group bench python scripts/swe_bench.py ...`
+bench = [
+    "huggingface-hub>=1.30.0",
+    "pyarrow>=25.0.1",
     "swebench>=5.0.2",
 ]
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass
-from pathlib import Path
 from threading import Event
 from typing import Any
 
@@ -16,12 +15,11 @@ from prax_bot.core.context import (
     compact_transcript,
     prune_by_age,
 )
-from prax_bot.core.prompts import PACKAGED, prompt
+from prax_bot.core.prompts import prompt
 from prax_bot.core.tools import TOOL_MODELS, ToolBox, tool_specs
 from prax_bot.workspace.repository import SCRATCH_DIR
 from prax_bot.workspace.types import EventFn, noop
 
-DEFAULT_SYSTEM_PROMPT_PATH = Path(str(PACKAGED / "system.md"))
 SYSTEM_PROMPT = prompt("system")  # the built-in prompt, or the user's override of it; see `prax prompt`
 
 NUDGE = prompt("nudge")

@@ -50,10 +50,6 @@ def text(name: str) -> str:
     return source(name)[1].read_text(encoding="utf-8").strip()
 
 
-def clear_cache() -> None:
-    text.cache_clear()
-
-
 def prompt(key: str, /, **values: Any) -> str:
     """A prompt with the given placeholders filled in; placeholders not given are left as they are.
 

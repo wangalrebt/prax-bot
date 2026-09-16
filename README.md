@@ -189,17 +189,17 @@ Every sandbox command is one immutable image; the run above went from baseline i
 
 ## Benchmark
 
-`bench/` holds five seeded regressions in real Python libraries, each verified to fail at the bugged commit and pass at HEAD. `scripts/bench.py` runs the agent on each one in a sandbox and judges the exported diff independently: it is applied to a fresh copy of the bugged repository in a new sandbox, a broader test set than the one the agent was told about is run, and any change to a test file counts as a failure.
+`bench/` holds ten seeded regressions in real Python libraries, each verified to fail at the bugged commit and pass at HEAD. `scripts/bench.py` runs the agent on each one in a sandbox and judges the exported diff independently: it is applied to a fresh copy of the bugged repository in a new sandbox, a broader test set than the one the agent was told about is run, and any change to a test file counts as a failure.
 
 ```bash
 uv run python scripts/bench.py --src /path/to/clones --validate   # HEAD passes, bug fails
 uv run python scripts/bench.py --src /path/to/clones              # run and judge
 ```
 
-Four runs with Nemotron 3 Super, 40-step budget, the harness improving between runs as the failures were diagnosed:
+Five runs on the first five tasks with Nemotron 3 Super, 40-step budget, the harness improving between runs as the failures were diagnosed:
 
 | task | run 1 | run 2 | run 3 | run 4 | run 5 |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|
 | toolz-sliding-window | fail, 40 steps | pass, 12 | pass, 15 | pass, 17 | pass, 8 |
 | more-itertools-tail | pass, 9 | pass, 8 | pass, 8 (judged on retry) | pass, 12 | pass, 6 |
 | tabulate-padding | pass, 24 | fail, 40 | fail, 40 | fail, 35 | pass, 25 |
@@ -212,7 +212,7 @@ What the runs taught the harness, in order: exact-match editing rejected a one-s
 The benchmark then grew to ten tasks, adding click, jinja, packaging, pyparsing, and tomli, which are larger codebases of 1,100 to 35,000 lines:
 
 | task | run 6 | run 7 | run 8 | run 9 | run 10 |
-|---|---|---|---|---|
+|---|---|---|---|---|---|
 | toolz-sliding-window | pass, 16 steps | pass, 10 steps | pass, 12 steps | pass, 12 steps | pass, 20 steps |
 | more-itertools-tail | pass, 8 steps | pass, 10 steps | pass, 9 steps | pass, 7 steps | pass, 8 steps |
 | tabulate-padding | fail, 33 steps | pass, 35 steps | fail, 40 steps | pass, 25 steps | fail, 40 steps |
@@ -259,8 +259,9 @@ At the recommended sampling settings every level matched or beat run 10, and the
 `scripts/swe_bench.py` runs the agent on SWE-bench Verified tasks. SWE-bench publishes one environment image per task with the repository at the issue's base commit and its dependencies installed; the sandbox imports those images directly, so no per-repository setup is needed. The agent sees only the issue text, works in a fork of the task image, and its diff is graded in a fresh fork with the dataset's own evaluation script and the official `swebench` harness, hidden tests included.
 
 ```bash
-uv run python scripts/swe_bench.py list --difficulty "<15 min fix" --per-repo 2 --n 12
-uv run python scripts/swe_bench.py run --ids <comma-separated instance ids> --max-steps 50 --parallel 2
+# the dataset and the official grader are in the `bench` dependency group, not in a plain `uv sync`
+uv run --group bench python scripts/swe_bench.py list --difficulty "<15 min fix" --per-repo 2 --n 12
+uv run --group bench python scripts/swe_bench.py run --ids <comma-separated instance ids> --max-steps 50 --parallel 2
 ```
 
 Two experiments were tried on the benchmark runner and removed: a bounded review before finish, and executable acceptance checks authored before solving. Neither improved its sample ([review](bench/swebench/20260912-review-comparison.md), [acceptance](bench/swebench/20260913-acceptance-comparison.md)); the reports stay, and the code is in the repository's history at commit 8dd6ea1.
@@ -436,7 +437,7 @@ The count did not move: nine of twelve three times, with the third miss rotating
 
 A fourth run tried to bound that phase with one more rule, verify once and then stop: rerun the reproduction, then one test command found from the project's test layout, one correction allowed, then finish and say what was not run. It came back 8 of 12 at 4.63M tokens. Django-11880 fell from 49 steps to 14, but django-16899 missed for the first time in four runs, on an error-message string the hidden test compares exactly, and matplotlib-25122 still spent twenty steps after its fix. Ten percent cheaper and one task worse is not a rule to keep, so the prompt stays as described above, and the price of verification after the fix is the open item: the transcripts say the model does not know how to run a project's tests and guesses, which is something the harness can tell it rather than the prompt.
 
-On the full thirty-one, revised prompt and context management together: 23 of 31 at 12.2M tokens, against 23 of 31 at 14.2M for effort low alone. Two came up (sphinx-8621, sphinx-9591) and two went down (pytest-7521, sympy-17655); requests-2317 counted as a miss for a day, its patch having passed all eight target tests and failed one of 133 regression tests, until the reason turned out to be the grading sandbox (next section). Of the four tasks the reproduce rule was written for, where the earlier runs had made one confident wrong edit, run the tests and finished, two resolved against one before. The ten-task suite was unchanged at 9 of 10, at 1.25M tokens against 1.40M.
+On the full thirty-one, revised prompt and context management together: 23 of 31 at 12.2M tokens, against 23 of 31 at 14.2M for effort low alone. Two came up (sphinx-8621, sphinx-9591) and two went down (pytest-7521, sympy-17655); requests-2317 counted as a miss for a day, its patch having passed all eight target tests and failed one of 133 regression tests, until the reason turned out to be the grading sandbox (next section). Of the four tasks the reproduce rule was written for, where the earlier runs had made one confident wrong edit, run the tests and finished, two resolved against one before. The ten-task suite was unchanged at 9 of 10, at 1.25M tokens against 1.40M. The run files are [bench/swebench/20260909-prompt12-assembled.json](bench/swebench/20260909-prompt12-assembled.json) for the revised-prompt column of the twelve and [bench/swebench/20260909-prompt31-assembled.json](bench/swebench/20260909-prompt31-assembled.json) for the thirty-one. Both were assembled from two halves after a session restart, so they carry a date and no time stamp.
 
 ### What the misses say
 

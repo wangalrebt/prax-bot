@@ -157,7 +157,7 @@ def test_llm_sends_no_tool_fields_without_tools_and_records_context(tmp_path: Pa
     llm = LLM(base_settings(tmp_path), client=client)
     llm.complete([{"role": "user", "content": "summarise"}], None)
     assert "tools" not in client.calls[0] and "tool_choice" not in client.calls[0]
-    assert llm.last_prompt_tokens == 3 and llm.last_completion_tokens == 1
+    assert llm.last_prompt_tokens == 3 and llm.usage.completion_tokens == 1
     llm.complete([], [{"type": "function", "function": {"name": "x", "parameters": {}}}])
     assert client.calls[1]["tools"] and client.calls[1]["tool_choice"] == "auto"
 

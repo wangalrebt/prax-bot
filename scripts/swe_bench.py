@@ -6,9 +6,9 @@ per-repository setup is needed. Each task runs the agent in a fork of that image
 diff, and grades it in a fresh fork with the dataset's own evaluation script and the
 official log parsers.
 
-    uv run python scripts/swe_bench.py list [--difficulty "<15 min fix"] [--per-repo 2] [--n 20] [--seed 0]
-    uv run python scripts/swe_bench.py run --ids psf__requests-2317,pallets__flask-4045 [--max-steps 50] [--parallel 2]
-    uv run python scripts/swe_bench.py reeval --ids ...      # grade saved patches again
+    uv run --group bench python scripts/swe_bench.py list [--difficulty "<15 min fix"] [--per-repo 2] [--n 20] [--seed 0]
+    uv run --group bench python scripts/swe_bench.py run --ids psf__requests-2317,pallets__flask-4045 [--max-steps 50] [--parallel 2]
+    uv run --group bench python scripts/swe_bench.py reeval --ids ...      # grade saved patches again
 
 Results go to bench/swebench/<stamp>.{json,md}; per-task logs and patches under bench/swebench/scratch/.
 """
@@ -40,6 +40,17 @@ TESTBED = "/testbed"
 ENV_PREFIX = "export HOME=${HOME:-/root}; "
 ACTIVATE = ENV_PREFIX + "source /opt/miniconda3/bin/activate testbed >/dev/null 2>&1"
 DATASET = "SWE-bench/SWE-bench_Verified"
+
+
+def require_bench_packages() -> None:
+    """The dataset and grading packages live in the `bench` dependency group, not in a plain `uv sync`."""
+    try:
+        import pandas  # noqa: F401
+        import swebench  # noqa: F401
+    except ImportError as e:
+        sys.exit(
+            f"{e.name} is not installed: run this script with `uv run --group bench python scripts/swe_bench.py ...`"
+        )
 
 
 def load_dataset(cache: Path):
@@ -94,7 +105,7 @@ NETWORK_ERROR = "Network is unreachable"
 GRADING_ATTEMPTS = 3
 
 
-def grade(client, image, row, diff: str, scratch: Path, timeout: int = 1800) -> dict:
+def grade(image, row, diff: str, scratch: Path, timeout: int = 1800) -> dict:
     """Apply the diff in a fresh fork of the task image and run the dataset's evaluation script.
 
     Some sandbox hosts have no network route, and a few regression tests (the connect-timeout tests in
@@ -102,7 +113,7 @@ def grade(client, image, row, diff: str, scratch: Path, timeout: int = 1800) -> 
     is not resolved and shows that error is run again, up to GRADING_ATTEMPTS times in all.
     """
     for attempt in range(1, GRADING_ATTEMPTS + 1):
-        verdict = _grade_once(client, image, row, diff, scratch, timeout)
+        verdict = _grade_once(image, row, diff, scratch, timeout)
         network_error = verdict.pop("network_error", False)
         verdict["grading_attempts"] = attempt
         if verdict["resolved"] or not network_error:
@@ -117,7 +128,7 @@ def grade(client, image, row, diff: str, scratch: Path, timeout: int = 1800) -> 
     return verdict
 
 
-def _grade_once(client, image, row, diff: str, scratch: Path, timeout: int) -> dict:
+def _grade_once(image, row, diff: str, scratch: Path, timeout: int) -> dict:
     """One grading run: apply the patch, run the evaluation script, parse the report."""
     from swebench.harness.grading import get_eval_report
     from swebench.harness.utils import make_test_spec
@@ -235,7 +246,7 @@ def run_instance(row, args, scratch: Path) -> dict:
         if not diff.strip():
             result.update({"resolved": False, "patch_applied": False, "eval": "no diff produced"})
         else:
-            result.update(grade(client, image, row, diff, out))
+            result.update(grade(image, row, diff, out))
     except Exception as e:
         result.update({"resolved": False, "eval": f"error: {type(e).__name__}: {str(e)[:200]}"})
     finally:
@@ -245,7 +256,7 @@ def run_instance(row, args, scratch: Path) -> dict:
     return result
 
 
-def reeval_instance(row, args, scratch: Path) -> dict:
+def reeval_instance(row, _args, scratch: Path) -> dict:  # same shape as run_instance; nothing to configure
     iid = row["instance_id"]
     out = scratch / iid
     patch = out / "patch.diff"
@@ -258,7 +269,7 @@ def reeval_instance(row, args, scratch: Path) -> dict:
         client = make_client()
         settings = Settings.from_env()
         image = client.images.oci(f"docker://docker.io/{row['image']}", timeout=settings.import_timeout)
-        result.update(grade(client, image, row, patch.read_text(), out))
+        result.update(grade(image, row, patch.read_text(), out))
     except Exception as e:
         result.update({"resolved": False, "eval": f"error: {type(e).__name__}: {str(e)[:200]}"})
     return result
@@ -337,6 +348,7 @@ def main() -> int:
         p.add_argument("--out", type=Path, default=ROOT / "bench" / "swebench")
     args = ap.parse_args()
 
+    require_bench_packages()
     cache = ROOT / "bench" / "swebench" / "scratch" / "verified.pkl"
     table = load_dataset(cache)
 
