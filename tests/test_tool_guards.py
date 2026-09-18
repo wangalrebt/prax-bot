@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from prax_bot.core.agent import Agent
 from prax_bot.core.tools import ToolBox
 from prax_bot.workspace.repository import SCRATCH_DIR, resolve_in_workdir
@@ -32,6 +34,22 @@ def test_protected_paths_refuse_edits_and_writes() -> None:
     )
     box.call("read_file", {"path": "src/a.py"})
     assert box.call("edit_file", {"path": "src/a.py", "old": "x", "new": "y"}).output.startswith("edited src/a.py")
+
+
+def test_a_copied_context_placeholder_never_reaches_a_file() -> None:
+    from prax_bot.core.context import ELIDED_MARK
+
+    workspace = FakeWorkspace({"src/a.py": "x\n"})
+    box = ToolBox(workspace)
+    placeholder = f"{ELIDED_MARK} to save context: 1,542 characters]"
+    box.call("read_file", {"path": "src/a.py"})
+    for name, args in (
+        ("edit_file", {"path": "src/a.py", "old": "x", "new": placeholder}),
+        ("write_file", {"path": "src/b.py", "content": placeholder}),
+    ):
+        result = box.call(name, json.dumps(args))
+        assert result.error and "placeholder the runtime puts into old calls" in result.output
+    assert workspace.files == {"src/a.py": b"x\n"}
 
 
 def test_empty_finish_is_refused_once() -> None:

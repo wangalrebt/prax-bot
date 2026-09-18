@@ -13,7 +13,7 @@ from typing import Any
 from contree_sdk.sdk.exceptions import ContreeError
 from pydantic import BaseModel, Field, ValidationError
 
-from prax_bot.core.context import compact_tool_output
+from prax_bot.core.context import ELIDED_MARK, compact_tool_output
 from prax_bot.core.editing import apply_edit
 from prax_bot.core.navigation import (
     DEFINITION_RE,
@@ -351,6 +351,11 @@ class ToolBox:
         if model is None or name == "finish":
             available = list(TOOL_MODELS) + list(self._extra)
             return failed(f"unknown tool {name!r}. Available tools: {', '.join(available)}")
+        if ELIDED_MARK in (raw_args if isinstance(raw_args, str) else json.dumps(raw_args or {})):
+            return failed(
+                "the arguments contain a placeholder the runtime puts into old calls to save context, not real text. "
+                "Read the file for its current content and send the actual text."
+            )
         try:
             args = json.loads(raw_args) if isinstance(raw_args, str) else (raw_args or {})
             if not isinstance(args, dict):

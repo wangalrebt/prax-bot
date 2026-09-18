@@ -1,7 +1,9 @@
-"""Context management: real context size per call, pruning of tool results by age, and summarising compaction."""
+"""Context management: real context size per call, tool results and call arguments that age out, the repository map
+that goes once editing has started, and summarising compaction."""
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -9,12 +11,17 @@ import pytest
 
 from prax_bot.core.agent import Agent
 from prax_bot.core.context import (
+    ARGS_KEEP_CALLS,
     COMPACT_KEEP_TURNS,
     COMPACT_MIN_GAP,
-    KEEP_FULL,
+    ELIDED_MARK,
+    OTHER_POLICY,
+    READ_POLICY,
+    REPO_MAP_STEPS,
     compact_transcript,
     prune_by_age,
     render_for_summary,
+    stub_old_call_arguments,
 )
 from prax_bot.core.llm import LLM
 from prax_bot.settings import Settings
@@ -39,19 +46,83 @@ def tool_messages(n: int, size: int) -> list[dict]:
     return messages
 
 
-def test_prune_by_age_keeps_recent_whole_and_shrinks_older_in_tiers() -> None:
+@pytest.mark.parametrize(("tool", "policy"), [("read_file", READ_POLICY), ("run", OTHER_POLICY)])
+def test_prune_by_age_keeps_recent_whole_and_shrinks_older_in_tiers(tool: str, policy: tuple) -> None:
+    keep_full, ((first_limit, first_cap), (last_limit, last_cap)) = policy
     messages = tool_messages(30, 10_000)
-    names = {f"c{i}": "read_file" for i in range(30)}
+    names = {f"c{i}": tool for i in range(30)}
     changed = prune_by_age(messages, names=names, compact=lambda name, out: f"[compacted] {name}: {out[:12]}")
     results = [m["content"] for m in messages if m["role"] == "tool"]
-    assert all(len(r) > 10_000 for r in results[-KEEP_FULL:]), "the newest six are untouched"
-    assert all(len(r) <= 4096 and "pruned" in r for r in results[-12:-KEEP_FULL]), "then cut to about 4k"
-    assert all(len(r) <= 1024 and "pruned" in r for r in results[-24:-12]), "then to about 1k"
-    assert all(r.startswith("[compacted] read_file") for r in results[:-24]), "the oldest become digests"
-    assert changed == 24
+    assert all(len(r) > 10_000 for r in results[-keep_full:]), "the newest are untouched"
+    assert all(len(r) <= first_cap and "pruned" in r for r in results[-first_limit:-keep_full]), "then cut once"
+    assert all(len(r) <= last_cap and "pruned" in r for r in results[-last_limit:-first_limit]), "then cut harder"
+    assert all(r.startswith(f"[compacted] {tool}") for r in results[:-last_limit]), "the oldest become digests"
+    assert changed == 30 - keep_full
     assert prune_by_age(messages, names=names, compact=lambda n, o: "[compacted] again") == 0, (
         "a second pass changes nothing"
     )
+
+
+def test_file_reads_outlive_command_output_of_the_same_age() -> None:
+    messages = tool_messages(8, 10_000)
+    names = {f"c{i}": "read_file" if i % 2 else "run" for i in range(8)}  # oldest first: run, read, run, read, ...
+    prune_by_age(messages, names=names)
+    results = [m["content"] for m in messages if m["role"] == "tool"]
+    reads, runs = results[1::2], results[0::2]
+    assert all(len(r) > 10_000 for r in reads[-3:]), "reads up to five results back are still whole"
+    assert len(runs[-1]) > 10_000 and all("pruned" in r for r in runs[:-2]), "command output is cut after three"
+
+
+def write_call(i: int, size: int) -> dict:
+    arguments = json.dumps({"path": f"scratch/repro_{i}.py", "content": "x" * size})
+    return {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [{"id": f"w{i}", "type": "function", "function": {"name": "write_file", "arguments": arguments}}],
+    }
+
+
+def test_old_call_arguments_become_their_size_and_recent_ones_stay() -> None:
+    messages = [write_call(i, 1_000) for i in range(ARGS_KEEP_CALLS + 3)]
+    messages.insert(1, write_call(99, 20))  # short arguments are left alone at any age
+    broken = write_call(98, 1_000)
+    broken["tool_calls"][0]["function"]["arguments"] = "{not json " + "x" * 500
+    messages.insert(2, broken)
+    assert stub_old_call_arguments(messages) == 3
+    arguments = [json.loads(m["tool_calls"][0]["function"]["arguments"]) for m in messages if m is not broken]
+    old = [a for a in arguments if a["content"].startswith(ELIDED_MARK)]
+    assert [a["path"] for a in old] == ["scratch/repro_0.py", "scratch/repro_1.py", "scratch/repro_2.py"]
+    assert all("1,000 characters" in a["content"] for a in old), "the placeholder says what was there"
+    assert arguments[1] == {"path": "scratch/repro_99.py", "content": "x" * 20}
+    assert broken["tool_calls"][0]["function"]["arguments"].startswith("{not json"), "unparseable arguments stay"
+    assert all(len(a["content"]) == 1_000 for a in arguments[-ARGS_KEEP_CALLS:]), "the newest calls are verbatim"
+    assert stub_old_call_arguments(messages) == 0, "a second pass changes nothing"
+
+
+class MapToolBox(FakeToolBox):
+    def repo_map(self, task: str) -> str:
+        return "pkg/core.py\n  12: def resolve"
+
+
+def test_the_repository_map_goes_once_the_repository_is_edited_and_the_first_steps_have_passed() -> None:
+    reads = [reply(None, call("read_file", path=f"f{i}.py")) for i in range(REPO_MAP_STEPS + 1)]
+    llm = FakeLLM(
+        [
+            *reads,
+            reply(None, call("edit_file", path="pkg/core.py", old="a", new="b")),
+            reply(None, call("finish", summary="ok")),
+        ]
+    )
+    events: list[dict] = []
+    Agent(llm, MapToolBox(), max_steps=30, on_event=lambda k, **p: events.append({"kind": k, **p})).run("fix resolve")
+    carried = ["12: def resolve" in str(messages[2]["content"]) for messages, _ in llm.requests]
+    assert all(carried[: REPO_MAP_STEPS + 2]), "past the first steps the map stays while nothing has been edited"
+    assert carried[REPO_MAP_STEPS + 2 :] == [False], "the call after the edit no longer carries it"
+    final = llm.requests[-1][0][2]["content"]
+    assert final.startswith("Repository map: removed"), (
+        "a note stands in its place, and compaction drops it like the map"
+    )
+    assert [e["step"] for e in events if e["kind"] == "context.map_dropped"] == [REPO_MAP_STEPS + 2]
 
 
 def test_compact_transcript_keeps_shape_and_drops_the_repo_map() -> None:

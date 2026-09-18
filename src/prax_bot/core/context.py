@@ -1,15 +1,28 @@
-"""Age-based tool-output pruning and transcript summarization."""
+"""What a long run carries from call to call: tool results that age out, old call arguments reduced to their size,
+and a summarising compaction as the backstop."""
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Callable
 from typing import Any
 
 from prax_bot.core.prompts import prompt
 
-KEEP_FULL = 6  # the most recent tool results stay complete
-PRUNE_TIERS = ((12, 4096), (24, 1024))  # older results are cut to these sizes; beyond the last tier, a one-line digest
+# How a tool result ages: (results kept whole, ((age limit, characters kept), ...)); past the last tier it is a one-line
+# digest. Age counts every tool result since, whatever produced it. File reads are what edits are written from (in
+# the benchmark logs 73 of 84 edits followed a read at most five results back), so they stay whole longest. Command
+# output, searches and listings are read once and acted on, and they are half of what a long run carries.
+READ_POLICY = (6, ((12, 2048), (18, 600)))
+OTHER_POLICY = (3, ((6, 1500), (12, 400)))
+# The map is for finding the code: it goes once the repository has been edited and this many steps have passed.
+REPO_MAP_STEPS = 10
+# Tool calls whose arguments stay verbatim. In older calls a file body or an edit text becomes its size, unless it is
+# shorter than ARG_STUB_MIN. Tools refuse arguments carrying ELIDED_MARK, so a copied placeholder never reaches a file.
+ARGS_KEEP_CALLS = 8
+ARG_STUB_MIN = 200
+ELIDED_MARK = "[elided by the runtime"
 COMPACT_KEEP_TURNS = 3  # assistant turns kept verbatim after a compaction
 COMPACT_MIN_GAP = 6  # steps between two compactions
 SUMMARY_SYSTEM = prompt("summary")
@@ -69,19 +82,21 @@ def prune_by_age(
 ) -> int:
     """Shrink tool results as they age: the newest stay whole, older ones lose their middle, the oldest become a digest.
 
-    Runs every step, so the context carries recent detail and only a memory of the rest. Returns how many changed.
+    File reads age by READ_POLICY and every other result by OTHER_POLICY. Runs every step, so the context carries
+    recent detail and only a memory of the rest. Returns how many changed.
     """
     tool_indexes = [i for i, m in enumerate(messages) if m.get("role") == "tool"]
     changed = 0
     for age, i in enumerate(reversed(tool_indexes)):
-        if age < KEEP_FULL:
+        name = (names or {}).get(messages[i].get("tool_call_id", ""), "")
+        keep_full, tiers = READ_POLICY if name == "read_file" else OTHER_POLICY
+        if age < keep_full:
             continue
         content = messages[i].get("content") or ""
         if content.startswith(("[compacted]", "[elided")):
             continue
-        cap = next((size for limit, size in PRUNE_TIERS if age < limit), None)
+        cap = next((size for limit, size in tiers if age < limit), None)
         if cap is None:
-            name = (names or {}).get(messages[i].get("tool_call_id", ""), "")
             replacement = (
                 compact(name, content)
                 if compact and name
@@ -93,6 +108,39 @@ def prune_by_age(
             continue
         if replacement != content:
             messages[i]["content"] = replacement
+            changed += 1
+    return changed
+
+
+def stub_old_call_arguments(messages: list[dict[str, Any]], *, keep_last: int = ARGS_KEEP_CALLS) -> int:
+    """In tool calls older than the last `keep_last`, replace long string arguments with their size.
+
+    A written file or an edit text is resent with every later call although the workspace already holds it. The
+    path and every short argument stay, so the call still says what was done. Returns how many calls changed.
+    """
+    calls = [tc for m in messages if m.get("role") == "assistant" for tc in m.get("tool_calls") or []]
+    changed = 0
+    for tc in calls[:-keep_last] if keep_last else calls:
+        fn = tc.get("function") if isinstance(tc, dict) else None
+        if not isinstance(fn, dict):
+            continue
+        raw = fn.get("arguments")
+        if not isinstance(raw, str) or len(raw) < ARG_STUB_MIN:
+            continue
+        try:
+            args = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(args, dict):
+            continue
+        stubbed = {
+            key: f"{ELIDED_MARK} to save context: {len(value):,} characters]"
+            if isinstance(value, str) and len(value) >= ARG_STUB_MIN
+            else value
+            for key, value in args.items()
+        }
+        if stubbed != args:
+            fn["arguments"] = json.dumps(stubbed)
             changed += 1
     return changed
 

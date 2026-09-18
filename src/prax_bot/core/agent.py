@@ -11,9 +11,11 @@ from typing import Any
 from prax_bot.core.context import (
     COMPACT_KEEP_TURNS,
     COMPACT_MIN_GAP,
+    REPO_MAP_STEPS,
     compact_old_tool_results,
     compact_transcript,
     prune_by_age,
+    stub_old_call_arguments,
 )
 from prax_bot.core.prompts import prompt
 from prax_bot.core.tools import TOOL_MODELS, ToolBox, tool_specs
@@ -131,6 +133,7 @@ class Agent:
             if text:
                 messages.append({"role": "user", "content": text})
                 self.on_event("project.instructions", chars=len(text))
+        repo_map_message: dict[str, Any] | None = None
         repo_map = getattr(self.toolbox, "repo_map", None)
         if repo_map is not None:
             try:
@@ -139,12 +142,8 @@ class Agent:
                 overview = ""
                 self.on_event("repo.map", chars=0, error=f"{type(e).__name__}: {str(e)[:120]}")
             if overview:
-                messages.append(
-                    {
-                        "role": "user",
-                        "content": prompt("repo_map_intro") + "\n" + overview,
-                    }
-                )
+                repo_map_message = {"role": "user", "content": prompt("repo_map_intro") + "\n" + overview}
+                messages.append(repo_map_message)
                 self.on_event("repo.map", chars=len(overview))
         skills_overview = getattr(self.toolbox, "skills_overview", None)
         if skills_overview is not None:
@@ -197,7 +196,13 @@ class Agent:
                         error=reason,
                     )
                 # "too short": nothing to compact yet; pruning below still applies
+            if repo_map_message is not None and step >= REPO_MAP_STEPS and getattr(self.toolbox, "repo_edited", edited):
+                # the map was for finding the code; the edit exists, so every later call stops paying for it
+                repo_map_message["content"] = prompt("repo_map_dropped")
+                repo_map_message = None
+                self.on_event("context.map_dropped", step=step)
             prune_by_age(messages, names=call_names, compact=compact)
+            stub_old_call_arguments(messages)
             compacted = compact_old_tool_results(
                 messages, max_chars=self.max_transcript_chars, names=call_names, compact=compact
             )
