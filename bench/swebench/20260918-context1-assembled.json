@@ -1,0 +1,361 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "sympy__sympy-20916,django__django-11880,django__django-16899,matplotlib__matplotlib-25122,matplotlib__matplotlib-23476,sympy__sympy-15017,pytest-dev__pytest-5809,scikit-learn__scikit-learn-12585,psf__requests-5414,sphinx-doc__sphinx-8621,psf__requests-1142,pydata__xarray-4075",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "3",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench",
+    "note": "context candidate 1 at commit 15a1e4e (results age by kind, old call arguments stubbed, repository map dropped once edited and past step 10), run from a frozen worktree; matplotlib-25122 died on a sandbox API timeout before its first step in 20260918T064929Z-run.json and is taken from the re-run 20260918T065212Z-run.json"
+  },
+  "results": [
+    {
+      "instance_id": "sympy__sympy-20916",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 43,
+      "tokens": 508624,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 43,
+          "prompt_tokens": 489931,
+          "completion_tokens": 18693
+        }
+      },
+      "summary": "Fixed the issue where pprint unicode did not format subscripts on Greek letters. The problem was in sympy/printing/conventions.py where the regex _name_with_digits_p only matched ASCII letters. Changed it to ^([^\\W\\d_]+)([0-9]+)$ with re.UNICODE flag to match any Unicode letter. Verified that split_",
+      "sandbox_commands": 23,
+      "sandbox_cost": 0.06566658,
+      "agent_elapsed": 565.5448064580123,
+      "diff_lines": 13,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "1/1",
+      "eval": "not resolved",
+      "eval_cost": 0.025559360000000003,
+      "grading_attempts": 1,
+      "wall": 572.7935022500023
+    },
+    {
+      "instance_id": "django__django-11880",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 25,
+      "tokens": 231911,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 25,
+          "prompt_tokens": 226528,
+          "completion_tokens": 5383
+        }
+      },
+      "summary": "Fixed the __deepcopy__ method of django.forms.fields.Field to perform a deep copy of the error_messages dictionary using copy.deepcopy. Verified with a custom test and ran the relevant Django test suites (forms_tests.tests.test_error_messages and forms_tests.field_tests.test_charfield) which passed.",
+      "sandbox_commands": 17,
+      "sandbox_cost": 0.05277127999999998,
+      "agent_elapsed": 187.16097041600733,
+      "diff_lines": 12,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "114/114",
+      "eval": "resolved",
+      "eval_cost": 0.039751089999999996,
+      "grading_attempts": 1,
+      "wall": 201.18766116599727
+    },
+    {
+      "instance_id": "django__django-16899",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 32,
+      "tokens": 326508,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 32,
+          "prompt_tokens": 311409,
+          "completion_tokens": 15099
+        }
+      },
+      "summary": "Modified django/contrib/admin/checks.py in _check_readonly_fields_item to include the field name in the error message, aligning it with other checks like list_editable. The change makes the error message read: \\\"The value of '%s' refers to '%s', which is not a callable, an attribute of '%s', or an a",
+      "sandbox_commands": 21,
+      "sandbox_cost": 0.04543737,
+      "agent_elapsed": 313.23793954100984,
+      "diff_lines": 17,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "54/54",
+      "eval": "resolved",
+      "eval_cost": 0.040009449999999995,
+      "grading_attempts": 1,
+      "wall": 322.7958269580122
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-25122",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 9,
+      "tokens": 73452,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 9,
+          "prompt_tokens": 70169,
+          "completion_tokens": 3283
+        }
+      },
+      "summary": "Fixed the window correction in `mlab._spectral_helper` by replacing `np.abs(window).sum()**2` with `np.sum(window)**2` in the else branch (line 430). This removes the erroneous absolute value that caused incorrect results for windows with negative values (e.g., flattop). Verified that the matplotlib",
+      "sandbox_commands": 10,
+      "sandbox_cost": 0.10982578999999999,
+      "agent_elapsed": 79.61980495799799,
+      "diff_lines": 13,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "12/12",
+      "p2p": "2476/2476",
+      "eval": "resolved",
+      "eval_cost": 0.19179218,
+      "grading_attempts": 1,
+      "wall": 108.14571608298866
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23476",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 42,
+      "tokens": 479018,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 42,
+          "prompt_tokens": 465044,
+          "completion_tokens": 13974
+        }
+      },
+      "summary": "The issue was that on high-DPI displays (like M1 Macs), the FigureCanvasBase constructor sets figure._original_dpi = figure.dpi unconditionally. When a figure is pickled and unpickled, a new canvas is created during __setstate__, which resets _original_dpi to the current (possibly already scaled) dp",
+      "sandbox_commands": 26,
+      "sandbox_cost": 0.21079317000000003,
+      "agent_elapsed": 358.5485319579893,
+      "diff_lines": 135,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "104/104",
+      "eval": "not resolved",
+      "eval_cost": 0.19065648000000002,
+      "grading_attempts": 1,
+      "wall": 377.751585082995
+    },
+    {
+      "instance_id": "sympy__sympy-15017",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 659775,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 644118,
+          "completion_tokens": 15657
+        }
+      },
+      "summary": "Fixed NDimArray.__len__ to return product of shape dimensions (starting from 1) which correctly yields 1 for rank\u20110 arrays. Verified that sympy.Array(3) now has len()==1 and list(Array(3)) also length 1, matching NumPy behavior. The change was made in sympy/tensor/array/ndim_array.py (lines 164-179)",
+      "sandbox_commands": 33,
+      "sandbox_cost": 0.07906111000000002,
+      "agent_elapsed": 338.1318547909905,
+      "diff_lines": 14,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "14/14",
+      "eval": "not resolved",
+      "eval_cost": 0.0224539,
+      "grading_attempts": 1,
+      "wall": 344.34145866599283
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5809",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 34,
+      "tokens": 314779,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 34,
+          "prompt_tokens": 285626,
+          "completion_tokens": 29153
+        }
+      },
+      "summary": "Fixed the lexer used in the --pastebin feature from 'python3' to 'text' in src/_pytest/pastebin.py to avoid HTTP 400 errors when submitting arbitrary console output to bpaste.net. Verified that the change eliminates the error condition. Existing tests in testing/test_pastebin.py that assert the lexe",
+      "sandbox_commands": 25,
+      "sandbox_cost": 0.04646117000000002,
+      "agent_elapsed": 282.20776175000356,
+      "diff_lines": 13,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "3/3",
+      "eval": "resolved",
+      "eval_cost": 0.02905091,
+      "grading_attempts": 1,
+      "wall": 288.78765220800415
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-12585",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 22,
+      "tokens": 173318,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 22,
+          "prompt_tokens": 167881,
+          "completion_tokens": 5437
+        }
+      },
+      "summary": "Fixed the issue where `clone` fails when parameters are estimator types (classes) instead of instances. Made two changes in sklearn/base.py:\n1. In clone function (line ~51): changed condition to also check `isinstance(estimator, type)`.\n2. In BaseEstimator.get_params (line ~183): added `and not isin",
+      "sandbox_commands": 19,
+      "sandbox_cost": 0.11097096000000001,
+      "agent_elapsed": 112.40218729199842,
+      "diff_lines": 22,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "22/22",
+      "eval": "resolved",
+      "eval_cost": 0.03131006,
+      "grading_attempts": 1,
+      "wall": 118.38948145900213
+    },
+    {
+      "instance_id": "psf__requests-5414",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 37,
+      "tokens": 316902,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 37,
+          "prompt_tokens": 306269,
+          "completion_tokens": 10633
+        }
+      },
+      "summary": "Fixed the issue by modifying `_get_idna_encoded_host` in requests/models.py to catch idna.IDNAError and raise UnicodeError, and then in prepare_url catch UnicodeError and raise InvalidURL with the message 'URL has an invalid label.' Verified that requests.get('http://.example.com') now raises Invali",
+      "sandbox_commands": 26,
+      "sandbox_cost": 0.049121279999999996,
+      "agent_elapsed": 174.04300945799332,
+      "diff_lines": 34,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "126/130",
+      "eval": "not resolved",
+      "eval_cost": 0.018267900000000004,
+      "grading_attempts": 1,
+      "wall": 179.16758741700323
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 25,
+      "tokens": 258808,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 25,
+          "prompt_tokens": 235147,
+          "completion_tokens": 23661
+        }
+      },
+      "summary": "Fixed the kbd role HTML generation for single separator keystrokes and compound keystrokes where separator chars appear as keystrokes. Modified sphinx/builders/html/transforms.py KeyboardTransform.run method to correctly distinguish separator chars that act as separators versus those that are part o",
+      "sandbox_commands": 19,
+      "sandbox_cost": 0.0553178,
+      "agent_elapsed": 214.74263612499635,
+      "diff_lines": 104,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "1/2",
+      "p2p": "31/31",
+      "eval": "not resolved",
+      "eval_cost": 0.03196615,
+      "grading_attempts": 1,
+      "wall": 221.90055808398756
+    },
+    {
+      "instance_id": "psf__requests-1142",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 50,
+      "tokens": 494123,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 50,
+          "prompt_tokens": 471694,
+          "completion_tokens": 22429
+        }
+      },
+      "summary": "The issue is that requests.get always adds a Content-Length header when data is present, contrary to expectations. After investigating, I found that the prepare_content_length method in requests/models.py correctly removes Content-Length for GET and HEAD requests, but it is being called after the Co",
+      "sandbox_commands": 32,
+      "sandbox_cost": 0.05756481000000001,
+      "agent_elapsed": 246.7276934160036,
+      "diff_lines": 18,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "5/5",
+      "eval": "resolved",
+      "eval_cost": 0.01629736,
+      "grading_attempts": 1,
+      "wall": 250.92570941599843
+    },
+    {
+      "instance_id": "pydata__xarray-4075",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 11,
+      "tokens": 99660,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 11,
+          "prompt_tokens": 97493,
+          "completion_tokens": 2167
+        }
+      },
+      "summary": "Fixed the issue where boolean weights produced incorrect weighted mean results. The problem was that the sum_of_weights calculation used a boolean mask from `da.notnull()` directly in a dot product with boolean weights, resulting in a boolean sum (True/False) instead of numeric. Changed the mask to ",
+      "sandbox_commands": 11,
+      "sandbox_cost": 0.10461746999999999,
+      "agent_elapsed": 84.61494037500233,
+      "diff_lines": 13,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "958/958",
+      "eval": "resolved",
+      "eval_cost": 0.07936399000000001,
+      "grading_attempts": 1,
+      "wall": 97.93125320800755
+    }
+  ]
+}

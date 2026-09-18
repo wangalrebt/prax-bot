@@ -15,7 +15,7 @@ Prax Bot has not been released yet; this is what the first release will contain,
 - Goal runs in rounds until the configured check passes or the model reports the goal met.
 - Applying is journaled and recoverable: an interrupted apply finishes on the next `/apply` or on resuming the run's last checkpoint.
 - Files that look like reproduction scripts and binary files the run created stay in the diff but are left out of an apply unless named.
-- Context management: tool results age out, and the transcript is summarised past a token budget.
+- Context management: tool results age out by kind, file reads slowest; old call arguments shrink to their size; the repository map goes once editing has started; the transcript is summarised past a token budget as the backstop.
 - Skills loaded on demand, plugins that add tools, `AGENTS.md` at the root and in subdirectories.
 
 ### Configuration

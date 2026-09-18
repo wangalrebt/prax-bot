@@ -1,0 +1,42 @@
+{
+  "args": {
+    "cmd": "run",
+    "ids": "matplotlib__matplotlib-25122",
+    "max_steps": "50",
+    "investigate_model": "None",
+    "parallel": "1",
+    "out": "/Users/wangalrebt/code/prax_bot/bench/swebench",
+    "note": "context candidate 1 at commit 15a1e4e: matplotlib-25122 alone, after the sandbox API timeout in 20260918T064929Z"
+  },
+  "results": [
+    {
+      "instance_id": "matplotlib__matplotlib-25122",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "finished": true,
+      "reason": "finish",
+      "steps": 9,
+      "tokens": 73452,
+      "usage_by_model": {
+        "nvidia/nemotron-3-super-120b-a12b": {
+          "calls": 9,
+          "prompt_tokens": 70169,
+          "completion_tokens": 3283
+        }
+      },
+      "summary": "Fixed the window correction in `mlab._spectral_helper` by replacing `np.abs(window).sum()**2` with `np.sum(window)**2` in the else branch (line 430). This removes the erroneous absolute value that caused incorrect results for windows with negative values (e.g., flattop). Verified that the matplotlib",
+      "sandbox_commands": 10,
+      "sandbox_cost": 0.10982578999999999,
+      "agent_elapsed": 79.61980495799799,
+      "diff_lines": 13,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "12/12",
+      "p2p": "2476/2476",
+      "eval": "resolved",
+      "eval_cost": 0.19179218,
+      "grading_attempts": 1,
+      "wall": 108.14571608298866
+    }
+  ]
+}
