@@ -83,6 +83,16 @@ def test_compact_tool_output_keeps_the_gist() -> None:
         compact_tool_output("run", run)
         == "[compacted] exit code 1 · 0.3s · checkpoint 4 | ....F | FAILED tests/test_a.py::test_x - assert 1 == 2 | 1 failed, 4 passed in 0.1s"
     )
+    appended = (
+        run
+        + "\n(full output saved in /tmp/praxbot/out-4.log)\ncode referenced above:\n"
+        + "  pkg/a.py:12 is inside def f(): (line 10)\nnote: 1 tests fail before any edit: tests/test_a.py::test_x\n(step 9 of 50)"
+    )
+    assert compact_tool_output("run", appended) == (
+        "[compacted] exit code 1 · 0.3s · checkpoint 4 | ....F | FAILED tests/test_a.py::test_x - assert 1 == 2 | "
+        "1 failed, 4 passed in 0.1s | (full output saved in /tmp/praxbot/out-4.log) | "
+        "note: 1 tests fail before any edit: tests/test_a.py::test_x"
+    ), "how the command ended, where its output is, and the note; not the definitions it referred to"
     search = "a.py:3:x = 1\nb.py:9:x = 2\n"
     assert compact_tool_output("search", search) == "[compacted] search: 2 matches at a.py:3, b.py:9"
     assert compact_tool_output("edit_file", "edited a.py") == "edited a.py"

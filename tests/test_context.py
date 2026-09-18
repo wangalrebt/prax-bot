@@ -73,6 +73,45 @@ def test_file_reads_outlive_command_output_of_the_same_age() -> None:
     assert len(runs[-1]) > 10_000 and all("pruned" in r for r in runs[:-2]), "command output is cut after three"
 
 
+def command_result(passed: int = 120) -> str:
+    """A test run as the run tool returns it: what the command printed, then what the harness appends."""
+    printed = [f"tests/test_urls.py::test_case_{i} PASSED" for i in range(passed)]
+    printed += [
+        "FAILED tests/test_urls.py::test_bad_label - AssertionError",
+        "==== 8 failed, 27 passed, 7 errors in 0.55s ====",
+    ]
+    return "\n".join(
+        [
+            "exit code 1 · 0.8s · checkpoint 17",
+            "output:",
+            *printed,
+            "(showing the last 20,000 of 23,242 bytes; the full output is in /tmp/praxbot/out-13.log, grep or sed it with run)",
+            "code referenced above:",
+            *[
+                f"  requests/models.py:{300 + i} is inside def prepare_url(self, url, params): (line 360)"
+                for i in range(8)
+            ],
+            "note: 3 tests fail before any edit; failures in this list later are not caused by your changes: a, b, c",
+            "(step 31 of 50)",
+        ]
+    )
+
+
+@pytest.mark.parametrize("age", [OTHER_POLICY[0], OTHER_POLICY[1][0][0]])  # the first tier, then the second
+def test_an_old_command_result_still_says_how_the_command_ended(age: int) -> None:
+    messages = tool_messages(age + 1, 50)
+    oldest = next(m for m in messages if m["role"] == "tool")
+    oldest["content"] = command_result()
+    names = {f"c{i}": "run" for i in range(age + 1)}
+    assert prune_by_age(messages, names=names) >= 1
+    kept = oldest["content"]
+    assert "8 failed, 27 passed, 7 errors" in kept, "the line a finish decision rests on"
+    assert "out-13.log" in kept and "note: 3 tests fail before any edit" in kept and kept.endswith("(step 31 of 50)")
+    assert "is inside def" not in kept, "the definitions it referred to were for the step that followed"
+    assert len(kept) < len(command_result()) // 3
+    assert prune_by_age(messages, names=names) == 0, "a second pass changes nothing"
+
+
 def write_call(i: int, size: int) -> dict:
     arguments = json.dumps({"path": f"scratch/repro_{i}.py", "content": "x" * size})
     return {

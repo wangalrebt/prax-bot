@@ -23,6 +23,10 @@ REPO_MAP_STEPS = 10
 ARGS_KEEP_CALLS = 8
 ARG_STUB_MIN = 200
 ELIDED_MARK = "[elided by the runtime"
+# An old command result keeps this much of what the command printed however long the notes after it are, and
+# each of those notes is kept to this length.
+RUN_PRINTED_MIN = 200
+RUN_NOTE_CHARS = 240
 COMPACT_KEEP_TURNS = 3  # assistant turns kept verbatim after a compaction
 COMPACT_MIN_GAP = 6  # steps between two compactions
 SUMMARY_SYSTEM = prompt("summary")
@@ -63,15 +67,50 @@ def compact_old_tool_results(
     return done
 
 
-def _cut(text: str, cap: int) -> str:
+def _cut(text: str, cap: int, head_share: float = 0.75) -> str:
     """The head and tail of an oversized result with a marker between, fitting inside `cap` so a second pass is a no-op."""
     if len(text) <= cap:
         return text
     marker = f"\n[… pruned {len(text):,} characters of an older result to its head and tail …]\n"
     room = max(cap - len(marker), 40)
-    head = int(room * 0.75)
+    head = int(room * head_share)
     tail = room - head
     return f"{text[:head]}{marker}{text[-tail:]}"
+
+
+def _split_run(text: str) -> tuple[list[str], list[str]]:
+    """A command result as (what the command printed, what the harness appended: log pointer, references, notes)."""
+    lines = text.splitlines()
+    for k in range(len(lines) - 1, -1, -1):
+        if lines[k].startswith(("(showing the last ", "(full output saved in ")):
+            return lines[:k], lines[k:]
+    return lines, []
+
+
+def _aged_run_notes(appended: list[str]) -> list[str]:
+    """The appended lines worth keeping once a command result is old: where the full output is, and the notes on
+    failing tests. The definitions its output referred to were for the step that followed it."""
+    kept: list[str] = []
+    in_references = False
+    for line in appended:
+        if line.startswith("code referenced above:"):
+            in_references = True
+        elif in_references and line.startswith("  "):
+            continue
+        else:
+            in_references = False
+            kept.append(line[:RUN_NOTE_CHARS])
+    return kept
+
+
+def _cut_run(text: str, cap: int) -> str:
+    """An old command result: mostly the end of what the command printed, which is where a test run says how many
+    failed, with the harness notes after it. A second pass changes nothing."""
+    printed, appended = _split_run(text)
+    if not appended:
+        return _cut(text, cap, head_share=0.3)
+    notes = "\n".join(_aged_run_notes(appended))
+    return _cut("\n".join(printed), max(cap - len(notes) - 1, RUN_PRINTED_MIN), head_share=0.3) + "\n" + notes
 
 
 def prune_by_age(
@@ -103,7 +142,7 @@ def prune_by_age(
                 else f"[elided earlier tool output of {len(content)} characters]"
             )
         elif len(content) > cap:
-            replacement = _cut(content, cap)
+            replacement = _cut_run(content, cap) if name == "run" else _cut(content, cap)
         else:
             continue
         if replacement != content:
@@ -217,9 +256,11 @@ def compact_tool_output(name: str, output: str, defs_for: Callable[[str], list[t
                 summary += "; definitions in that range: " + ", ".join(names)
         return summary + ". Read it again if you need the text."
     if name == "run":
-        head = lines[0] if lines else ""
-        tail = [line for line in lines[1:] if line.strip()][-3:]
-        return f"[compacted] {head}" + (" | " + " | ".join(t.strip()[:100] for t in tail) if tail else "")
+        printed, appended = _split_run(output)
+        head = printed[0] if printed else ""
+        tail = [line for line in printed[1:] if line.strip() and line.strip() not in ("output:", "stderr:")][-3:]
+        notes = [n for n in _aged_run_notes(appended) if not n.startswith("(step ")]
+        return "[compacted] " + " | ".join([head, *(t.strip()[:100] for t in tail), *(n[:160] for n in notes)])
     if name == "search":
         refs = [line.split(":", 2)[:2] for line in lines if re.match(r"[^:]+:\d+:", line)]
         shown = ", ".join(":".join(r) for r in refs[:8])
