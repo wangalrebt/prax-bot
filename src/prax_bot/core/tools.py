@@ -7,7 +7,7 @@ import hashlib
 import json
 import re
 import shlex
-from collections.abc import Sequence
+from collections.abc import Callable, Iterable, Sequence
 from typing import Any
 
 from contree_sdk.sdk.exceptions import ContreeError
@@ -25,6 +25,7 @@ from prax_bot.core.navigation import (
 )
 from prax_bot.core.prompts import prompt
 from prax_bot.core.tool_result import ToolResult
+from prax_bot.core.verification import pytest_failures
 from prax_bot.workspace.repository import SCRATCH_DIR, resolve_in_workdir
 from prax_bot.workspace.types import Workspace, WorkspaceError
 
@@ -33,7 +34,6 @@ REPO_MAP_BUDGET = 8_000
 MAX_RESTORES = 3
 OUTPUT_DIR = "${TMPDIR:-/tmp}/praxbot"
 OUTPUT_TAIL_BYTES = 20_000
-PYTEST_FAILED_RE = re.compile(r"^(?:FAILED|ERROR) (\S+?)(?: - .*)?$", re.MULTILINE)
 REPO_MAP_MAX_FILES = 60
 
 MAX_READ_LINES = 400
@@ -184,11 +184,6 @@ def clipped(text: str, limit: int) -> str:
     return text[:limit] + ("\n… (truncated)" if len(text) > limit else "")
 
 
-def pytest_failures(output: str) -> list[str]:
-    """Test ids reported as FAILED or ERROR in pytest output, in order."""
-    return list(dict.fromkeys(m.group(1) for m in PYTEST_FAILED_RE.finditer(output)))
-
-
 class ToolBox:
     def __init__(
         self,
@@ -197,8 +192,10 @@ class ToolBox:
         protected: Sequence[str] = (),
         skills: Sequence[Any] = (),
         plugins: Sequence[Any] = (),
+        known_failures: Callable[[], Iterable[str]] | None = None,
     ) -> None:
         self.ws = workspace
+        self._known_failures = known_failures  # tests failing on the clean baseline, once a parallel fork has run them
         self.protected = tuple(protected)
         self._paths: list[str] = []
         self._defs: dict[str, list[tuple[int, str]]] = {}
@@ -208,7 +205,10 @@ class ToolBox:
         self._extra: dict[str, Any] = {t.name: t for t in plugins}
         self._shown_instructions: set[str] = set()  # nested AGENTS.md files already shown to the model
         self._reported_failures: dict[tuple[str, str], list[str]] = {}
-        self._baseline_failures: set[str] = set()  # tests seen failing before any repository edit
+        self._baseline_failures: set[str] = (
+            set()
+        )  # tests failing without the change: seen before any edit, or by the fork
+        self._told_baseline: set[str] = set()  # the ones the model has already been told about
         self._observed: dict[str, str] = {}  # path -> digest of the content the model last saw
         self._outputs = 0
         self.todos: list[dict[str, str]] = []
@@ -578,6 +578,8 @@ class ToolBox:
         after an edit are pointed out, and a test explicitly reported passing after failing earlier is named.
         """
         failures = pytest_failures(output)
+        if self._known_failures is not None:
+            self._baseline_failures.update(self._known_failures())
         scope = (command, workdir)
         previous = self._reported_failures.get(scope, [])
         passed = set(re.findall(r"^(?:PASSED (\S+)|(\S+) PASSED(?:\s|$))", output, re.MULTILINE))
@@ -585,8 +587,9 @@ class ToolBox:
         self._reported_failures[scope] = list(dict.fromkeys([*previous, *failures]))
         notes = []
         if not self.repo_edited:
-            new_baseline = [name for name in failures if name not in self._baseline_failures]
+            new_baseline = [name for name in failures if name not in self._told_baseline]
             self._baseline_failures.update(failures)
+            self._told_baseline.update(failures)
             if new_baseline:
                 notes.append(
                     f"{len(new_baseline)} tests fail before any edit; failures in this list later are not caused by "

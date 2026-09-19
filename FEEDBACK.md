@@ -10,7 +10,7 @@ Notes kept while building Prax Bot, for the hackathon feedback field and for any
 - **The SDK layout differs from the README.** The README imports `contree_client.httpx`; the installed 0.3.6 package has no such module. `ContreeSync()` with env vars or `auth.ini` is what works.
 - **`NEBIUS_PROJECT_ID` versus `NEBIUS_AI_PROJECT`.** The SDK reads the first, the CLI's `auth` command reads the second. One name would be kinder.
 - **Occasional API timeouts** during instance spawn under normal load. A retry fixed every case we saw; the SDK could retry those itself.
-- **What worked well:** fork-from-any-image is instant and correct in our isolation tests, uploads and reads are simple, and the per-command immutable image made checkpoints free. The `python:3.12` image resolved from the project's tags in under a second.
+- **What worked well:** fork-from-any-image is instant and correct in our isolation tests, uploads and reads are simple, and the per-command immutable image made checkpoints free. Forks also carried a feature we could not have built cheaply elsewhere: every check runs in a fork of a clean image with only the diff applied, while the same check runs without the diff in a parallel fork, from the same client on another thread. The `python:3.12` image resolved from the project's tags in under a second.
 
 ## Token Factory
 

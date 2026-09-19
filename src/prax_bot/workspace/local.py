@@ -1,7 +1,8 @@
 """A local stand-in for the sandbox: the same workspace interface over a temporary directory.
 
 Commands run on this machine with a scrubbed environment and a private virtualenv.
-Checkpoints are directory clones. This is a development and fallback backend, not isolation.
+Checkpoints are directory clones, and so is a fork of the clean snapshot; the virtualenv is shared, so a fork here is
+clean in its files only. This is a development and fallback backend, not isolation.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ import signal
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
 from collections.abc import Sequence
 from pathlib import Path
@@ -20,6 +22,7 @@ from pathlib import Path
 from prax_bot.settings import WORKDIR, Settings
 from prax_bot.workspace.repository import (
     DIFF_EXCLUDES,
+    PATCH_REJECTED,
     SCRATCH_DIR,
     collect_changes,
     pack_repo,
@@ -55,6 +58,7 @@ class LocalWorkspace:
         self.checkpoints: list[Checkpoint] = []
         self.total_cost = 0.0
         self.commands = 0
+        self.clean: str | None = None
         for d in (self.snapshots, root / "home", root / "tmp"):
             d.mkdir(parents=True, exist_ok=True)
         self._checkpoint("baseline")
@@ -70,7 +74,7 @@ class LocalWorkspace:
     def _checkpoint(self, label: str) -> Checkpoint:
         n = len(self.checkpoints)
         clone_dir(self.current, self.snapshots / f"snap-{n}")
-        cp = Checkpoint(step=n, image=f"local:snap-{n}", label=label[:80])
+        cp = Checkpoint(step=n, image=f"local:snap-{n}", label=label[:80], clean=self.clean)
         self.checkpoints.append(cp)
         self.on_event("checkpoint", step=cp.step, image=cp.image, label=cp.label)
         return cp
@@ -104,51 +108,117 @@ class LocalWorkspace:
         label: str | None = None,
     ) -> CommandResult:
         """Run a shell command; a mutating run becomes a checkpoint labelled with the command, or with `label`."""
-        timeout = timeout or self.command_timeout
-        limit = truncate_output_at or DEFAULT_TRUNCATE
-        self.commands += 1
         scratch: Path | None = None
         cwd = self.current
         if not mutate:
             scratch = self.root / "tmp" / f"ro-{time.time_ns()}"
             clone_dir(self.current, scratch)
             cwd = scratch
-        started = time.monotonic()
         try:
-            proc = subprocess.Popen(
-                ["bash", "-c", command],
-                cwd=cwd,
-                env=self._env(),
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                start_new_session=True,
-            )
-            try:
-                out, err = proc.communicate(timeout=timeout)
-                timed_out = False
-            except subprocess.TimeoutExpired:
-                os.killpg(proc.pid, signal.SIGKILL)
-                out, err = proc.communicate()
-                timed_out = True
+            result = self._execute(command, cwd, timeout, truncate_output_at)
         finally:
             if scratch is not None:
                 shutil.rmtree(scratch, ignore_errors=True)
-        elapsed = time.monotonic() - started
-        truncated = len(out) > limit or len(err) > limit
         if mutate:
             self._checkpoint(label or f"run: {command}")
+            result.image = self.image_id
+        return result
+
+    def _execute(self, command: str, cwd: Path, timeout: int | None, truncate_output_at: int | None) -> CommandResult:
+        """One shell command in `cwd` with the scrubbed environment; nothing is checkpointed here."""
+        timeout = timeout or self.command_timeout
+        limit = truncate_output_at or DEFAULT_TRUNCATE
+        self.commands += 1
+        started = time.monotonic()
+        proc = subprocess.Popen(
+            ["bash", "-c", command],
+            cwd=cwd,
+            env=self._env(),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            start_new_session=True,
+        )
+        try:
+            out, err = proc.communicate(timeout=timeout)
+            timed_out = False
+        except subprocess.TimeoutExpired:
+            os.killpg(proc.pid, signal.SIGKILL)
+            out, err = proc.communicate()
+            timed_out = True
         return CommandResult(
             command=command,
             exit_code=124 if timed_out else proc.returncode,
             stdout=out[:limit].decode("utf-8", "replace"),
             stderr=err[:limit].decode("utf-8", "replace"),
-            elapsed_s=elapsed,
-            truncated=truncated,
+            elapsed_s=time.monotonic() - started,
+            truncated=len(out) > limit or len(err) > limit,
             timed_out=timed_out,
-            image=self.image_id if mutate else None,
+            image=None,
             cost=0.0,
         )
+
+    def _snapshot_dir(self, image: str) -> Path:
+        return self.snapshots / image.split(":", 1)[1]
+
+    def mark_clean(self) -> None:
+        """Declare the current snapshot clean: the repository at its baseline, set up, before any of the agent's work."""
+        self.clean = self.image_id
+        self.checkpoints[-1].clean = self.clean
+
+    def _apply_patch(self, cwd: Path, patch: str, *, skip_if_applied: bool = False) -> None:
+        with tempfile.NamedTemporaryFile("w", suffix=".patch", encoding="utf-8", dir=self.root / "tmp") as file:
+            file.write(patch)
+            file.flush()
+            env = {**self._env(), "GIT_CONFIG_NOSYSTEM": "1"}
+            if skip_if_applied:
+                done = subprocess.run(
+                    ["git", "apply", "--reverse", "--check", file.name],
+                    cwd=cwd,
+                    env=env,
+                    capture_output=True,
+                    check=False,
+                )
+                if done.returncode == 0:
+                    return
+            applied = subprocess.run(
+                ["git", "apply", "--binary", "--whitespace=nowarn", file.name],
+                cwd=cwd,
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if applied.returncode != 0:
+                raise WorkspaceError(f"{PATCH_REJECTED}: {applied.stderr.strip()[-400:]}")
+
+    def run_clean(self, command: str, *, patch: str = "", timeout: int | None = None) -> CommandResult:
+        """Run a command in a disposable clone of the clean snapshot, with `patch` applied there first."""
+        if self.clean is None:
+            raise WorkspaceError("this workspace has no clean snapshot to fork")
+        fork = self.root / "tmp" / f"fork-{time.time_ns()}"
+        clone_dir(self._snapshot_dir(self.clean), fork)
+        try:
+            if patch.strip():
+                self._apply_patch(fork, patch)
+            return self._execute(command, fork, timeout, None)
+        finally:
+            shutil.rmtree(fork, ignore_errors=True)
+
+    def advance_clean(self, patch: str) -> None:
+        """The user's tree now holds `patch`, so the clean snapshot gains it; on any failure it is forgotten instead."""
+        if self.clean is None or not patch.strip():
+            return
+        target = self.snapshots / f"clean-{len(list(self.snapshots.glob('clean-*')))}"
+        try:
+            clone_dir(self._snapshot_dir(self.clean), target)
+            self._apply_patch(target, patch, skip_if_applied=True)
+        except (WorkspaceError, OSError) as error:
+            shutil.rmtree(target, ignore_errors=True)
+            self.clean = None
+            self.on_event("sandbox.clean_lost", reason=str(error)[:300])
+            return
+        self.clean = f"local:{target.name}"
 
     def read(self, path: str) -> bytes:
         p = self._local_path(path)
@@ -246,4 +316,5 @@ def create_local_workspace(
         emit("sandbox.setup", exit_code=res.exit_code, elapsed=res.elapsed_s)
         if res.exit_code != 0:
             raise WorkspaceError(f"setup command failed (exit {res.exit_code}): {(res.stderr or res.stdout)[-2000:]}")
+    ws.mark_clean()
     return ws

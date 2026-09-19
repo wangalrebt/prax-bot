@@ -213,7 +213,14 @@ function renderState(s) {
     const details = el("details"),
       passed = c.exit_code === 0 && !c.timed_out && !c.error;
     details.append(
-      el("summary", "path", c.name + ": " + (passed ? "passed" : "failed")),
+      el(
+        "summary",
+        "path",
+        c.name +
+          ": " +
+          (passed ? "passed" : "failed") +
+          (c.attribution ? " · " + c.attribution : ""),
+      ),
     );
     details.append(
       el(
@@ -227,6 +234,12 @@ function renderState(s) {
           "s" +
           "\ntested image: " +
           c.image +
+          (c.where === "fork"
+            ? "\nran in a fork of the clean image with the diff applied"
+            : "\nran in the workspace") +
+          (c.baseline_exit_code === null || c.baseline_exit_code === undefined
+            ? ""
+            : "\nwithout the change: exit " + c.baseline_exit_code) +
           (c.timed_out ? "\ntimed out" : "") +
           "\n" +
           (c.error || c.output || ""),
@@ -356,7 +369,12 @@ function handle(e) {
       break;
     case "verification.result":
       addLog(
-        e.name + ": " + (e.passed ? "passed" : "failed") + " · " + e.command,
+        e.name +
+          ": " +
+          (e.passed ? "passed" : "failed") +
+          " · " +
+          e.command +
+          (e.attribution ? " · " + e.attribution : ""),
       );
       break;
     case "todo":

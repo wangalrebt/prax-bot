@@ -79,10 +79,12 @@ class Agent:
         context_budget: int = 80_000,
         system_prompt: str | None = None,
         verification_commands: Sequence[tuple[str, str]] = (),
+        verification_in_fork: bool = False,
         cancel: Event | None = None,
     ) -> None:
         self.system_prompt = system_prompt or SYSTEM_PROMPT
         self.verification_commands = tuple(verification_commands)
+        self.verification_in_fork = verification_in_fork
         self.cancel = cancel or Event()
         self.steps = 0
         self.llm = llm
@@ -108,6 +110,8 @@ class Agent:
             if self.verification_commands
             else prompt("verification_manual")
         )
+        if self.verification_commands and self.verification_in_fork:
+            verification += "\n\n" + prompt("verification_fork")
         return "\n\n".join(
             part for part in (self.system_prompt, prompt("code_style"), environment, verification) if part
         )

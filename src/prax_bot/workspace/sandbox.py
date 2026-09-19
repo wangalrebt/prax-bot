@@ -1,7 +1,9 @@
 """The repository inside a Token Factory Sandbox, tracked as a chain of immutable images.
 
 Every mutating command produces a new image and therefore a checkpoint. Read-only
-commands run disposably and leave the current image untouched.
+commands run disposably and leave the current image untouched. Because any image can be
+run from again, the workspace also keeps a clean image, the repository at its baseline with
+setup done and none of the agent's work, and runs checks in disposable forks of it.
 """
 
 from __future__ import annotations
@@ -11,6 +13,7 @@ import shlex
 import time
 from collections.abc import Callable, Sequence
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 from contree_sdk import ContreeSync
@@ -27,6 +30,8 @@ from contree_sdk.sdk.exceptions import (
 
 from prax_bot.settings import WORKDIR, Settings
 from prax_bot.workspace.repository import (
+    PATCH_REJECTED,
+    apply_patch_shell,
     collect_changes,
     git_exclude_command,
     pack_repo,
@@ -37,6 +42,7 @@ from prax_bot.workspace.repository import (
 from prax_bot.workspace.types import Changes, Checkpoint, CommandResult, EventFn, WorkspaceError, noop
 
 UPLOAD_TMP = "/tmp/praxbot.upload"
+CLEAN_PATCH = "/tmp/praxbot.clean.patch"
 TRANSPORT_TIMEOUT_S = 180.0  # per HTTP request; the SDK default of 10 s fails on multi-megabyte uploads
 
 
@@ -56,9 +62,12 @@ class SandboxWorkspace:
         workdir: str = WORKDIR,
         command_timeout: int = 300,
         on_event: EventFn | None = None,
+        clean: str | None = None,
     ) -> None:
         self.client = client
         self.image = image
+        self.clean = clean
+        self._accounts = Lock()  # forks run from other threads and still count
         self.workdir = workdir
         self.command_timeout = command_timeout
         self.on_event = on_event or noop
@@ -76,7 +85,7 @@ class SandboxWorkspace:
         return self.checkpoints[-1].step
 
     def _checkpoint(self, label: str) -> Checkpoint:
-        cp = Checkpoint(step=len(self.checkpoints), image=self.image_id, label=label[:80])
+        cp = Checkpoint(step=len(self.checkpoints), image=self.image_id, label=label[:80], clean=self.clean)
         self.checkpoints.append(cp)
         self.on_event("checkpoint", step=cp.step, image=cp.image, label=cp.label)
         return cp
@@ -97,7 +106,6 @@ class SandboxWorkspace:
         """
         timeout = timeout or self.command_timeout
         started = time.monotonic()
-        self.commands += 1
         try:
             result_image = self.image.run(
                 shell=command,
@@ -107,25 +115,36 @@ class SandboxWorkspace:
                 truncate_output_at=truncate_output_at,
             ).wait()
         except OperationTimedOutError:
-            return CommandResult(
-                command=command,
-                exit_code=124,
-                stdout="",
-                stderr=f"sandbox operation timed out after {timeout}s",
-                elapsed_s=time.monotonic() - started,
-                truncated=False,
-                timed_out=True,
-                image=None,
-                cost=0.0,
-            )
-        res = result_image.result
-        raw = getattr(res, "_raw", None)
-        timed_out = bool(raw is not None and raw.result is not None and raw.result.state.timed_out)
-        self.total_cost += res.cost
-        image_id = str(result_image.uuid) if result_image.uuid else None
+            return self._timed_out(command, timeout, started)
+        result = self._account(command, result_image)
         if mutate and result_image.uuid:
             self.image = result_image
             self._checkpoint(label or f"run: {command}")
+        return result
+
+    def _timed_out(self, command: str, timeout: int, started: float) -> CommandResult:
+        with self._accounts:
+            self.commands += 1
+        return CommandResult(
+            command=command,
+            exit_code=124,
+            stdout="",
+            stderr=f"sandbox operation timed out after {timeout}s",
+            elapsed_s=time.monotonic() - started,
+            truncated=False,
+            timed_out=True,
+            image=None,
+            cost=0.0,
+        )
+
+    def _account(self, command: str, result_image: Any) -> CommandResult:
+        """One finished sandbox run as a result, counted into the workspace's commands and cost."""
+        res = result_image.result
+        raw = getattr(res, "_raw", None)
+        timed_out = bool(raw is not None and raw.result is not None and raw.result.state.timed_out)
+        with self._accounts:
+            self.commands += 1
+            self.total_cost += res.cost
         return CommandResult(
             command=command,
             exit_code=result_image.exit_code,
@@ -134,9 +153,73 @@ class SandboxWorkspace:
             elapsed_s=res.elapsed_time.total_seconds(),
             truncated=res.truncated,
             timed_out=timed_out,
-            image=image_id,
+            image=str(result_image.uuid) if result_image.uuid else None,
             cost=res.cost,
         )
+
+    def mark_clean(self) -> None:
+        """Declare the current image clean: the repository at its baseline, set up, before any of the agent's work."""
+        self.clean = self.image_id
+        self.checkpoints[-1].clean = self.clean
+
+    def run_clean(self, command: str, *, patch: str = "", timeout: int | None = None) -> CommandResult:
+        """Run a command in a disposable fork of the clean image, with `patch` applied there first.
+
+        The fork holds what the user's tree would hold after an apply and nothing else: no scratch files, no
+        packages the agent installed. The workspace and its checkpoints are untouched, so this is safe from
+        another thread while the agent works.
+        """
+        if self.clean is None:
+            raise WorkspaceError("this workspace has no clean image to fork")
+        timeout = timeout or self.command_timeout
+        started = time.monotonic()
+        shell = command
+        files: dict[str, Any] | None = None
+        if patch.strip():
+            shell = f"{apply_patch_shell(CLEAN_PATCH)}\n{command}"
+            files = {CLEAN_PATCH: patch.encode("utf-8")}
+        try:
+            forked = (
+                self.client.images.use(self.clean)
+                .run(shell=shell, cwd=self.workdir, timeout=timeout, disposable=True, files=files)
+                .wait()
+            )
+        except OperationTimedOutError:
+            return self._timed_out(command, timeout, started)
+        result = self._account(command, forked)
+        if result.exit_code == 97 and PATCH_REJECTED in result.stderr:
+            raise WorkspaceError(f"the diff does not apply to the clean image: {result.stderr.strip()[-400:]}")
+        return result
+
+    def advance_clean(self, patch: str) -> None:
+        """The user's tree now holds `patch`, so the clean image gains it. Never fails an apply: if the clean image
+        cannot follow, it is forgotten and checks run in the workspace again."""
+        if self.clean is None or not patch.strip():
+            return
+        try:
+            advanced = (
+                self.client.images.use(self.clean)
+                .run(
+                    shell=apply_patch_shell(CLEAN_PATCH, skip_if_applied=True),
+                    cwd=self.workdir,
+                    timeout=120,
+                    disposable=False,
+                    files={CLEAN_PATCH: patch.encode("utf-8")},
+                )
+                .wait()
+            )
+        except ContreeError as error:
+            self._forget_clean(f"{type(error).__name__}: {str(error)[:200]}")
+            return
+        self._account("advance the clean image", advanced)
+        if advanced.exit_code != 0 or not advanced.uuid:
+            self._forget_clean(str(advanced.stderr or "").strip()[-300:] or "the run produced no image")
+            return
+        self.clean = str(advanced.uuid)
+
+    def _forget_clean(self, reason: str) -> None:
+        self.clean = None
+        self.on_event("sandbox.clean_lost", reason=reason)
 
     def read(self, path: str) -> bytes:
         target = resolve_in_workdir(path, self.workdir)
@@ -257,4 +340,5 @@ def create_workspace(
         emit("sandbox.setup", exit_code=r.exit_code, elapsed=r.elapsed_s)
         if r.exit_code != 0:
             raise WorkspaceError(f"setup command failed (exit {r.exit_code}): {(r.stderr or r.stdout)[-2000:]}")
+    ws.mark_clean()
     return ws

@@ -111,9 +111,18 @@ class Reporter:
 
         elif kind == "verification.start":
             c.print(f"[bold]check {escape(payload['name'])}[/] · {escape(payload['command'])}")
+        elif kind == "verification.baseline":
+            failing = len(payload.get("failures") or ())
+            detail = f" · {failing} failing" if failing else ""
+            c.print(
+                f"  [dim]{escape(payload['name'])} without the change, from a parallel fork: exit {payload['exit_code']}{detail}[/]"
+            )
         elif kind == "verification.result":
             status = "passed" if payload["passed"] else "failed"
-            c.print(f"  {escape(payload['name'])}: {status} · exit {payload['exit_code']}")
+            where = " · in a fork of the clean image with the diff" if payload.get("where") == "fork" else ""
+            c.print(f"  {escape(payload['name'])}: {status} · exit {payload['exit_code']}{where}")
+            if payload.get("attribution"):
+                c.print(f"  [yellow]{escape(payload['attribution'])}[/]")
             if not payload["passed"]:
                 c.print(escape(payload.get("error") or payload.get("output") or "no output"))
         elif kind == "session.round":

@@ -115,6 +115,7 @@ class ApplyTransaction:
                 )
             self.host_applied = True
             self.save()
+        workspace.advance_clean(self.changes.patch)  # first, so the checkpoint the next line records carries it
         advance_baseline(workspace, self.changes)
 
     def clear(self) -> None:

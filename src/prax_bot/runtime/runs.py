@@ -172,12 +172,20 @@ def reopen_workspace(
         if (old_root / "venv").is_dir():
             clone_dir(old_root / "venv", root / "venv")
         workspace = LocalWorkspace(root, command_timeout=settings.command_timeout, on_event=on_event)
+        clean = str(checkpoints[step].get("clean") or "")
+        if clean and (old_root / "snapshots" / clean.split(":", 1)[1]).is_dir():
+            clone_dir(old_root / "snapshots" / clean.split(":", 1)[1], workspace.snapshots / "clean-0")
+            workspace.clean = workspace.checkpoints[-1].clean = "local:clean-0"
     else:
         from prax_bot.workspace.sandbox import SandboxWorkspace, make_client
 
         client = make_client()
         workspace = SandboxWorkspace(
-            client, client.images.use(image), command_timeout=settings.command_timeout, on_event=on_event
+            client,
+            client.images.use(image),
+            command_timeout=settings.command_timeout,
+            on_event=on_event,
+            clean=checkpoints[step].get("clean"),  # absent in older records: checks then run in the workspace
         )
     if pending is not None:
         pending.finish(Path(run.info["repo"]), workspace)

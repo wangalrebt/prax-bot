@@ -1,0 +1,1 @@
+The runtime runs them in a fresh copy of the repository that holds only the diff an apply would write. Scratch files, files left out of that diff and packages you installed during this run are not part of it, so a change that needs a new dependency must declare it in the project's own files.

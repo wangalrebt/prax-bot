@@ -214,6 +214,21 @@ rm -f "${{TMPDIR:-/tmp}}/praxbot/scratch/applied.patch"
         )
 
 
+PATCH_REJECTED = "praxbot: the diff does not apply to the clean image"
+
+
+def apply_patch_shell(path: str, *, skip_if_applied: bool = False) -> str:
+    """Shell that applies the patch file at `path` to the working tree and removes it; exit 97 names a rejected patch.
+
+    With skip_if_applied a patch whose reverse applies cleanly counts as done, so an interrupted apply can be retried.
+    """
+    quoted = shlex.quote(path)
+    apply = f"git apply --binary --whitespace=nowarn {quoted}"
+    if skip_if_applied:
+        apply = f"{{ git apply --reverse --check {quoted} 2>/dev/null || {apply}; }}"
+    return f"{apply} || {{ echo {shlex.quote(PATCH_REJECTED)} >&2; rm -f {quoted}; exit 97; }}; rm -f {quoted}"
+
+
 def apply_diff(root: Path, diff: str) -> None:
     """Apply a checked patch to the user's working tree without touching their index."""
     with tempfile.NamedTemporaryFile("w", suffix=".patch", encoding="utf-8") as patch:

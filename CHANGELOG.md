@@ -12,6 +12,7 @@ Prax Bot has not been released yet; this is what the first release will contain,
 ### How work is done
 - Every command and edit is a checkpoint in an immutable sandbox image; `restore` cannot discard every repository edit.
 - Test and lint commands run by the harness after each round, independently of the model, with their results tied to the workspace image they ran on.
+- Those checks run in a fork of a clean image that holds exactly the diff an apply would write, so scratch files and packages the agent installed cannot make them pass. The same checks run without the diff in a parallel fork, and a failure is reported as new with the change or as failing without it too; the model is told the same during its own test runs.
 - Goal runs in rounds until the configured check passes or the model reports the goal met.
 - Applying is journaled and recoverable: an interrupted apply finishes on the next `/apply` or on resuming the run's last checkpoint.
 - Files that look like reproduction scripts and binary files the run created stay in the diff but are left out of an apply unless named.

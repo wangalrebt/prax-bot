@@ -31,7 +31,9 @@ def render_html(run: Run) -> str:
     checks = "".join(
         f"<details><summary>{e(str(check.get('name', 'check')))} · exit {e(str(check.get('exit_code')))}</summary>"
         f"<p><code>{e(str(check.get('command', '')))}</code></p>"
-        f"<p>Tested image: <code>{e(str(check.get('image', '')))}</code> · {check.get('elapsed_s', 0):.2f}s</p>"
+        f"<p>Tested image: <code>{e(str(check.get('image', '')))}</code> · {check.get('elapsed_s', 0):.2f}s · "
+        f"{'ran in a fork of the clean image with the diff applied' if check.get('where') == 'fork' else 'ran in the workspace'}</p>"
+        f"{'<p>' + e(str(check['attribution'])) + '</p>' if check.get('attribution') else ''}"
         f"<pre>{e(str(check.get('error') or check.get('output') or '(no output)'))}</pre></details>"
         for check in verification.get("checks", [])
     )

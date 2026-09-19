@@ -35,6 +35,7 @@ class Checkpoint:
     step: int
     image: str
     label: str
+    clean: str | None = None  # the clean image at that moment, so a resume can keep verifying in forks of it
 
 
 @dataclass(frozen=True)
@@ -64,6 +65,7 @@ class Workspace(Protocol):
     checkpoints: list[Checkpoint]
     total_cost: float
     commands: int
+    clean: str | None  # the repository at its baseline, set up, with none of the agent's work; None when unknown
 
     @property
     def image_id(self) -> str: ...
@@ -86,6 +88,12 @@ class Workspace(Protocol):
     def write(self, path: str, content: bytes) -> None: ...
 
     def restore(self, step: int) -> Checkpoint: ...
+
+    def mark_clean(self) -> None: ...
+
+    def run_clean(self, command: str, *, patch: str = "", timeout: int | None = None) -> CommandResult: ...
+
+    def advance_clean(self, patch: str) -> None: ...
 
     def changes(self, paths: Sequence[str] | None = None) -> Changes: ...
 

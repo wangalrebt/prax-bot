@@ -13,13 +13,13 @@ import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from threading import Event
+from threading import Event, Thread
 from typing import TYPE_CHECKING, Any, TextIO
 
 from prax_bot.core.agent import Agent, AgentResult
 from prax_bot.core.goal import GoalDriver, goal_task
 from prax_bot.core.tools import ToolBox
-from prax_bot.core.verification import CheckResult, VerificationStatus, run_check, verification_status
+from prax_bot.core.verification import CheckResult, VerificationStatus, attributed, run_check, verification_status
 from prax_bot.extensions.plugins import ExtraTool
 from prax_bot.extensions.skills import Skill
 from prax_bot.runtime.apply import ApplyTransaction
@@ -40,6 +40,15 @@ class RoundState:
     result: AgentResult | None
     rounds: int
     goal_info: dict[str, Any] | None
+
+
+@dataclass
+class BaselineRun:
+    """A configured check running on the clean image in a parallel fork, and its result once it is back."""
+
+    thread: Thread | None = None
+    result: CheckResult | None = None
+    reported: bool = False
 
 
 class Session:
@@ -88,6 +97,7 @@ class Session:
         self.diff_error: str | None = None
         self.checks: list[CheckResult] = []
         self._expected_checks: tuple[tuple[str, str], ...] = ()
+        self._baselines: dict[tuple[str, str], BaselineRun] = {}  # by (clean image, command)
         self._goal_check: str | None = None
         self.resumed_from: dict[str, Any] | None = None
         self.goal_info: dict[str, Any] | None = None
@@ -139,7 +149,7 @@ class Session:
             "pending_apply": pending,
             "verification": {
                 "status": self.verification_status,
-                "checks": [dataclasses.asdict(check) for check in self.checks],
+                "checks": [check.as_dict() for check in self.checks],
             },
             "test_command": self.settings.test_command,
             "lint_command": self.settings.lint_command,
@@ -202,9 +212,16 @@ class Session:
         self.on_event("instruction", text=instruction or original_task or task)
         self.checks = []
         self._expected_checks = self.check_commands
+        self._start_baselines()
         agent = Agent(
             self.llm,
-            ToolBox(self.ws, protected=self.protect, skills=self.skills, plugins=self.plugins),
+            ToolBox(
+                self.ws,
+                protected=self.protect,
+                skills=self.skills,
+                plugins=self.plugins,
+                known_failures=self._known_failures,
+            ),
             max_steps=self.settings.max_steps,
             on_event=self.on_event,
             investigate_model=self.settings.investigate_model,
@@ -213,6 +230,7 @@ class Session:
             context_budget=self.settings.context_budget,
             system_prompt=self.settings.system_prompt_text(),
             verification_commands=self._expected_checks,
+            verification_in_fork=self.ws.clean is not None,
             cancel=self.cancel,
         )
         self._agent = agent
@@ -233,7 +251,7 @@ class Session:
                     result.finished, result.reason, result.goal_met = False, "cancelled", False
                     result.summary += "\nStopped by the user during verification."
             self.last_summary = result.summary
-            diff = self.diff()
+            diff = self._current_diff()
             self.on_event(
                 "session.round",
                 result=result,
@@ -300,16 +318,90 @@ class Session:
     def verification_status(self) -> VerificationStatus:
         return verification_status(self._expected_checks or self.check_commands, self.checks, self.ws.image_id)
 
+    def _current_diff(self) -> str:
+        """The diff of the workspace as it stands, read again only if the workspace moved since the last read."""
+        if self.changes is not None and self.changes.image == self.ws.image_id and self.diff_error is None:
+            return self.last_diff
+        return self.diff()
+
+    def _applicable_changes(self) -> Changes:
+        """What an apply that names no files would write: the diff without the flagged scratch and binary files."""
+        self._current_diff()
+        assert self.changes is not None
+        if not self.changes.flagged:
+            return self.changes
+        return self.ws.changes([name for name in self.changes.files if name not in self.changes.flagged])
+
+    def _start_baselines(self) -> None:
+        """Start every configured check on the clean image in a parallel fork, unless that run already exists.
+
+        It costs the round no time, and its result says which failures were there before the change.
+        """
+        clean = self.ws.clean
+        if clean is None:
+            return
+        for name, command in self.check_commands:
+            if (clean, command) in self._baselines:
+                continue
+            run = self._baselines[(clean, command)] = BaselineRun()
+            run.thread = Thread(
+                target=self._run_baseline, args=(run, name, command), name=f"praxbot-baseline-{name}", daemon=True
+            )
+            run.thread.start()
+
+    def _run_baseline(self, run: BaselineRun, name: str, command: str) -> None:
+        run.result = run_check(self.ws, name, command, self.settings.command_timeout, patch="")
+
+    def _known_failures(self) -> set[str]:
+        """Tests failing on the clean image, from the baseline runs that are back; never waits."""
+        return {
+            name
+            for (clean, _), run in self._baselines.items()
+            if clean == self.ws.clean and run.result is not None
+            for name in run.result.failures
+        }
+
+    def _baseline(self, command: str, *, wait: bool) -> CheckResult | None:
+        """The baseline run for a check, reported as an event the first time it is used. Without `wait`, only if it
+        is already back."""
+        run = self._baselines.get((self.ws.clean or "", command))
+        if run is None:
+            return None
+        if run.thread is not None and wait:
+            run.thread.join(self.settings.command_timeout + 60)
+        if run.result is not None and not run.reported:
+            run.reported = True
+            self.on_event("verification.baseline", **run.result.as_dict())
+        return run.result
+
     def _verify(self) -> None:
         self.checks = []
         self._expected_checks = self.check_commands
+        if not self._expected_checks:
+            return
+        patch: str | None = None
+        if self.ws.clean is not None:
+            try:
+                patch = self._applicable_changes().patch
+            except (WorkspaceError, ValueError):
+                patch = None  # without a diff to fork with, the checks run in the workspace as it stands
+        if patch is not None:
+            self._start_baselines()
         for name, command in self._expected_checks:
             if self.cancel.is_set():
                 break
             self.on_event("verification.start", name=name, command=command)
-            result = run_check(self.ws, name, command, self.settings.command_timeout)
+            nothing_to_apply = patch is not None and not patch.strip()
+            baseline = self._baseline(command, wait=nothing_to_apply) if patch is not None else None
+            if nothing_to_apply and baseline is not None and baseline.error is None:
+                result = dataclasses.replace(baseline, image=self.ws.image_id)  # the baseline run is the check
+            else:
+                result = run_check(self.ws, name, command, self.settings.command_timeout, patch=patch)
+                if patch is not None:  # a slow suite's baseline may still be running: the two overlapped
+                    baseline = self._baseline(command, wait=True)
+            result = attributed(result, baseline)
             self.checks.append(result)
-            self.on_event("verification.result", **dataclasses.asdict(result), passed=result.passed)
+            self.on_event("verification.result", **result.as_dict())
             self.record()
 
     def verify(self) -> list[CheckResult]:
@@ -358,7 +450,11 @@ class Session:
                 if next_task is None:
                     return driver
                 instruction = next_task
-                failures = "\n".join(f"{c.command}: {c.output or c.error}" for c in self.checks if not c.passed)
+                failures = "\n".join(
+                    f"{c.command}: {c.attribution + chr(10) if c.attribution else ''}{c.output or c.error}"
+                    for c in self.checks
+                    if not c.passed
+                )
                 task = continuation_task(
                     objective,
                     result.summary,
@@ -379,9 +475,7 @@ class Session:
             return True
         self.diff()  # A failed refresh must never authorize applying the previous patch.
         assert self.changes is not None
-        if paths is None and self.changes.flagged:
-            paths = [name for name in self.changes.files if name not in self.changes.flagged]
-        changes = self.ws.changes(paths) if paths is not None else self.changes
+        changes = self.ws.changes(paths) if paths is not None else self._applicable_changes()
         if not changes.patch.strip():
             return False
         self._pending_apply = ApplyTransaction.prepare(self.run_dir, self.root, changes)
@@ -399,6 +493,7 @@ class Session:
         self.has_applied = True
         self.applied_rounds = self.rounds
         self._round_states.clear()
+        self._baselines.clear()  # the clean image moved with the apply; the old baseline runs speak for the old one
         try:
             self.record()
             transaction.clear()
@@ -445,6 +540,7 @@ class Session:
         self.goal_info = None
         self.checks = []
         self._expected_checks = ()
+        self._baselines.clear()
         self._round_states.clear()
         self.resumed_from = {"run_id": run_id, "step": step, "image": past.checkpoints[step]["image"]}
         self.changes, self.last_diff, self.diff_error = changes, changes.patch, None
@@ -490,7 +586,7 @@ class Session:
             "pending_apply": self._pending_apply is not None,
             "can_undo": bool(self._round_states),
             "verification": self.verification_status,
-            "checks": [dataclasses.asdict(check) for check in self.checks],
+            "checks": [check.as_dict() for check in self.checks],
             "log": str(self.run_dir),
             "closed": self.closed,
             "stopping": self.cancel.is_set(),

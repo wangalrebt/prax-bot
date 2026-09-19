@@ -238,9 +238,7 @@ class PraxApp(App[None]):
         )
         changes = Text.assemble(("changes\n", "bold"), "\n".join(files) if files else ("none pending", "dim"))
         self.query_one("#changes", Static).update(changes)
-        checks = Text.assemble(
-            ("workspace checks\n", "bold"), self.session.verification_status if self.session else "not run"
-        )
+        checks = Text.assemble(("checks\n", "bold"), self.session.verification_status if self.session else "not run")
         if self.session and self.session.changes and self.session.changes.excluded:
             checks.append("\n\nignored by Git:\n" + "\n".join(self.session.changes.excluded))
         self.query_one("#checks", Static).update(checks)
