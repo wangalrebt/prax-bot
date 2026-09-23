@@ -8,6 +8,7 @@ Prax Bot has not been released yet; this is what the first release will contain,
 - `prax` opens a web interface on localhost: chat with tool calls, changes with per-file apply, checks, to-dos and rounds in a sidebar, a slash-command menu, Stop.
 - `prax ui`, a full-screen terminal interface, and `prax session`, a plain prompt for pipes and scripts, on the same session runtime: `/diff /apply /undo /goal /resume /effort /verify /stop /status`.
 - `prax run`, `goal`, `resume`, `init`, `status`, `inspect`, `report`, `config`, `prompt`, `doctor`, `version`.
+- The web interface serves its page and state only with the session token from the printed URL, and refuses requests whose Host header names anything but 127.0.0.1 or localhost on its port.
 
 ### How work is done
 - Every command and edit is a checkpoint in an immutable sandbox image; `restore` cannot discard every repository edit.

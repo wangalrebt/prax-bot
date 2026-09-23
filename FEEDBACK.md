@@ -16,7 +16,7 @@ Notes kept while building Prax Bot, for the hackathon feedback field and for any
 
 - The model catalog changed between two days of use, from seven `nvidia/` models to four. Documented deprecation notices would help anyone pinning ids.
 - Function calling with `tool_choice` forced to a specific function worked reliably with Nemotron 3 Super; we lean on it to end runs.
-- The `token_expiration` reported by the sandbox `whoami` did not match when the key actually stopped working; it kept working past that time.
+- The `token_expiration` reported by the sandbox `whoami` sits about five minutes ahead of the current time on every call: read at 19:31 it said 19:36, read again at 19:37 it said 19:42, and the same key has worked for weeks. The SDK therefore logs "Token expires in 0 hours" every time a client starts. Either the field means something other than the key's expiry, or the SDK should not warn on it.
 
 ## Nemotron 3 Super in an agent loop
 

@@ -2,6 +2,10 @@
 
 The server binds to localhost only. Every event the agent emits is forwarded to the page as JSON;
 the page renders instructions, tool calls, results, summaries and diffs, and offers the slash commands.
+
+Every request must name this server in its Host header, which a page that rebinds its own DNS name to
+127.0.0.1 cannot do. Everything but the two static assets also needs the session token, which the
+printed URL carries; the page is the one place the token is handed out, so it needs the token too.
 """
 
 from __future__ import annotations
@@ -241,15 +245,32 @@ def make_handler(web: WebSession, token: str, page: str) -> type[BaseHTTPRequest
             pass
 
         def _authorized(self) -> bool:
-            return (
-                self.headers.get("X-Prax-Token") == token
-                or parse_qs(urlparse(self.path).query).get("token", [""])[0] == token
-            )
+            offered = (self.headers.get("X-Prax-Token"), parse_qs(urlparse(self.path).query).get("token", [""])[0])
+            return any(secrets.compare_digest(value.encode(), token.encode()) for value in offered if value)
 
-        def _send(self, status: int, data: bytes, content_type: str) -> None:
+        def _host_allowed(self) -> bool:
+            """The Host header names this server: its bound address, 127.0.0.1 or localhost, on its own port."""
+            bound, port = cast(tuple[str, int], self.server.server_address)  # an IPv4 host and port
+            host = (self.headers.get("Host") or "").strip().lower()
+            name, _, given = host.rpartition(":") if ":" in host else (host, "", "80")
+            return name in {str(bound), "127.0.0.1", "localhost"} and given == str(port)
+
+        def _refused(self, *, needs_token: bool) -> bool:
+            """Answer 403 and return True when the request may not go on."""
+            if not self._host_allowed():
+                self._json(HTTPStatus.FORBIDDEN, {"error": "this server only answers requests addressed to it"})
+                return True
+            if needs_token and not self._authorized():
+                self._json(HTTPStatus.FORBIDDEN, {"error": "bad token"})
+                return True
+            return False
+
+        def _send(self, status: int, data: bytes, content_type: str, headers: dict[str, str] | None = None) -> None:
             self.send_response(status)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(data)))
+            for name, value in (headers or {}).items():
+                self.send_header(name, value)
             self.end_headers()
             self.wfile.write(data)
 
@@ -258,8 +279,15 @@ def make_handler(web: WebSession, token: str, page: str) -> type[BaseHTTPRequest
 
         def do_GET(self) -> None:
             path = urlparse(self.path).path
+            if self._refused(needs_token=path not in ("/assets/app.css", "/assets/app.js")):
+                return
             if path == "/":
-                self._send(HTTPStatus.OK, page.replace("__TOKEN__", token).encode("utf-8"), "text/html; charset=utf-8")
+                self._send(
+                    HTTPStatus.OK,
+                    page.replace("__TOKEN__", token).encode("utf-8"),
+                    "text/html; charset=utf-8",
+                    {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},  # the page carries the token
+                )
             elif path in ("/assets/app.css", "/assets/app.js"):
                 name = path.rsplit("/", 1)[-1]
                 content_type = "text/css" if name.endswith(".css") else "text/javascript"
@@ -267,9 +295,6 @@ def make_handler(web: WebSession, token: str, page: str) -> type[BaseHTTPRequest
             elif path == "/state":
                 self._json(HTTPStatus.OK, web.state())
             elif path == "/events":
-                if not self._authorized():
-                    self._json(HTTPStatus.FORBIDDEN, {"error": "bad token"})
-                    return
                 self.send_response(HTTPStatus.OK)
                 self.send_header("Content-Type", "text/event-stream")
                 self.send_header("Cache-Control", "no-cache")
@@ -307,8 +332,7 @@ def make_handler(web: WebSession, token: str, page: str) -> type[BaseHTTPRequest
             self.wfile.flush()
 
         def do_POST(self) -> None:
-            if not self._authorized():
-                self._json(HTTPStatus.FORBIDDEN, {"error": "bad token"})
+            if self._refused(needs_token=True):
                 return
             length = int(self.headers.get("Content-Length") or 0)
             try:
