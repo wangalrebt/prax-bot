@@ -52,6 +52,20 @@ def test_a_copied_context_placeholder_never_reaches_a_file() -> None:
     assert workspace.files == {"src/a.py": b"x\n"}
 
 
+def test_write_file_replaces_a_scratch_file_but_never_a_repository_file() -> None:
+    workspace = FakeWorkspace({"src/a.py": "x\n"})
+    box = ToolBox(workspace)
+    assert box.call("write_file", {"path": "/tmp/praxbot/scratch/r.py", "content": "1"}).output.startswith(
+        "wrote /tmp/praxbot/scratch/r.py"
+    )
+    replaced = box.call("write_file", {"path": "/tmp/praxbot/scratch/r.py", "content": "2"})
+    assert not replaced.error and replaced.output.startswith("replaced /tmp/praxbot/scratch/r.py")
+    assert workspace.files["/tmp/praxbot/scratch/r.py"] == b"2"
+    refused = box.call("write_file", {"path": "src/a.py", "content": "y"})
+    assert refused.error and "already exists; use edit_file" in refused.output
+    assert workspace.files["src/a.py"] == b"x\n"
+
+
 def test_empty_finish_is_refused_once() -> None:
     llm = FakeLLM(
         [reply(None, call("finish", summary="nothing to do")), reply(None, call("finish", summary="really nothing"))]

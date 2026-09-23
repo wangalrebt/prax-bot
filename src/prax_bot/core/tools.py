@@ -34,6 +34,7 @@ REPO_MAP_BUDGET = 8_000
 MAX_RESTORES = 3
 OUTPUT_DIR = "${TMPDIR:-/tmp}/praxbot"
 OUTPUT_TAIL_BYTES = 20_000
+ORIGINAL_UNAVAILABLE = "praxbot: could not set your changes aside, so nothing ran on the original repository"
 REPO_MAP_MAX_FILES = 60
 
 MAX_READ_LINES = 400
@@ -87,6 +88,10 @@ class Run(BaseModel):
     workdir: str = Field(
         ".",
         description="Directory to run in, relative to the repository root. State such as cwd does not persist between calls, so use this instead of cd.",
+    )
+    original: bool = Field(
+        False,
+        description="Run against the repository as it was before your changes, in a throwaway copy that keeps scratch files and installed packages; nothing the command does is kept",
     )
 
 
@@ -499,17 +504,21 @@ class ToolBox:
     def _write_file(self, a: WriteFile) -> str | ToolResult:
         if self._protected(a.path):
             return failed(f"{a.path} {PROTECTED_MSG}")
+        path = resolve_in_workdir(a.path, self.ws.workdir)
+        scratch = path.startswith(SCRATCH_DIR + "/")
         try:
             self.ws.read(a.path)
         except FileNotFoundError:
-            pass
+            existed = False
         else:
-            return failed(f"{a.path} already exists; use edit_file to change it")
+            existed = True
+            if not scratch:  # a repository file is changed with edit_file, which checks what it replaces
+                return failed(f"{a.path} already exists; use edit_file to change it")
         self.ws.write(a.path, a.content.encode("utf-8"))
         self._after_write(a.path, a.content)
-        output = f"wrote {a.path} ({len(a.content)} characters, checkpoint {self.ws.current_step})"
-        path = resolve_in_workdir(a.path, self.ws.workdir)
-        if self.ws.backend == "local" and path.startswith(SCRATCH_DIR + "/"):
+        verb = "replaced" if existed else "wrote"
+        output = f"{verb} {a.path} ({len(a.content)} characters, checkpoint {self.ws.current_step})"
+        if self.ws.backend == "local" and scratch:
             shell_path = '"$TMPDIR/praxbot/scratch"/' + shlex.quote(path.removeprefix(SCRATCH_DIR + "/"))
             output += "\n" + prompt("local_scratch_written", shell_path=shell_path, file_path=path)
         return output
@@ -521,13 +530,22 @@ class ToolBox:
         log = f"{OUTPUT_DIR}/out-{self._outputs}.log"
         # Run in the requested directory; keep the complete output in a file and return its tail.
         inner = f"cd {shlex.quote(workdir)} && {{ {a.command}\n}}"
+        if a.original:
+            # A throwaway run with the agent's changes stashed: the repository as it was, with the same scratch files
+            # (outside the repository) and the same installed packages. Nothing it does is kept.
+            # If the changes cannot be set aside, nothing runs: a result from the edited tree must not pass as the original.
+            inner = (
+                "git -c user.name=praxbot -c user.email=praxbot@localhost stash push --include-untracked --quiet >/dev/null"
+                f" || {{ echo {shlex.quote(ORIGINAL_UNAVAILABLE)} >&2; exit 97; }}; {inner}"
+            )
         wrapped = (
             # a subshell, so an `exit` in the command ends only the command and its output is still returned
             f"mkdir -p {OUTPUT_DIR}; ( {inner} ) > {log} 2>&1; rc=$?; "
             f'tail -c {OUTPUT_TAIL_BYTES} {log}; echo; echo "__praxbot_bytes=$(wc -c < {log})"; exit $rc'
         )
-        r = self.ws.run(wrapped, timeout=a.timeout or None, mutate=True)
-        self._defs.clear()  # the command may have changed any file
+        r = self.ws.run(wrapped, timeout=a.timeout or None, mutate=not a.original)
+        if not a.original:
+            self._defs.clear()  # the command may have changed any file
         output, size = r.stdout, None
         m = re.search(r"__praxbot_bytes=\s*(\d+)\s*$", output)  # BSD wc, on macOS, pads the count with spaces
         if m:
@@ -536,7 +554,8 @@ class ToolBox:
         status = f"exit code {r.exit_code}"
         if r.timed_out:
             status += " (timed out)"
-        header = f"{status} · {r.elapsed_s:.1f}s · checkpoint {self.ws.current_step}"
+        where = "on the original repository, nothing kept" if a.original else f"checkpoint {self.ws.current_step}"
+        header = f"{status} · {r.elapsed_s:.1f}s · {where}"
         parts = [header]
         if output.strip():
             parts.append("output:\n" + clip(output.rstrip(), MAX_TOOL_OUTPUT))
@@ -544,19 +563,24 @@ class ToolBox:
             parts.append("stderr:\n" + clip(r.stderr.rstrip(), MAX_TOOL_OUTPUT // 2))
         if size is not None and size > OUTPUT_TAIL_BYTES:
             parts.append(
-                f"(showing the last {OUTPUT_TAIL_BYTES:,} of {size:,} bytes; the full output is in {log}, grep or sed it with run)"
+                f"(showing the last {OUTPUT_TAIL_BYTES:,} of {size:,} bytes; the full output was not kept, narrow the command)"
+                if a.original
+                else f"(showing the last {OUTPUT_TAIL_BYTES:,} of {size:,} bytes; the full output is in {log}, grep or sed it with run)"
             )
-        elif size is not None:
+        elif size is not None and not a.original:
             parts.append(f"(full output saved in {log})")
         if r.truncated:
             parts.append("(output was truncated by the sandbox)")
         try:
-            referenced = self.referenced_definitions(output + "\n" + r.stderr)
+            # line numbers from the original files would point into the edited ones, so an original run gets none
+            referenced = "" if a.original else self.referenced_definitions(output + "\n" + r.stderr)
         except (WorkspaceError, ValueError):
             referenced = ""
         if referenced:
             parts.append(referenced)
-        note = self._note_test_observations(output + "\n" + r.stderr, command=a.command, workdir=workdir)
+        note = self._note_test_observations(
+            output + "\n" + r.stderr, command=a.command, workdir=workdir, original=a.original
+        )
         if note:
             parts.append(note)
         return ToolResult("\n".join(parts), error=r.exit_code != 0 or r.timed_out)
@@ -571,7 +595,7 @@ class ToolBox:
             + "\n".join(lines)
         )
 
-    def _note_test_observations(self, output: str, *, command: str, workdir: str) -> str:
+    def _note_test_observations(self, output: str, *, command: str, workdir: str, original: bool = False) -> str:
         """What this test output means next to earlier ones, without inferring passes that were not reported.
 
         Failures seen before any repository edit are the baseline: the model is told about them once, and a
@@ -581,6 +605,13 @@ class ToolBox:
         failures = pytest_failures(output)
         if self._known_failures is not None:
             self._baseline_failures.update(self._known_failures())
+        if original:  # these fail without the changes: baseline evidence, whatever has been edited so far
+            self._baseline_failures.update(failures)
+            self._told_baseline.update(failures)
+            if not failures:
+                return ""
+            shown = ", ".join(failures[:12]) + (" …" if len(failures) > 12 else "")
+            return f"note: {len(failures)} tests fail on the original repository; later failures among them are not caused by your changes: {shown}"
         scope = (command, workdir)
         previous = self._reported_failures.get(scope, [])
         passed = set(re.findall(r"^(?:PASSED (\S+)|(\S+) PASSED(?:\s|$))", output, re.MULTILINE))
@@ -635,7 +666,8 @@ class ToolBox:
             return failed(
                 f"restoring to checkpoint {a.step} would discard every change you have made to the repository "
                 f"(your edits are checkpoints {kept}). Keep them: restore to a later checkpoint, or undo the one change "
-                "that is wrong with edit_file. Unrelated test failures are not a reason to start over."
+                "that is wrong with edit_file. Unrelated test failures are not a reason to start over. To see the original "
+                "code use git show HEAD:<path>; to run something against it, set original on run."
             )
         self._restores += 1
         target = self.ws.restore(a.step)
