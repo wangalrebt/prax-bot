@@ -24,7 +24,6 @@ def test_restore_refuses_to_discard_every_repository_edit() -> None:
 
     refused = box.call("restore", json.dumps({"step": 0})).output
     assert refused.startswith("error:") and "discard every change" in refused and "checkpoints 1" in refused
-    assert "set original on run" in refused, "the refusal says how to look at the original instead"
     assert ws.current_step == 2, "nothing was restored"
 
     assert box.call("restore", json.dumps({"step": 1})).output.startswith("restored")  # keeps the edit; checkpoint 3

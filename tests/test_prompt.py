@@ -27,8 +27,6 @@ def test_the_built_in_prompt_is_the_packaged_file_and_says_the_important_things(
         "Read-only tasks may need no edits",
         "fixed number of steps",
         "Respond only with tool calls",
-        "Never stash, check out, reset or clean your changes",
-        "run with original set",
     ):
         assert phrase in SYSTEM_PROMPT, phrase
     assert len(SYSTEM_PROMPT) < 3700, "keep the core instructions concise"

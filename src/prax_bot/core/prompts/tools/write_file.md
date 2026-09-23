@@ -1,1 +1,1 @@
-Create a file with the given content. A repository file must not exist yet; use edit_file to change one. Throwaway scripts belong under {scratch_dir}, not in the repository; writing an existing file there replaces it.
+Create a new file with the given content. Fails if the file exists; use edit_file to change one. Throwaway scripts belong under {scratch_dir}, not in the repository.
