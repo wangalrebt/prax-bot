@@ -522,13 +522,14 @@ class ToolBox:
         # Run in the requested directory; keep the complete output in a file and return its tail.
         inner = f"cd {shlex.quote(workdir)} && {{ {a.command}\n}}"
         wrapped = (
-            f"mkdir -p {OUTPUT_DIR}; {{ {inner}; }} > {log} 2>&1; rc=$?; "
+            # a subshell, so an `exit` in the command ends only the command and its output is still returned
+            f"mkdir -p {OUTPUT_DIR}; ( {inner} ) > {log} 2>&1; rc=$?; "
             f'tail -c {OUTPUT_TAIL_BYTES} {log}; echo; echo "__praxbot_bytes=$(wc -c < {log})"; exit $rc'
         )
         r = self.ws.run(wrapped, timeout=a.timeout or None, mutate=True)
         self._defs.clear()  # the command may have changed any file
         output, size = r.stdout, None
-        m = re.search(r"__praxbot_bytes=(\d+)\s*$", output)
+        m = re.search(r"__praxbot_bytes=\s*(\d+)\s*$", output)  # BSD wc, on macOS, pads the count with spaces
         if m:
             size = int(m.group(1))
             output = output[: m.start()].rstrip("\n")

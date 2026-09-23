@@ -101,3 +101,19 @@ def test_diff_includes_new_binary_assets_and_root_tests(tmp_path: Path) -> None:
     ws.run("printf '\\x00\\x02' > blob.bin")
     diff = ws.diff()
     assert "blob.bin" in diff and "sinus.pickle" in diff and "plot.png" in diff
+
+
+def test_a_command_that_calls_exit_still_returns_its_output_and_the_size_marker_never_leaks(tmp_path: Path) -> None:
+    """The run tool wraps the command to keep its full output in a file; an `exit` in the command used to end the
+    wrapper before it printed anything, and on macOS the padded byte count from BSD wc leaked into the output."""
+    from prax_bot.core.tools import ToolBox
+    from prax_bot.workspace.local import LocalWorkspace, clone_dir
+    from tests.helpers import git_repo
+
+    root = tmp_path / "local" / "workspace"
+    root.mkdir(parents=True)
+    clone_dir(git_repo(tmp_path / "repo"), root / "current")
+    box = ToolBox(LocalWorkspace(root, command_timeout=30))
+    result = box.call("run", {"command": "echo before; exit 3"})
+    assert result.error and result.output.startswith("exit code 3") and "before" in result.output
+    assert "__praxbot_bytes" not in result.output and "(full output saved in" in result.output
