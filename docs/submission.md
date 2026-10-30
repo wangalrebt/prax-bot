@@ -78,7 +78,7 @@ More detailed observations, including the SDK versions involved, are in [FEEDBAC
 
 ## Development timeline
 
-The first repository commit is dated September 5, 2026. Work recorded during the hackathon includes the coding runtime, forked checks, context experiments, comparison, persistent work sessions, and recovery. The owner should confirm whether an earlier prototype existed before describing the project as entirely new; the Git history alone cannot establish that.
+The first repository commit is dated September 5, 2026. Work recorded during the hackathon includes the coding runtime, forked checks, context experiments, comparison, persistent work sessions, and recovery. The owner confirmed a new project that did not exist before August 26, 2026; this origin declaration comes from the owner, rather than being inferred from Git dates.
 
 ## Links and final handoff
 
@@ -90,6 +90,7 @@ The first repository commit is dated September 5, 2026. Work recorded during the
 | Public YouTube video | [Watch Prax Bot](https://youtu.be/Ci8Vz0iyZGk) — Public visibility, 2:42, with English captions |
 | Project description and technology feedback | Ready in this file |
 | Verification evidence | [Browser validation, including failed attempts](validation/browser-20261030.json), [earlier integration validation](validation/live-20261029.json), and [testing instructions](judging.md) |
-| Team and project-origin fields | Owner to complete or confirm |
+| Team and project origin | Confirmed solo individual entry, no organization, and a new project |
+| Devpost draft | [Prax Bot](https://devpost.com/software/prax-bot) — saved draft; **not submitted to the hackathon** |
 
 The [official rules](https://nebiusglobalaihackathon.devpost.com/rules) list the deadline as **October 30, 2026, 10:00 a.m. Pacific** and require a public code repository with an open-source license, a demo/test-build URL, and a public YouTube demonstration under three minutes. Testing access must remain free for the judging period. Check the live form and rules when completing the entry. Final submission has not been made.
