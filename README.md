@@ -6,7 +6,7 @@ Give it a task in a git repository. By default it uploads the repository into an
 
 Built for the Nebius x NVIDIA Global AI Hackathon, Track 1: agents that write, run, and test code in Token Factory Sandboxes.
 
-The [public source](https://github.com/wangalrebt/prax-bot) and [v0.1.1 test build](https://github.com/wangalrebt/prax-bot/releases/tag/v0.1.1) accompany the [submission draft](docs/submission.md), [judge testing instructions](docs/judging.md), and [demo recording plan](docs/demo.md). The [browser workflow recording and visual review](docs/validation/browser-20261030.json) are complete. Video editing and publication, plus final judging-access arrangements, remain pending.
+The [public source](https://github.com/wangalrebt/prax-bot) and [v0.1.1 test build](https://github.com/wangalrebt/prax-bot/releases/tag/v0.1.1) accompany the [submission draft](docs/submission.md), [judge testing instructions](docs/judging.md), and [demo recording plan](docs/demo.md). The [2:42 demo video](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.mp4) and [English captions](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.en.srt) show the actual application, with [browser validation](docs/validation/browser-20261030.json) and [video checks](docs/validation/video-20261030.json). The required public YouTube upload, final submission, and judging-access arrangements remain pending.
 
 ## Requirements
 

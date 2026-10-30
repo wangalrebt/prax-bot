@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "status": "browser_workflow_validated_video_publication_pending",
+  "status": "browser_workflow_and_video_validated_youtube_publication_pending",
   "captured_at_utc": "2026-10-30T03:42:47.027559+00:00",
-  "scope": "Three real-model browser-recording attempts. All Main/Arithmetic fix calls are retained, including two unsuccessful coordination attempts. The final attempt includes both comparison candidates, explicit selection/apply, host checks and rename/close/reopen. Comparison parent totals are counted once, and reopened cumulative usage is not counted again. Final edited video checks and publication are pending.",
+  "scope": "Three real-model browser-recording attempts. All Main/Arithmetic fix calls are retained, including two unsuccessful coordination attempts. The final attempt includes both comparison candidates, explicit selection/apply, host checks and rename/close/reopen. Comparison parent totals are counted once, and reopened cumulative usage is not counted again. The edited video passed separate checks recorded in video-20261030.json; YouTube publication remains pending.",
   "interaction_method": "Playwright browser interaction reported by the recording operator; this independent audit inspected persisted runtime events, run metadata, diffs, and check evidence without issuing new model or sandbox calls.",
   "source_snapshot_at_audit": {
     "commit": "11c4ad929aaa830e7f55b6df3074a7faf11e99ec",
@@ -1386,8 +1386,7 @@
     "main_own_check_explanation": "Main intentionally retained the original broken fixture. Its own failed check does not contradict the independently verified child patch."
   },
   "remaining_validation": [
-    "final edited video duration, legibility, content and redaction checks",
-    "public YouTube upload and submission URL"
+    "public YouTube upload and final submission URL"
   ],
   "limitations": [
     "Small arithmetic integration fixture, not a general coding-quality or latency benchmark.",
@@ -1537,9 +1536,9 @@
       "persisted_artifact_checked": true,
       "artifact_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
     },
-    "edited_video_verified": false,
+    "edited_video_verified": true,
     "public_video_url": null,
-    "publication_status": "pending",
+    "publication_status": "public GitHub download verified; required YouTube upload pending",
     "visual_review": {
       "reviewed_by": "recording operator",
       "screens": [
@@ -1552,7 +1551,9 @@
       "layout_issues_observed": false,
       "screenshot": "docs/web-interface.png",
       "screenshot_sha256": "170f620b82b7b8e20d10c157a6f46f264a8757b581e772b1ed4a9518af25d908"
-    }
+    },
+    "video_quality_record": "video-20261030.json",
+    "public_download_url": "https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.mp4"
   },
   "provenance_note": "Input hashes identify the bytes read at each capture. Some sessions were still open; later shutdown may update live run metadata or append events. Completed tool/check results are reproduced in this document. No raw local server log or browser authentication URL is included."
 }

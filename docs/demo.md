@@ -1,6 +1,6 @@
-# Prax Bot — 2:45 recording plan
+# Prax Bot — demo video and recording plan
 
-Actual application footage and host command output have been captured, and the key screens have been visually reviewed. The [browser validation record](validation/browser-20261030.json) includes the successful workflow and both earlier unsuccessful attempts. The final video is being edited and has not yet been published. Use the fresh fixture and prompts in [testing instructions](judging.md); inspect the complete results before recording. Keep the final public YouTube cut under three minutes, and label any omitted waiting time. Do not replace live results with mock UI or simulated tool output.
+Actual application footage and host command output have been captured, and the key screens have been visually reviewed. The [browser validation record](validation/browser-20261030.json) includes the successful workflow and both earlier unsuccessful attempts. The reviewed [2:42 demo video](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.mp4) and [English captions](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.en.srt) are available as release downloads; the required YouTube upload remains pending. [Video checks](validation/video-20261030.json) record the duration, codecs, hashes, captions, and editing disclosures. The outline below was the recording plan; the published edit lasts 162.5 seconds. Use the fresh fixture and prompts in [testing instructions](judging.md); inspect the complete results before recording. Keep the final public YouTube cut under three minutes, and label any omitted waiting time. Do not replace live results with mock UI or simulated tool output.
 
 | Time | Show | Suggested narration |
 |---|---|---|

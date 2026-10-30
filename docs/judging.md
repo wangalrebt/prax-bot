@@ -58,7 +58,7 @@ uv run pyright
 node --check src/prax_bot/ui/assets/app.js
 ```
 
-The completed application test run passed 383 tests, with lint, formatting, type, and JavaScript syntax checks passing. The [browser validation](validation/browser-20261030.json) records the completed workflow and visual review: Main delegation without edits, independent baseline/patch checks, two passing candidates, selection without host changes, explicit Apply with a passing host test, and rename/close/reopen recovery. The successful attempt used 19 calls and 73,145 tokens; all three attempts, including two unsuccessful coordination attempts, used 49 calls and 231,692 tokens. The final edited video and public upload remain pending.
+The completed application test run passed 383 tests, with lint, formatting, type, and JavaScript syntax checks passing. The [browser validation](validation/browser-20261030.json) records the completed workflow and visual review: Main delegation without edits, independent baseline/patch checks, two passing candidates, selection without host changes, explicit Apply with a passing host test, and rename/close/reopen recovery. The successful attempt used 19 calls and 73,145 tokens; all three attempts, including two unsuccessful coordination attempts, used 49 calls and 231,692 tokens. The [2:42 demo video](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.mp4) is available with [video checks](validation/video-20261030.json); YouTube upload remains pending.
 
 ## Evidence and evaluation scope
 

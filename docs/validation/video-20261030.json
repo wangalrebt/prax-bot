@@ -1,0 +1,158 @@
+{
+  "video_file": "prax-bot-demo.mp4",
+  "sha256": "315657362112ae66b96110e110a4bf00448d0fead1828d91fb4a50a490d4be21",
+  "bytes": 8500947,
+  "duration_seconds": 162.5,
+  "planned_edit_seconds": 162.5,
+  "resolution": [
+    1920,
+    1080
+  ],
+  "frame_rate": 25,
+  "decoded_video_frames": 4058,
+  "video_codec": "H.264 / AVC (libx264)",
+  "pixel_format": "yuv420p",
+  "audio_codec": "AAC",
+  "audio_sample_rate_hz": 48000,
+  "audio_channels": 2,
+  "audio_loudness": {
+    "integrated_lufs": -16.04,
+    "true_peak_dbtp": -4.08,
+    "loudness_range_lu": 5.1
+  },
+  "full_audio_video_decode": "passed without errors",
+  "captions": {
+    "file": "prax-bot-demo.en.srt",
+    "sha256": "0c2bdd8756ad4fa53c7ec86ae3797b7327d84d5915a948c87083b362fc7c637a",
+    "cue_count": 38,
+    "ordered_nonoverlapping_within_video": true,
+    "maximum_line_characters": 46,
+    "timing": "Sentence/phrase durations allocated within measured narration clips; checked against scene bounds.",
+    "minimum_cue_duration_seconds": 1.552,
+    "maximum_cue_duration_seconds": 4.85,
+    "maximum_lines_per_cue": 2,
+    "review": "Read complete caption file; checked ordering, line lengths, scene bounds and minimum cue durations. No sub-second fragments."
+  },
+  "contact_sheet": "prax-bot-demo-contact-sheet.jpg",
+  "source_video": "page@01288780de59dd28b1391a581fe1f771.webm",
+  "source_sha256": "571b1e596d87813e31365c1f2ce7d45c1c4662931f9b55660652947372e41d56",
+  "edit_timeline": "edit-manifest.json",
+  "edit_timeline_sha256": "c72330dca895286ffe9f5bf5783246d809f8015287240ede14eed4089f51e45e",
+  "description_file": "prax-bot-demo.description.txt",
+  "only_verified_third_take_used": true,
+  "disclosures": [
+    "Idle waiting time removed.",
+    "Detail crops and held frames labelled.",
+    "Captured host output cards use selected authentic output, not simulated terminal footage.",
+    "This is the third take after a rehearsal coordination-guard fix and an explicit wait instruction.",
+    "Small functional fixture; no first-attempt or general benchmark claim."
+  ],
+  "narration": {
+    "voice": "Samantha",
+    "synthetic": true,
+    "rate_wpm": 155,
+    "speech_seconds": 127.2
+  },
+  "visual_review": {
+    "status": "passed",
+    "reviewed_output_seconds": [
+      3,
+      18,
+      32,
+      46,
+      60,
+      71,
+      82,
+      99,
+      108,
+      116,
+      126,
+      137,
+      148,
+      158
+    ],
+    "checks": [
+      "Readable scene labels, cropped tool calls, Before/After logs, and both comparison diffs.",
+      "Verification scene retains the verified child baseline and patch check results throughout.",
+      "Captured host output cards match selected lines in the saved original outputs.",
+      "Waiting-time removal, detail crops, held frames, and rehearsal context are disclosed.",
+      "No credentials or browser token are visible in inspected exported frames."
+    ],
+    "independent_parent_review": "Corrected 46-second and 60-second verification frames inspected and accepted."
+  },
+  "audio_review": {
+    "scope": "Full stream decode, measured integrated loudness/true peak, narration clip durations, and transcript review. No listening review is claimed.",
+    "speech_within_scene_bounds": true
+  },
+  "additional_artifact_sha256": {
+    "prax-bot-demo-contact-sheet.jpg": "51ce378af8987258983091447ae6f94d9eaef3907402507e85543e022c991078",
+    "prax-bot-demo.description.txt": "fca1a4520346415036ea2eb2516eb567432aa31a47cfbeb8657b31c962e81302"
+  },
+  "independent_narration_audit": {
+    "status": "passed",
+    "evidence": [
+      "docs/validation/browser-20261030.json",
+      "host-before-apply.txt",
+      "host-after.txt"
+    ],
+    "result": "No factual issues. Clean-fork checks, Choose/Apply distinction, unchanged Main baseline, verified child, and rehearsal/wait disclosure match the evidence."
+  },
+  "published_at_utc": "2026-10-30T03:53:26.349374+00:00",
+  "publication": {
+    "github_assets": [
+      {
+        "file": "prax-bot-demo.mp4",
+        "url": "https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.mp4",
+        "anonymous_http_status": 200,
+        "bytes": 8500947,
+        "sha256": "315657362112ae66b96110e110a4bf00448d0fead1828d91fb4a50a490d4be21"
+      },
+      {
+        "file": "prax-bot-demo.en.srt",
+        "url": "https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.en.srt",
+        "anonymous_http_status": 200,
+        "bytes": 3416,
+        "sha256": "0c2bdd8756ad4fa53c7ec86ae3797b7327d84d5915a948c87083b362fc7c637a"
+      },
+      {
+        "file": "prax-bot-demo.description.txt",
+        "url": "https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.description.txt",
+        "anonymous_http_status": 200,
+        "bytes": 2348,
+        "sha256": "fca1a4520346415036ea2eb2516eb567432aa31a47cfbeb8657b31c962e81302"
+      },
+      {
+        "file": "prax-bot-demo-contact-sheet.jpg",
+        "url": "https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo-contact-sheet.jpg",
+        "anonymous_http_status": 200,
+        "bytes": 616345,
+        "sha256": "51ce378af8987258983091447ae6f94d9eaef3907402507e85543e022c991078"
+      },
+      {
+        "file": "edit-manifest.json",
+        "url": "https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/edit-manifest.json",
+        "anonymous_http_status": 200,
+        "bytes": 11533,
+        "sha256": "c72330dca895286ffe9f5bf5783246d809f8015287240ede14eed4089f51e45e"
+      },
+      {
+        "file": "video-quality-report.json",
+        "url": "https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/video-quality-report.json",
+        "anonymous_http_status": 200,
+        "bytes": 3838,
+        "sha256": "c682636e05f52378d9183273ebc28adff9065752dfae88907b513f014de1b7ab"
+      },
+      {
+        "file": "video-SHA256SUMS.txt",
+        "url": "https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/video-SHA256SUMS.txt",
+        "anonymous_http_status": 200,
+        "bytes": 542,
+        "sha256": "bc6d51f4d156ec311e998f93eca154e18a14a00fe4f6acea3fc00779e17b0337"
+      }
+    ],
+    "youtube_url": null,
+    "youtube_status": "pending account sign-in and upload",
+    "hackathon_submitted": false
+  },
+  "browser_evidence": "browser-20261030.json"
+}

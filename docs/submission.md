@@ -2,7 +2,7 @@
 
 Prepared for the Nebius × NVIDIA Global AI Hackathon, **Coding and Agentic Engineering Track**.
 
-This file contains copy for the submission form. Source and test-build links are below. Browser capture and visual review are complete. Video editing and publication, plus final judging-access arrangements, still need to be completed.
+This file contains copy for the submission form. Source and test-build links are below. The actual-app demo video is available below. The required public YouTube upload, final submission, and judging-access arrangements still need to be completed.
 
 ## Project name
 
@@ -54,7 +54,7 @@ The separate [browser workflow validation](validation/browser-20261030.json) com
 
 The browser record also retains two unsuccessful attempts. First, the no-edit finish guard prompted Main to edit its own workspace against the instruction; v0.1.1 corrects that guard for Main. After that fix, non-waiting polling exhausted the step budget, interrupted the child, and produced an unsupported passing-test summary. The successful prompt explicitly requested `wait_seconds=30` and prohibited duplicate follow-ups and stopping the child. All three attempts used **49 calls and 231,692 tokens**. These small functional fixtures do not establish general coding quality.
 
-The application also passed **383 automated tests**, lint, formatting checks, type checking, and JavaScript syntax validation. Final video editing, review, and public upload remain pending.
+The application also passed **383 automated tests**, lint, formatting checks, type checking, and JavaScript syntax validation. The [reviewed demo video](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.mp4) is 162.5 seconds long; [English captions](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.en.srt) and [video checks](validation/video-20261030.json) accompany it. YouTube upload remains pending.
 
 ## What we learned
 
@@ -86,7 +86,8 @@ The first repository commit is dated September 5, 2026. Work recorded during the
 |---|---|
 | Public source repository | [wangalrebt/prax-bot](https://github.com/wangalrebt/prax-bot), with its MIT license |
 | Working demo or test-build URL | [v0.1.1 release](https://github.com/wangalrebt/prax-bot/releases/tag/v0.1.1), with [testing instructions](judging.md); usable free judge access must still be arranged |
-| Public YouTube video | Actual app footage captured and visually reviewed; editing and publication follow the [2:45 demo plan](demo.md) |
+| Demo recording | [2:42 MP4](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.mp4) and [English captions](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.en.srt), with actual app footage and disclosed edits |
+| Public YouTube video | Awaiting account sign-in and upload; the MP4 download does not satisfy the YouTube requirement |
 | Project description and technology feedback | Ready in this file |
 | Verification evidence | [Browser validation, including failed attempts](validation/browser-20261030.json), [earlier integration validation](validation/live-20261029.json), and [testing instructions](judging.md) |
 | Team and project-origin fields | Owner to complete or confirm |
