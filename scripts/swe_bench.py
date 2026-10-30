@@ -261,10 +261,30 @@ def reeval_instance(row, _args, scratch: Path) -> dict:  # same shape as run_ins
     out = scratch / iid
     patch = out / "patch.diff"
     result = {"instance_id": iid, "repo": row["repo"], "difficulty": row["difficulty"]}
-    if not patch.exists() or not patch.read_text().strip():
-        return result | {"resolved": False, "eval": "no saved patch"}
     prev = json.loads((out / "result.json").read_text()) if (out / "result.json").exists() else {}
-    result.update({k: prev.get(k) for k in ("steps", "tokens", "diff_lines", "agent_elapsed")})
+    # An empty submission still consumed agent work. Keep recorded metadata, including
+    # genuine zeros, without inventing usage or carrying a previous grading verdict.
+    result.update(
+        {
+            k: prev[k]
+            for k in (
+                "finished",
+                "reason",
+                "exit_status",
+                "steps",
+                "tokens",
+                "usage_by_model",
+                "summary",
+                "diff_lines",
+                "agent_elapsed",
+                "sandbox_commands",
+                "sandbox_cost",
+            )
+            if k in prev
+        }
+    )
+    if not patch.exists() or not patch.read_text().strip():
+        return result | {"resolved": False, "patch_applied": False, "eval": "no saved patch"}
     try:
         client = make_client()
         settings = Settings.from_env()
@@ -313,9 +333,12 @@ def markdown(results: list[dict], args) -> str:
         "|---|---|---|---|---|---|---|---|---|",
     ]
     for r in results:
+        steps = r.get("steps")
+        tokens = r.get("tokens")
         rows.append(
             f"| {r['instance_id']} | {r['repo']} | {r.get('difficulty', '')} | {'yes' if r.get('resolved') else 'no'} | "
-            f"{r.get('f2p', '-')} | {r.get('p2p', '-')} | {r.get('steps') or '-'} | {(r.get('tokens') or 0):,} | {r.get('eval', '')} |"
+            f"{r.get('f2p', '-')} | {r.get('p2p', '-')} | {steps if steps is not None else '-'} | "
+            f"{f'{tokens:,}' if tokens is not None else '-'} | {r.get('eval', '')} |"
         )
     n, ok = len(results), sum(1 for r in results if r.get("resolved"))
     head = (

@@ -5,6 +5,7 @@ from __future__ import annotations
 import shlex
 import sys
 from collections.abc import Callable
+from typing import Any
 
 from rich.console import Console
 from rich.markup import escape
@@ -21,6 +22,8 @@ SESSION_HELP = """Type an instruction to work on the current workspace.
   /apply [PATH ...]        apply all pending files, or only the named files
   /undo                   restore the workspace and context before the last round
   /goal [--check CMD] [--rounds N] OBJECTIVE   work in rounds toward an objective
+  /compare [--a APPROACH] [--b APPROACH] OBJECTIVE   compare two fixes from the same checkpoint
+  /choose A|B             choose a compared fix; /apply then writes it to the repository
   /resume RUN [--from N]   resume a checkpoint from this repository and backend
   /effort LEVEL           off, low, high or xhigh
   /verify                 run the configured test and lint commands
@@ -59,6 +62,43 @@ def goal_arguments(argument: str) -> tuple[str, int, str | None]:
     return text, rounds, check
 
 
+def comparison_arguments(argument: str) -> tuple[str, str, str]:
+    words = shlex.split(argument)
+    objective: list[str] = []
+    approaches = {"--a": "", "--b": ""}
+    i = 0
+    while i < len(words):
+        word = words[i]
+        if word == "--":
+            objective.extend(words[i + 1 :])
+            break
+        if word in approaches:
+            if i + 1 == len(words):
+                raise ValueError(f"{word} needs a value")
+            approaches[word] = words[i + 1]
+            i += 2
+        elif word.startswith("--"):
+            raise ValueError(f"unknown comparison option {word}; use -- before an objective starting with --")
+        else:
+            objective.append(word)
+            i += 1
+    text = " ".join(objective).strip()
+    if not text:
+        raise ValueError("usage: /compare [--a APPROACH] [--b APPROACH] OBJECTIVE")
+    return text, approaches["--a"], approaches["--b"]
+
+
+def choice_arguments(argument: str) -> tuple[str, str | None]:
+    words = shlex.split(argument)
+    if not words or words[0] not in ("A", "B"):
+        raise ValueError("usage: /choose A|B [--comparison ID]")
+    if len(words) == 1:
+        return words[0], None
+    if len(words) == 3 and words[1] == "--comparison" and words[2].strip():
+        return words[0], words[2]
+    raise ValueError("usage: /choose A|B [--comparison ID]")
+
+
 def show_changes(session: Session, out: Console) -> None:
     print_diff(session.diff(), session.run_dir, out=out)
     if session.changes and session.changes.excluded:
@@ -73,6 +113,27 @@ def show_changes(session: Session, out: Console) -> None:
             out.print(f"  {escape(name)}  [dim]binary file the run created[/]")
 
 
+def show_comparison(comparison: dict[str, Any], out: Console) -> None:
+    out.print(f"comparison {escape(comparison['id'])}: {escape(comparison['status'])}")
+    table = Table("Candidate", "Run", "Result", "Summary", box=None)
+    for candidate in comparison["candidates"]:
+        table.add_row(
+            candidate["label"],
+            escape(candidate.get("run_id") or "not started"),
+            escape(f"{candidate['status']} · checks {candidate['verification']}"),
+            escape(candidate.get("error") or candidate.get("summary") or ""),
+        )
+    out.print(table)
+    if comparison.get("stale"):
+        out.print("comparison is stale; run /compare again before choosing")
+    elif comparison.get("selected"):
+        out.print(
+            f"candidate {comparison['selected']} is selected; review /diff, then /apply to write it to the repository"
+        )
+    else:
+        out.print("choose explicitly with /choose A or /choose B, then /apply to write it to the repository")
+
+
 def show_status(session: Session, out: Console) -> None:
     session.diff()
     state = session.state()
@@ -85,6 +146,8 @@ def show_status(session: Session, out: Console) -> None:
     table.add_row("changes", f"{len(state['files'])} files pending")
     table.add_row("log", state["log"])
     out.print(table)
+    if state.get("comparison") is not None:
+        show_comparison(state["comparison"], out)
 
 
 def handle_line(session: Session, line: str, out: Console) -> bool:
@@ -128,6 +191,14 @@ def handle_line(session: Session, line: str, out: Console) -> bool:
             objective, rounds, check = goal_arguments(argument)
             driver = session.run_goal(objective, max_rounds=rounds, check=check)
             out.print(escape(driver.status))
+        elif command == "/compare":
+            objective, approach_a, approach_b = comparison_arguments(argument)
+            comparison = session.compare(objective, approach_a=approach_a, approach_b=approach_b)
+            show_comparison(comparison, out)
+        elif command == "/choose":
+            label, comparison_id = choice_arguments(argument)
+            session.choose_candidate(label, comparison_id=comparison_id)
+            out.print(f"chose candidate {label}; review /diff, then /apply to write it to the repository")
         elif command == "/resume":
             words = shlex.split(argument)
             if len(words) == 1:

@@ -6,8 +6,11 @@ Give it a task in a git repository. By default it uploads the repository into an
 
 Built for the Nebius x NVIDIA Global AI Hackathon, Track 1: agents that write, run, and test code in Token Factory Sandboxes.
 
+The [public source](https://github.com/wangalrebt/prax-bot) and [v0.1.0 test build](https://github.com/wangalrebt/prax-bot/releases/tag/v0.1.0) accompany the [submission draft](docs/submission.md), [judge testing instructions](docs/judging.md), and [demo recording plan](docs/demo.md). The recorded video and final judging-access arrangements remain pending.
+
 ## Requirements
 
+- macOS or Linux (Windows through WSL; native Windows is unsupported)
 - Python 3.12 and [uv](https://docs.astral.sh/uv/)
 - A Nebius account with Token Factory access
 - `NEBIUS_API_KEY`: your Token Factory API key. It also authenticates Sandboxes.
@@ -53,9 +56,21 @@ uv run prax run "fix the failing test in tests/test_cache.py" --setup "pip insta
 
 ![The web interface: sidebar with the session, changed files and rounds; the instruction, its tool calls, the summary and the diff](docs/web-interface.png)
 
-Bare `praxbot` opens the web interface on localhost and points a browser at it. One page holds the whole session: a Chat view with each instruction, its tool calls grouped and expandable, the model's summary, and a foldable diff; a Trajectory view with the raw log; a sidebar with the session, the files changed so far, the to-dos and the rounds; and a slash-command menu when you type `/`. It binds to localhost with a token in the URL, and `--no-browser` prints the URL instead of opening one. The page, its state and every action need that token, and the server answers only requests addressed to 127.0.0.1 or localhost on its own port, so another program or a web page that points a DNS name at 127.0.0.1 cannot drive it. To reopen the page, use the printed URL; the address without its token is refused. Events stream to the page as they happen; there is nothing to install in the browser.
+Bare `prax` or `praxbot` opens the web interface on localhost with a persistent **Main** session. Main has its own saved identity for each repository path and backend. The sidebar lists Main and your named work sessions; select one to see its chat, tool calls, summary, diff, checks and trajectory. Type `/` for the session command menu.
 
-For a terminal instead of a browser there are two other front ends on the same session: `praxbot ui`, a full-screen terminal interface, and `praxbot session`, a plain prompt for pipes and scripts. A session opens one sandbox and keeps taking instructions. Each one continues from the current state, and the diff is shown after every instruction. `praxbot session --backend local --effort low` opens one with options.
+Use **+ New work** to name a session and optionally give it a first task. **Rename** changes its display name, and **Saved runs** imports an older run from the same repository and backend. Each work session has its own workspace and worker. Switching sessions or closing the browser tab leaves their work running while the Prax server stays up.
+
+You can also ask Main to coordinate work: its model can list sessions, start named work sessions, read their progress and results, send follow-up instructions, and request a stop. Each new work session starts from the repository on your machine; Main's pending edits stay in Main's workspace. Review each session's diff and checks, then explicitly **Apply selected** or `/apply` to write changes to your repository.
+
+- **Stop** cancels queued instructions, interrupts the selected session after its current call finishes, and keeps it open for follow-ups. Cancelled instructions remain in its history.
+- **Close work session** (or `/quit` in a web work session) stops that worker and keeps its saved work available to reopen. Main stays open while the server runs; Stop can interrupt Main's current work.
+- **Ctrl+C in the server terminal** stops all workers and shuts down the server, waiting for calls already in progress to finish or time out.
+
+Launch `prax` again in the same repository and with the same backend to reopen Main and find your named sessions. Reopening a session uses its latest saved checkpoint and restores its event history, check evidence and accumulated usage. The saved local snapshots or sandbox images must still be available. Interrupted model work does not restart automatically. Idle Main makes no model calls or background model polls. The server must stay running for work to continue; Prax does not install an operating-system service or start itself after a reboot.
+
+The web server binds to localhost with a token in the URL, and `--no-browser` prints the URL instead of opening one. The page, its state and every action need that token, and the server answers only requests addressed to 127.0.0.1 or localhost on its own port, so another program or a web page that points a DNS name at 127.0.0.1 cannot drive it. To reopen the page, use the printed URL; the address without its token is refused. Events stream to the page as they happen; there is nothing to install in the browser.
+
+The terminal front ends remain single-session interfaces: `praxbot ui` is a full-screen terminal interface, and `praxbot session` is a plain prompt for pipes and scripts. Each opens one workspace and keeps taking instructions; they do not use the web session list or Main coordinator. Each instruction continues from the current state, and the diff is shown afterward. `praxbot session --backend local --effort low` opens one with options.
 
 | Session command | Effect |
 |---|---|
@@ -63,6 +78,8 @@ For a terminal instead of a browser there are two other front ends on the same s
 | `/apply [PATH ...]` | Apply all pending files, or only the named files; quote paths containing spaces |
 | `/undo` | Restore the workspace and task context to before the last round |
 | `/goal [--check CMD] [--rounds N] OBJECTIVE` | Work in rounds toward an objective |
+| `/compare [--a APPROACH] [--b APPROACH] OBJECTIVE` | Try two independent fixes from the same workspace checkpoint |
+| `/choose A\|B` | Load a comparison candidate for review; apply it separately |
 | `/resume RUN-ID [--from N]` | Load a checkpoint from the same repository and backend; use `prax resume RUN-ID` to open a different repository |
 | `/effort LEVEL` | Change reasoning effort while preserving the other settings |
 | `/verify` | Run the configured test and lint commands |
@@ -135,6 +152,24 @@ The same checks also run on the clean image without the diff, in a parallel fork
 
 **Agent finished** means the model called `finish`. **Checks passed** means every configured command exited successfully on the displayed checkpoint. Missing configuration, checks that have not run, incomplete checks, failures, and results from an older checkpoint have distinct statuses. Passing configured checks establishes only what those commands cover. `run`, `resume` and `goal` return a nonzero exit code for failed or incomplete checks; cancellation returns 130. Goal completion requires all configured checks to pass, and an identical `--check` command is reused instead of run twice. Model errors and cancellation stop the goal before success is considered. Applying creates a new baseline checkpoint, so the saved evidence becomes stale; the command's exit status reflects verification before applying.
 
+The web **Before / After** view pairs each baseline result with its patch result, including the command, test location, image, exit code, elapsed time, and expandable logs. Missing baseline evidence is unavailable; timeouts and check errors are unknown. A passing patch check alone does not establish that the change fixed a baseline failure. Both results are saved with the run.
+
+### Compare two fixes
+
+Open the web **Compare** view, enter an objective, and optionally suggest an approach for A and B. Both attempts start from the same current workspace checkpoint, including pending edits, and run independently with separate run IDs, usage, checks, logs, and diffs. This makes two agent attempts and incurs their combined usage and cost. The active workspace stays at the starting point until you choose a candidate.
+
+The same workflow is available through session commands:
+
+```text
+/compare --a "Add a guard for empty input" --b "Handle empty input in the parser" Fix the empty-input crash
+/choose A
+/apply
+```
+
+Review both candidates before choosing. **Choose A for review**, **Choose B for review**, and `/choose` load the selected workspace; **Apply selected** or `/apply` is the separate step that writes to your repository. No winner is selected automatically. **Stop** stops both attempts after their current calls; a stopped candidate with a saved checkpoint and available diff can still be chosen. If the active workspace changes before selection, the comparison becomes stale and a new comparison is required.
+
+Comparison evidence and the selection are saved with the session. Resuming retains both candidates for review and marks interrupted attempts accordingly; it does not restart them. As with ordinary sessions, the local backend is for development only: its commands execute on your machine. Local checks copy the current environment; clean checkpoints restore repository files, not earlier dependency versions.
+
 ### Prompts
 
 Prompt templates ship under `src/prax_bot/core/prompts/`, one text file per prompt, with `{placeholders}` filled in by the caller. They cover the core engineering rules, code style, execution environment, verification plan, compaction summary, budget reminders, continuation and goal texts, protected-file guidance, and tool descriptions.
@@ -189,10 +224,10 @@ Every sandbox command is one immutable image; the run above went from baseline i
 
 ## Limits
 
-- One project type is tested: Python repositories using pytest. Other languages work if the base image has their toolchain.
+- Evaluation has focused on Python repositories using pytest; live integration checks also use standard-library unittest. Other languages require an appropriate image and check commands and have not been validated here.
 - Commands are stateless between calls. A background server started in one `run` is gone by the next.
 - The sandbox has network access, so a prompt injection inside a repository could exfiltrate repository contents. No credentials are ever placed in the sandbox.
-- Configured verification checks run independently of the model, on the workspace it edited. They cover only the commands you configure; they are not a hidden or protected test suite.
+- Configured verification checks run independently of the model, normally in a clean fork with the proposed patch; fallback checks identify when they ran in the working environment. They cover only the commands you configure; use protected paths when the agent must not edit test files.
 
 ## Benchmark
 
@@ -485,9 +520,11 @@ Ten of seventeen both times, at 15% fewer tokens. Matplotlib-20676 resolved for 
 
 ### Against the published leaderboard
 
-Every official SWE-bench Verified submission publishes the instances it resolved, so published harnesses can be scored on our 31 tasks without running anything (`scripts/leaderboard.py`; the analysis is in [bench/swebench/20260914-published-comparison.md](bench/swebench/20260914-published-comparison.md)). On those 31, the bash-only board (every model through mini-SWE-agent) runs from 15 for gpt-oss-120b to 28 for Claude 4.6 Opus; the top 30 submissions overall average 25.5. Prax Bot on Nemotron 3 Super resolves 23, alongside GPT-5 mini, GPT-5.1, Claude 4.5 Haiku and Gemini 3.5 Flash, whose full-500 scores run from 59.8% to 71.8%; the fit across the board puts 23 at about 65%. NVIDIA reports the model at 60.47% under OpenHands. Run directly on the same 31 with the same model, sampling, budget and grader, mini-SWE-agent resolves 20 at 6.8M tokens against our 23 at 12.2M. The four tasks we never solve are resolved by 1% to 16% of all submissions.
+The [September 14 comparison](bench/swebench/20260914-published-comparison.md) scores published resolved-instance lists on a historical set of 31 easy-tier tasks (`scripts/leaderboard.py`). In that snapshot, bash-only submissions resolved 15–28 of these tasks and the top 30 submissions overall averaged 25.5. These are scores on our subset, not Prax Bot results on the full 500-task Verified benchmark; the earlier roughly 65% extrapolation does not establish a full-set score or harness parity.
 
-Thirty-one tasks is still a small sample and these are the easier tier of Verified, so this is not comparable to leaderboard numbers on the full 500. It is a genuine measurement on real GitHub issues with hidden tests, run once, with the harness frozen before the run.
+A direct historical run used Nemotron 3 Super, the same reported sampling settings, a 50-step cap and the same grader: mini-SWE-agent resolved **20/31** at **11,087,598 tokens / 1,059 steps**, versus Prax Bot's **23/31** at **12,211,376 / 933**. Mini used **9.2% fewer tokens**, not the previously reported 44%. Seven no-submission runs had recorded usage omitted from the grading report; the [correction artifact](bench/swebench/20260914-published-comparison-correction.json) preserves their metadata and source hashes while the original results remain unchanged. No model or grading run was repeated. One sample per harness on tasks already used for development does not establish a general advantage, and a shared step cap does not equalize work per step.
+
+An [October 25 exploratory comparison](bench/swebench/20261025-reference-comparison.md) used six locally fresh tasks: two each from the under-15-minute, 15–60-minute and 1–4-hour strata. With the same model settings and a 50-step cap, current Prax resolved **2/6** at **2,100,584 tokens**, and pinned mini-SWE-agent 2.4.6 resolved **3/6** at **1,562,792 tokens**. Both solved Pytest and Requests; mini additionally solved Django. Mini used 25.6% fewer recorded tokens. Its submission-only grades agreed with the primary final-worktree grades. The report retains all attempts, usage gaps and evaluation-adapter recoveries; six single-attempt tasks do not establish a full-set score or a general ranking.
 
 ## Development
 

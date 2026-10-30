@@ -1,10 +1,12 @@
 # Prax Bot's 31 tasks against the published SWE-bench Verified results — 2026-09-14
 
-Every submission on the official SWE-bench Verified leaderboard publishes the list of instances it resolved. Scoring those lists on the 31 tasks Prax Bot has run puts our number next to published harnesses on the same tasks, without running anything. The data comes from the `SWE-bench/experiments` repository (`scripts/leaderboard.py`, output in `20260914-leaderboard.json`); 174 of 182 submissions carry a usable list.
+Corrected on **2026-10-25**: seven empty mini-SWE-agent submissions had recorded usage that the grading report omitted. The corrected total is **11,087,598 tokens and 1,059 steps**, not 6.8M tokens and 709 steps. The [correction artifact](20260914-published-comparison-correction.json) retains all 31 corrected rows, the seven recovered metadata records, source hashes and paired outcomes. Original result files are unchanged; no model or grading run was repeated.
+
+This report describes the **September 14 leaderboard snapshot and historical 31-task comparison**, not the current leaderboard or every task subsequently evaluated in this repository. Scoring published resolved-instance lists on those 31 tasks puts the runs alongside one another without rerunning them. The data comes from the `SWE-bench/experiments` repository (`scripts/leaderboard.py`, output in `20260914-leaderboard.json`); 174 of 182 submissions carried a usable list.
 
 ## What the leaderboard looks like by tier
 
-Verified's 500 tasks are tiered by the annotators' estimate of the fix: 194 under 15 minutes, 261 between 15 minutes and an hour, 42 between one and four hours, 3 longer. Every task Prax Bot has run except two is in the first tier.
+Verified's 500 tasks are tiered by the annotators' estimate of the fix: 194 under 15 minutes, 261 between 15 minutes and an hour, 42 between one and four hours, 3 longer. All 31 tasks in this historical comparison are in the first tier.
 
 | | overall | under-15-minute tier | 15-minute-to-hour tier | our 31 |
 |---|---|---|---|---|
@@ -12,11 +14,11 @@ Verified's 500 tasks are tiered by the annotators' estimate of the fix: 194 unde
 | all 174 submissions, mean | | | | 64% |
 | best single submission | 79.2% (two, both Claude Opus 4.5) | 90% | 79% | 28 of 31 (Claude Opus 4.6, bash only) |
 
-Our 31 are close to the easy tier's difficulty for the field: the top 30 resolve 82% of them against 87% of the tier. Four of them almost nobody solves: matplotlib-23476 is resolved by 1% of submissions, sympy-20916 by 7%, matplotlib-20676 by 15%, pylint-4970 by 16%. Those are the four Prax Bot has never solved either.
+The top 30 submissions resolve 82% of these 31 tasks against 87% of the easy tier. Four tasks had low resolve rates in this snapshot: matplotlib-23476 at 1% of submissions, sympy-20916 at 7%, matplotlib-20676 at 15%, and pylint-4970 at 16%. These rates describe the recorded submissions; they do not show that a task is impossible or that harness changes cannot help.
 
 ## The bash-only board, on the same 31 tasks
 
-The bash-only leaderboard runs every model through the same minimal harness (mini-SWE-agent: one bash tool, one prompt), so it isolates the model. Its published runs, scored on our 31:
+The bash-only leaderboard uses mini-SWE-agent across models. Its published runs, scored on these 31 tasks, are shown below. A shared harness reduces one source of variation, but model settings, budgets and run versions still matter.
 
 | model, mini-SWE-agent | overall | under-15-minute tier | our 31 |
 |---|---|---|---|
@@ -37,29 +39,31 @@ The bash-only leaderboard runs every model through the same minimal harness (min
 | Qwen3-Coder 480B | 55.4% | 70% | 18 |
 | GLM-4.6 | 55.4% | 70% | 19 |
 | gpt-oss-120b | 26.0% | 42% | 15 |
-| **Prax Bot, Nemotron 3 Super** | not run | 77% mean pass rate on 38 tasks | **23** |
+| **Prax Bot, Nemotron 3 Super** | not run | only the 31-task subset | **23** |
 
-Across the 40 bash-only runs, the count on our 31 predicts the overall score to within about five points (overall ≈ 3.1 × count − 6). A count of 23 sits with GPT-5 mini, GPT-5.1, Claude 4.5 Haiku and Gemini 3.5 Flash, whose published overall scores run from 59.8% to 71.8%; the fitted estimate is 65%. That is the number Prax Bot on Nemotron 3 Super would plausibly post on the full 500, with the caveat that it rests on 31 tasks from the easy tier and one sample each.
+Several published models also resolved 23 of these 31, while their full-500 scores ranged from 59.8% to 71.8%. The original report extrapolated a roughly 65% Prax Bot score from a fit across 40 bash-only runs. That fit is descriptive of those runs, not a validated prediction for Prax Bot: this subset contains only easy-tier tasks and was already used for development. **Prax Bot has no measured full-500 score in this comparison.**
 
 ## Nemotron 3 Super in published harnesses
 
-NVIDIA's model card reports the model on the full Verified set: 60.47% under OpenHands, 59.20% under OpenCode, 53.73% under Codex, against Qwen3.5-122B at 66.40% and gpt-oss-120b at 41.9% under OpenHands. No bash-only submission exists for it. Read together with the mapping above, Prax Bot's harness is at least on par with the published harnesses for this model, and the difference between 60% and 65% is inside the uncertainty of a 31-task sample.
+The original report compared its extrapolation with NVIDIA's full-Verified model-card results under other harnesses. Different task coverage, configurations and budgets prevent that comparison from establishing harness parity. The direct mini-SWE-agent comparison below is more relevant because it uses the same model and task IDs, but it remains one historical sample per harness.
 
 ## What this says about the next steps
 
-- The four tasks we never solve are the four the field never solves; there is no harness change waiting there.
-- Everything we have measured is the easy tier. The published runs lose 14 points from the easy tier to the middle tier, and the middle tier is 261 of the 500 tasks. A stratified sample from it is the measurement that would turn the 65% estimate into a number.
-- The gap between our harness and the published harnesses is smaller than the gap between models on the bash-only board: two tiers of model separate gpt-oss-120b (15 of our 31) from Claude 4.6 Opus (28). Harness work moves a task or two; the model moves ten.
+- Inspect failure traces before attributing misses to the model, tools, budget or grading environment. Low solve rates across other submissions do not identify the cause.
+- Use fresh, stratified tasks to assess broader performance, reporting development tasks separately. A full-500 score requires evaluating that set; an easy-tier fit cannot substitute for it.
+- Compare harnesses with fixed model settings, task IDs and explicit budgets, and retain usage for every attempt. This sample cannot establish a general ordering between model changes and harness changes.
 
 ## Addendum: the reference harness run on the same model, same tasks
 
-Before the decision to rely on published numbers, mini-SWE-agent 2.4.6 had already been run on the 31 with Nemotron 3 Super: the same sampling, effort and 50-step cap as ours, in Token Factory sandboxes through its own sandbox environment, graded with the same official harness (`scripts/swe_bench.py grade`; results in `minisweagent/`). The only change to its published configuration is the removal of `parallel_tool_calls`, which the endpoint rejects.
+mini-SWE-agent 2.4.6 was run on the same 31 tasks with Nemotron 3 Super, the same reported sampling and effort settings, and a 50-step cap, in Token Factory sandboxes through its own sandbox environment. Submitted patches were graded with the same official harness (`scripts/swe_bench.py grade`; original results in [minisweagent/20260914T005753Z-grade.json](minisweagent/20260914T005753Z-grade.json)). The run also removed `parallel_tool_calls`, which the endpoint rejected. A shared step cap does not make the harnesses' tools or work per step identical.
 
 | | resolved of 31 | steps | tokens |
 |---|---|---|---|
-| mini-SWE-agent, Nemotron 3 Super, 50 steps | 20 | 709 | 6.8M |
-| Prax Bot, Nemotron 3 Super, 50 steps | 23 | 933 | 12.2M |
+| mini-SWE-agent, Nemotron 3 Super, 50 steps | 20 | 1,059 | 11,087,598 |
+| Prax Bot, Nemotron 3 Super, 50 steps | 23 | 933 | 12,211,376 |
 
-Eighteen tasks resolved under both. Five resolved only under Prax Bot: django-12193 (the reference's patch was wrong) and four where the reference ran out of its 50 steps without submitting (django-16899, xarray-4094, pylint-7277, sphinx-9591). Two resolved only under the reference: requests-5414 and pytest-7521, both tasks Prax Bot has resolved in other runs. The reference submitted nothing on seven tasks in all; its published leaderboard runs use a 250-step limit, so at its own budget it would likely have closed some of those. The four tasks neither solves are the four the field rarely solves.
+Eighteen tasks resolved under both. Five resolved only under Prax Bot: django-12193, where mini submitted a patch that did not resolve the issue, and four where mini exhausted 50 steps without submitting (django-16899, xarray-4094, pylint-7277, sphinx-9591). Two resolved only under mini: requests-5414 and pytest-7521. **Six** resolved under neither: matplotlib-20676, matplotlib-23476, pylint-4970, sphinx-9258, sympy-17655 and sympy-20916.
 
-The reference used 44% fewer tokens for three fewer tasks. The difference is where the steps go: the reference reads with `cat` and `sed` and stops when it has a patch; Prax Bot spends steps on its post-fix verification, which the earlier traces put at a third of all steps.
+Mini submitted no patch on seven tasks. All seven saved records report `LimitsExceeded` at 50 steps, totaling **4,293,139 tokens and 350 steps**. `reeval_instance` returned before loading this metadata, and the generated Markdown displayed missing tokens as zero. The correction adds that recorded usage to the original 6,794,459 tokens and 709 steps; it leaves all resolution outcomes unchanged. The seven empty submissions were not graded. The remaining 24 submitted patches account for the original report's recorded usage.
+
+Mini therefore used **9.2% fewer tokens for three fewer resolved tasks**, while taking **126 more steps**. These are recorded token counts, not USD costs. This comparison does not isolate why the trajectories differed. Mini's documented 250-step benchmark configuration also differs from this run's 50-step cap; the effect of increasing its budget was not measured. The result does not establish parity with full-500 submissions or a general efficiency advantage for either harness.

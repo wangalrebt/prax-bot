@@ -1,8 +1,8 @@
 """A local stand-in for the sandbox: the same workspace interface over a temporary directory.
 
 Commands run on this machine with a scrubbed environment and a private virtualenv.
-Checkpoints are directory clones, and so is a fork of the clean snapshot; the virtualenv is shared, so a fork here is
-clean in its files only. This is a development and fallback backend, not isolation.
+Checkpoints are directory clones. Checks copy the clean files and the current virtualenv into a disposable tree;
+dependency changes made before a check remain available. This is a development and fallback backend, not isolation.
 """
 
 from __future__ import annotations
@@ -42,6 +42,42 @@ def clone_dir(src: Path, dst: Path) -> None:
         if r.returncode == 0:
             return
     shutil.copytree(src, dst, symlinks=True)
+
+
+def clone_virtualenv(src: Path, dst: Path, *, old_workdir: Path, new_workdir: Path) -> None:
+    """Copy packages, relocating launchers and supported Python editable-install links to the copied tree."""
+    clone_dir(src, dst)
+    old, new = os.fsencode(src.absolute()), os.fsencode(dst.absolute())
+    for script in (dst / "bin").iterdir():
+        if script.is_symlink():
+            target = os.readlink(script)
+            if target.startswith(str(src.absolute()) + os.sep):
+                script.unlink()
+                script.symlink_to(str(dst.absolute()) + target[len(str(src.absolute())) :])
+            continue  # External interpreter links stay external; never write through a link.
+        if not script.is_file():
+            continue
+        content = script.read_bytes()
+        if b"\0" in content or old not in content:
+            continue
+        try:
+            content.decode("utf-8")
+        except UnicodeDecodeError:
+            continue  # An installed native executable is not a script to relocate.
+        script.write_bytes(content.replace(old, new))
+    for packages in (dst / "lib").glob("python*/site-packages"):
+        # uv-style path files and setuptools' generated editable import finder.
+        for link in (*packages.glob("*.pth"), *packages.glob("__editable__*_finder.py")):
+            if link.is_symlink():
+                continue
+            content = link.read_text(encoding="utf-8")
+            relocated = content.replace(str(old_workdir.absolute()), str(new_workdir.absolute()))
+            if relocated != content:
+                link.write_text(relocated, encoding="utf-8")
+                if link.suffix == ".py":
+                    # Same-size paths rewritten in the same second can leave timestamp-based bytecode valid.
+                    for cache in (packages / "__pycache__").glob(f"{link.stem}.*.pyc"):
+                        cache.unlink()
 
 
 class LocalWorkspace:
@@ -85,14 +121,16 @@ class LocalWorkspace:
             return self.root / "tmp" / "praxbot" / "scratch" / absolute[len(SCRATCH_DIR) :].lstrip("/")
         return self.current / absolute[len(self.workdir) :].lstrip("/")
 
-    def _env(self) -> dict[str, str]:
+    def _env(self, *, root: Path | None = None) -> dict[str, str]:
+        root = root or self.root
+        venv = root / "venv"
         return {
-            "PATH": f"{self.venv / 'bin'}:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin",
-            "HOME": str(self.root / "home"),
-            "TMPDIR": str(self.root / "tmp"),
+            "PATH": f"{venv / 'bin'}:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin",
+            "HOME": str(root / "home"),
+            "TMPDIR": str(root / "tmp"),
             "LANG": "C.UTF-8",
             "LC_ALL": "C.UTF-8",
-            "VIRTUAL_ENV": str(self.venv),
+            "VIRTUAL_ENV": str(venv),
             "PYTHONDONTWRITEBYTECODE": "1",
             "PIP_DISABLE_PIP_VERSION_CHECK": "1",
             "GIT_CONFIG_NOSYSTEM": "1",
@@ -124,7 +162,15 @@ class LocalWorkspace:
             result.image = self.image_id
         return result
 
-    def _execute(self, command: str, cwd: Path, timeout: int | None, truncate_output_at: int | None) -> CommandResult:
+    def _execute(
+        self,
+        command: str,
+        cwd: Path,
+        timeout: int | None,
+        truncate_output_at: int | None,
+        *,
+        env_root: Path | None = None,
+    ) -> CommandResult:
         """One shell command in `cwd` with the scrubbed environment; nothing is checkpointed here."""
         timeout = timeout or self.command_timeout
         limit = truncate_output_at or DEFAULT_TRUNCATE
@@ -133,7 +179,7 @@ class LocalWorkspace:
         proc = subprocess.Popen(
             ["bash", "-c", command],
             cwd=cwd,
-            env=self._env(),
+            env=self._env(root=env_root),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -193,15 +239,21 @@ class LocalWorkspace:
                 raise WorkspaceError(f"{PATCH_REJECTED}: {applied.stderr.strip()[-400:]}")
 
     def run_clean(self, command: str, *, patch: str = "", timeout: int | None = None) -> CommandResult:
-        """Run a command in a disposable clone of the clean snapshot, with `patch` applied there first."""
+        """Run in disposable copies of the clean files and current environment, with `patch` applied first."""
         if self.clean is None:
             raise WorkspaceError("this workspace has no clean snapshot to fork")
         fork = self.root / "tmp" / f"fork-{time.time_ns()}"
-        clone_dir(self._snapshot_dir(self.clean), fork)
+        fork.mkdir()
         try:
+            cwd = fork / "current"
+            clone_dir(self._snapshot_dir(self.clean), cwd)
+            if self.venv.is_dir():
+                clone_virtualenv(self.venv, fork / "venv", old_workdir=self.current, new_workdir=cwd)
+            clone_dir(self.root / "home", fork / "home")
+            (fork / "tmp").mkdir()
             if patch.strip():
-                self._apply_patch(fork, patch)
-            return self._execute(command, fork, timeout, None)
+                self._apply_patch(cwd, patch)
+            return self._execute(command, cwd, timeout, None, env_root=fork)
         finally:
             shutil.rmtree(fork, ignore_errors=True)
 

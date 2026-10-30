@@ -1,0 +1,288 @@
+{
+  "schema": 1,
+  "completed_at_utc": "2026-10-30T00:22:04.682807+00:00",
+  "purpose": "Functional integration of the real application HTTP/SSE endpoints, Nemotron inference, and Token Factory Sandboxes on a disposable arithmetic fixture.",
+  "model": "nvidia/nemotron-3-super-120b-a12b",
+  "backend": "contree",
+  "model_calls": 29,
+  "model_tokens": 115392,
+  "source_state": {
+    "base_commit": "9183679",
+    "included_uncommitted_implementation": true,
+    "note": "The live exercise tested the working tree containing session and comparison implementation, not the base commit alone. Submission preparation later changed documentation, added a demo-fixture script, and included LICENSE in distribution metadata."
+  },
+  "checks": {
+    "main_delegated_and_inspected_child": true,
+    "independent_concurrent_sessions": true,
+    "main_and_host_unchanged_during_child_work": true,
+    "child_patch_passed_with_failing_baseline": true,
+    "rename_close_reopen_preserved_evidence_and_usage": true,
+    "stale_generation_rejected_409": true,
+    "stop_cancelled_queued_task_and_saved_cancellation": true,
+    "followup_after_stop_succeeded_and_marker_absent": true,
+    "both_comparison_candidates_passed": true,
+    "choice_kept_host_unchanged": true,
+    "explicit_apply_changed_only_calc_py_and_host_tests_passed": true,
+    "restart_preserved_sessions_and_comparison_without_reruns_or_duplicate_usage": true,
+    "sse_replayed_turns_and_cancellation_without_duplicates": true
+  },
+  "automated_validation": {
+    "pytest_passed": 380,
+    "ruff_check": "passed",
+    "ruff_format": "passed (199 files)",
+    "pyright": "0 errors, 0 warnings",
+    "javascript_syntax": "passed"
+  },
+  "sessions": {
+    "main": {
+      "session_id": "481edb0efaca43458dbc60d9c3722803",
+      "session_name": "Main",
+      "run_id": "20261029T220922Z-59d245",
+      "calls": 5,
+      "tokens": 26400,
+      "rounds": 1,
+      "files": [],
+      "verification": "failed",
+      "summary": "Child session ID: d560782b0e6e4c4fb5a8f2185f940839 successfully fixed calc.add (changed return a - b to return a + b) and verified with python -m unittest -v (all tests pass). No edits were made to Main as this is a coordination-only task; the child session's changes are isolated and sufficient to demonstrate the fix."
+    },
+    "child": {
+      "session_id": "d560782b0e6e4c4fb5a8f2185f940839",
+      "session_name": "Arithmetic verified",
+      "run_id": "20261029T224127Z-8ed862",
+      "calls": 5,
+      "tokens": 18268,
+      "rounds": 1,
+      "files": [
+        "calc.py"
+      ],
+      "verification": "passed",
+      "summary": "Fixed calc.add to return a + b instead of a - b. The unit test passes. No changes made to multiply or any file in Main."
+    },
+    "background": {
+      "session_id": "d991be02a2b14830a5f5c197056a0181",
+      "session_name": "background",
+      "run_id": "20261029T220942Z-aecbf7",
+      "calls": 8,
+      "tokens": 29208,
+      "rounds": 3,
+      "files": [],
+      "verification": "failed",
+      "summary": "should_not_exist.txt is not present in the repository (as seen in list_files output). Task is read-only and satisfied."
+    },
+    "comparisons": {
+      "session_id": "1e4e78aba3214c1c91de9b76d3af6cce",
+      "session_name": "comparisons",
+      "run_id": "20261029T223108Z-21121c",
+      "calls": 11,
+      "tokens": 41516,
+      "rounds": 0,
+      "files": [],
+      "verification": "stale",
+      "summary": "Fixed calc.add to return a + b instead of a - b, preserving multiply unchanged. Verified unit tests pass."
+    }
+  },
+  "child_result": {
+    "diff": "diff --git a/calc.py b/calc.py\nindex fb2f574..0d91a19 100644\n--- a/calc.py\n+++ b/calc.py\n@@ -1,5 +1,5 @@\n def add(a, b):\n-    return a - b\n+    return a + b\n \n \n def multiply(a, b):\n",
+    "checks": [
+      {
+        "name": "tests",
+        "command": "python -m unittest -v",
+        "image": "b35b03b2-017b-48ba-adb1-0c2c947f63c4",
+        "exit_code": 0,
+        "output": "\ntest_add (test_calc.ArithmeticTests.test_add) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+        "elapsed_s": 0.192689,
+        "timed_out": false,
+        "error": null,
+        "where": "fork",
+        "failures": [],
+        "baseline_exit_code": 1,
+        "new_failures": [],
+        "known_failures": [],
+        "baseline": {
+          "name": "tests",
+          "command": "python -m unittest -v",
+          "image": "ef56515f-ba2e-42b1-a70b-9142198512e1",
+          "exit_code": 1,
+          "output": "\ntest_add (test_calc.ArithmeticTests.test_add) ... FAIL\n\n======================================================================\nFAIL: test_add (test_calc.ArithmeticTests.test_add)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/work/test_calc.py\", line 6, in test_add\n    self.assertEqual(add(2, 3), 5)\nAssertionError: -1 != 5\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n",
+          "elapsed_s": 0.185459,
+          "timed_out": false,
+          "error": null,
+          "where": "fork",
+          "failures": [
+            "(failures=1)"
+          ],
+          "baseline_exit_code": null,
+          "new_failures": [],
+          "known_failures": [],
+          "baseline": null,
+          "passed": false,
+          "attribution": ""
+        },
+        "passed": true,
+        "attribution": ""
+      }
+    ],
+    "verification": "passed"
+  },
+  "comparison": {
+    "id": "79fbebcaff64444290699823bbff5484",
+    "status": "complete",
+    "candidates": [
+      {
+        "label": "A",
+        "approach": "Use the direct expression a + b.",
+        "status": "complete",
+        "run_id": "20261029T224130Z-c7930f",
+        "summary": "Fixed calc.add to return a + b instead of a - b, preserving multiply unchanged. Verified unit tests pass.",
+        "calls": 5,
+        "tokens": 19010,
+        "verification": "passed",
+        "checks": [
+          {
+            "name": "tests",
+            "command": "python -m unittest -v",
+            "image": "46b8bf35-f7c9-43ce-b776-625eb9a704fb",
+            "exit_code": 0,
+            "output": "\ntest_add (test_calc.ArithmeticTests.test_add) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+            "elapsed_s": 0.192357,
+            "timed_out": false,
+            "error": null,
+            "where": "fork",
+            "failures": [],
+            "baseline_exit_code": 1,
+            "new_failures": [],
+            "known_failures": [],
+            "baseline": {
+              "name": "tests",
+              "command": "python -m unittest -v",
+              "image": "fb9aa044-c162-4bc3-a167-a5ac92f44971",
+              "exit_code": 1,
+              "output": "\ntest_add (test_calc.ArithmeticTests.test_add) ... FAIL\n\n======================================================================\nFAIL: test_add (test_calc.ArithmeticTests.test_add)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/work/test_calc.py\", line 6, in test_add\n    self.assertEqual(add(2, 3), 5)\nAssertionError: -1 != 5\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n",
+              "elapsed_s": 0.187267,
+              "timed_out": false,
+              "error": null,
+              "where": "fork",
+              "failures": [
+                "(failures=1)"
+              ],
+              "baseline_exit_code": null,
+              "new_failures": [],
+              "known_failures": [],
+              "baseline": null,
+              "passed": false,
+              "attribution": ""
+            },
+            "passed": true,
+            "attribution": ""
+          }
+        ],
+        "diff": "diff --git a/calc.py b/calc.py\nindex fb2f574..0d91a19 100644\n--- a/calc.py\n+++ b/calc.py\n@@ -1,5 +1,5 @@\n def add(a, b):\n-    return a - b\n+    return a + b\n \n \n def multiply(a, b):\n"
+      },
+      {
+        "label": "B",
+        "approach": "Use the expression sum((a, b)).",
+        "status": "complete",
+        "run_id": "20261029T224130Z-cc47c0",
+        "summary": "Fixed calc.add to correctly add its arguments using sum((a, b)). The multiply function remains unchanged (still returns a + b). All tests pass. No further changes needed.",
+        "calls": 6,
+        "tokens": 22506,
+        "verification": "passed",
+        "checks": [
+          {
+            "name": "tests",
+            "command": "python -m unittest -v",
+            "image": "6395667d-480e-48a4-8b33-809b331ebcd5",
+            "exit_code": 0,
+            "output": "\ntest_add (test_calc.ArithmeticTests.test_add) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+            "elapsed_s": 0.188184,
+            "timed_out": false,
+            "error": null,
+            "where": "fork",
+            "failures": [],
+            "baseline_exit_code": 1,
+            "new_failures": [],
+            "known_failures": [],
+            "baseline": {
+              "name": "tests",
+              "command": "python -m unittest -v",
+              "image": "fb9aa044-c162-4bc3-a167-a5ac92f44971",
+              "exit_code": 1,
+              "output": "\ntest_add (test_calc.ArithmeticTests.test_add) ... FAIL\n\n======================================================================\nFAIL: test_add (test_calc.ArithmeticTests.test_add)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/work/test_calc.py\", line 6, in test_add\n    self.assertEqual(add(2, 3), 5)\nAssertionError: -1 != 5\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n",
+              "elapsed_s": 0.189204,
+              "timed_out": false,
+              "error": null,
+              "where": "fork",
+              "failures": [
+                "(failures=1)"
+              ],
+              "baseline_exit_code": null,
+              "new_failures": [],
+              "known_failures": [],
+              "baseline": null,
+              "passed": false,
+              "attribution": ""
+            },
+            "passed": true,
+            "attribution": ""
+          }
+        ],
+        "diff": "diff --git a/calc.py b/calc.py\nindex fb2f574..01a463d 100644\n--- a/calc.py\n+++ b/calc.py\n@@ -1,5 +1,5 @@\n def add(a, b):\n-    return a - b\n+    return sum((a, b))\n \n \n def multiply(a, b):\n"
+      }
+    ],
+    "chosen": "A",
+    "host_unchanged_after_choose": true,
+    "host_test_command_after_explicit_apply": "python -B -m unittest -v",
+    "host_test_exit_code_after_explicit_apply": 0,
+    "host_files_changed": [
+      "calc.py"
+    ]
+  },
+  "replayed_turns": {
+    "main": {
+      "turns": 1,
+      "cancelled": 0
+    },
+    "child": {
+      "turns": 1,
+      "cancelled": 0
+    },
+    "background": {
+      "turns": 3,
+      "cancelled": 1
+    },
+    "comparisons": {
+      "turns": 3,
+      "cancelled": 0
+    }
+  },
+  "observations": [
+    "One Contree command returned a transport error; the model retried successfully.",
+    "Main verification remains failed because its intentionally unchanged fixture still has the original bug; child verification passed.",
+    "After Apply, current-workspace checks are stale; saved candidate checks remain passed."
+  ],
+  "limitations": [
+    "Small integration fixture, not a quality benchmark or general performance measurement.",
+    "HTTP/SSE and saved evidence were checked; no visual browser QA was completed because the browser-control connection was unavailable.",
+    "One provider transport error recovered on retry; recorded timing is not a latency benchmark."
+  ],
+  "cleanup": {
+    "server_stopped": true,
+    "session_states": {
+      "main": "closed",
+      "child": "closed",
+      "background": "closed",
+      "comparisons": "closed"
+    }
+  },
+  "provenance": {
+    "note": "Selected recorded results are reproduced here. Machine-specific paths and local browser tokens are omitted. Original snapshots and run records remain local.",
+    "input_sha256": {
+      "live-test-results.json": "72ec381be23ce5bf560a30cbb63355c7c275484b29fb8f3b0d187c660bff56f2",
+      "comparison-complete.json": "93403a82e9b827db98be9d881ed635e5c74155d36727ef0c4a0a8c97de1a51e3",
+      "child-first.json": "6b41ea9f93e7a466a30e1b5eeb173b20dd5753407b762fe781506ccbbdf1283c",
+      "before-restart.json": "d9004903446f9de950ba7acb653fd6083e04292e3640037eeb0e3b98077e022b",
+      "restart-assertions.json": "694fada24af89869cef65fde2040fdc32f2c89d32c83636f3318f1c9798aa985",
+      "background-replayed-events.json": "f5e6a988498a59d97b7813d5be56a889e9c6b54496b8403358ac5db42c44d219"
+    }
+  }
+}

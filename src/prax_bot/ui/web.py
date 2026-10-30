@@ -17,12 +17,12 @@ import shlex
 import threading
 import time
 import webbrowser
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.resources import files
 from pathlib import Path
-from typing import IO, Any, cast
+from typing import IO, TYPE_CHECKING, Any, cast
 from urllib.parse import parse_qs, urlparse
 
 from rich.console import Console
@@ -31,6 +31,9 @@ from rich.text import Text
 from prax_bot.runtime.runs import json_safe
 from prax_bot.settings import Settings
 from prax_bot.ui.session import handle_line
+
+if TYPE_CHECKING:
+    from prax_bot.ui.web_sessions import WebSessions
 
 HISTORY_LIMIT = 5000
 
@@ -53,6 +56,7 @@ STARTING_STATE: dict[str, Any] = {
     "log": "",
     "verification": "not run",
     "checks": [],
+    "comparison": None,
 }
 
 
@@ -90,7 +94,15 @@ class WebSession:
     """Owns the session, a worker that runs typed lines one at a time, and the event stream."""
 
     def __init__(
-        self, settings: Settings, root: Path, backend: str, make_session: Callable[[Console, Callable[..., None]], Any]
+        self,
+        settings: Settings,
+        root: Path,
+        backend: str,
+        make_session: Callable[[Console, Callable[..., None]], Any],
+        *,
+        metadata: dict[str, Any] | None = None,
+        replay: Sequence[dict[str, Any]] = (),
+        keep_open: bool = False,
     ) -> None:
         self.settings, self.root, self.backend = settings, root, backend
         self.make_session = make_session
@@ -99,13 +111,20 @@ class WebSession:
         self.history: list[dict[str, Any]] = []
         self.clients: list[queue.Queue] = []
         self.lock = threading.Lock()
-        self.pending: queue.Queue[str | None] = queue.Queue()
+        self.pending: queue.Queue[tuple[str, str | None] | None] = queue.Queue()
+        self._work = threading.Condition()
+        self._cancelled: list[tuple[str, str | None]] = []
+        self.metadata = dict(metadata or {})
+        self.keep_open = keep_open
+        self.idle = threading.Event()
         self.busy = False
         self.closed = False
         self.closing = False
         self.error: str | None = None
         self.current_step = ""
         self.seq = 0
+        for event in replay:
+            self.emit(event)
         self.worker = threading.Thread(target=self._worker, name="praxbot-web-worker", daemon=True)
         self.worker.start()
 
@@ -122,11 +141,26 @@ class WebSession:
 
     def hook(self, kind: str, **payload: Any) -> None:
         """Wrapped around the session's event callback: every agent event reaches the page."""
+        if kind.startswith("web.instruction."):
+            return  # The worker persists web turns; their live UI events are emitted separately.
         safe = {k: json_safe(v) for k, v in payload.items()}
         if kind == "tool.call":
             self.current_step = f"step {payload.get('step')} · {payload.get('name')}"
         self.emit({"kind": kind, **safe})
-        if kind in ("tool.call", "tool.result", "finish", "sandbox.ready", "goal.round"):
+        if kind in (
+            "tool.call",
+            "tool.result",
+            "finish",
+            "sandbox.ready",
+            "goal.round",
+            "comparison.start",
+            "comparison.updated",
+            "comparison.done",
+            "comparison.selected",
+        ) or (
+            kind == "comparison.event"
+            and payload.get("event_kind") in ("tool.call", "tool.result", "finish", "verification.result")
+        ):
             self.emit(self.state_event())
 
     def state(self) -> dict[str, Any]:
@@ -158,6 +192,7 @@ class WebSession:
         )
         return {
             **state,
+            **self.metadata,
             "status": status,
             "step": self.current_step if self.busy else "",
             "queued": self.pending.qsize(),
@@ -181,30 +216,81 @@ class WebSession:
                 self.clients.remove(q)
 
     # ---- work ----
-    def submit(self, line: str) -> None:
+    def submit(self, line: str, *, source_run: str | None = None) -> None:
         line = line.strip()
+        with self._work:
+            if self.closing or self.closed:
+                raise RuntimeError("the session is closing or closed; reopen it before sending work")
+            if line and line.lower() != "/stop":
+                self.idle.clear()
+                self.pending.put((line, source_run))
+                self._work.notify()
         if line.lower() == "/stop":
             self.stop()
-        elif line and not self.closing and not self.closed:
-            self.pending.put(line)
+        elif line:
             self.emit({"kind": "queued", "text": line, "queued": self.pending.qsize()})
 
     def stop(self) -> bool:
-        if self.session is None or not self.busy:
-            return False
-        self.session.request_stop()
-        self.emit(self.state_event())
-        return True
+        cancelled: list[tuple[str, str | None]] = []
+        with self._work:
+            closing_sentinel = False
+            while True:
+                try:
+                    queued = self.pending.get_nowait()
+                except queue.Empty:
+                    break
+                if queued is None:
+                    closing_sentinel = True
+                else:
+                    cancelled.append(queued)
+            if closing_sentinel:
+                self.pending.put(None)
+            self._cancelled.extend(cancelled)
+            running = self.busy
+            if running and self.session is not None:
+                self.session.request_stop()
+            if not running and self.session is not None:
+                self.idle.set()
+            self._work.notify()
+        for line, source_run in cancelled:
+            self.emit({"kind": "instruction.cancelled", "text": line, "source_run": source_run})
+        if running or cancelled:
+            self.emit(self.state_event())
+        return bool(running or cancelled)
+
+    def _persist_cancelled(self, cancelled: Sequence[tuple[str, str | None]]) -> None:
+        """Only the worker writes cancellations, so shutdown cannot close their log mid-write."""
+        if self.session is not None and hasattr(self.session, "on_event"):
+            for line, source_run in cancelled:
+                self.session.on_event("web.instruction.cancelled", text=line, source_run=source_run)
 
     def _worker(self) -> None:
         try:
             self.session = self.make_session(self.out, self.hook)
             self.emit(self.state_event())
-            while not self.closing:
-                line = self.pending.get()
-                if line is None or self.closing:
+            while True:
+                with self._work:
+                    while not self.closing and self.pending.empty() and not self._cancelled:
+                        self.idle.set()
+                        self._work.wait()
+                    cancelled, self._cancelled = self._cancelled, []
+                    queued = self.pending.get_nowait() if not self.pending.empty() else None
+                    closing = self.closing
+                    if not closing and queued is not None:
+                        line, source_run = queued
+                        self.busy = source_run is None or source_run == self.session.run_id
+                        self.idle.clear()
+                self._persist_cancelled(cancelled)
+                if closing:
                     break
-                self.busy = True
+                if queued is None:
+                    continue
+                line, source_run = queued
+                if source_run is not None and source_run != self.session.run_id:
+                    self.emit({"kind": "log", "text": "✗ Session changed; that queued instruction was not run."})
+                    continue
+                if hasattr(self.session, "on_event"):
+                    self.session.on_event("web.instruction.start", text=line)
                 self.emit({"kind": "instruction.start", "text": line})
                 self.emit(self.state_event())
                 keep_going = True
@@ -213,33 +299,57 @@ class WebSession:
                 except Exception as error:
                     self.emit({"kind": "log", "text": f"✗ {type(error).__name__}: {str(error)[:500]}"})
                 finally:
-                    self.busy = False
+                    with self._work:
+                        self.busy = False
+                        # A stop can arrive after runtime cleanup but before this command is settled.
+                        cancel = getattr(self.session, "cancel", None)
+                        if cancel is not None:
+                            cancel.clear()
+                if hasattr(self.session, "on_event"):
+                    self.session.on_event("web.instruction.done", text=line)
                 self.emit({"kind": "instruction.done", "text": line})
                 self.emit(self.state_event())
                 if not keep_going:
-                    self.closing = True
+                    if self.keep_open:
+                        self.emit(
+                            {
+                                "kind": "log",
+                                "text": "Main stays available while Prax is running. Use Stop to stop its current work.",
+                            }
+                        )
+                    else:
+                        self.close()
         except Exception as error:
             self.error = f"{type(error).__name__}: {str(error)[:500]}"
             self.emit({"kind": "log", "text": f"could not start: {self.error}"})
         finally:
             if self.session is not None:
                 try:
+                    with self._work:
+                        cancelled, self._cancelled = self._cancelled, []
+                    self._persist_cancelled(cancelled)
                     self.session.close()
                 except Exception as error:
                     self.emit({"kind": "log", "text": f"✗ while closing: {str(error)[:500]}"})
-            self.closed = True
+            with self._work:
+                self.closed = True
+                self.idle.set()
             self.emit(self.state_event())
 
     def close(self) -> None:
-        if self.closing or self.closed:
-            return
-        self.closing = True
-        self.stop()
-        self.pending.put(None)
+        with self._work:
+            if self.closing or self.closed:
+                return
+            self.closing = True
+            self.stop()
+            self.pending.put(None)
+            self._work.notify()
         self.emit(self.state_event())
 
 
-def make_handler(web: WebSession, token: str, page: str) -> type[BaseHTTPRequestHandler]:
+def make_handler(web: WebSession | WebSessions, token: str, page: str) -> type[BaseHTTPRequestHandler]:
+    from prax_bot.ui.web_sessions import WebSessions
+
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, format: str, *args: Any) -> None:
             pass
@@ -277,6 +387,18 @@ def make_handler(web: WebSession, token: str, page: str) -> type[BaseHTTPRequest
         def _json(self, status: int, body: Any) -> None:
             self._send(status, json.dumps(body).encode("utf-8"), "application/json")
 
+        def _target(self, body: dict[str, Any] | None = None) -> WebSession:
+            if isinstance(web, WebSessions):
+                session_id = parse_qs(urlparse(self.path).query).get("session", [None])[0]
+                return web.get(session_id) if body is None else web.target(session_id, body.get("source_run"))
+            return web
+
+        def _submit(self, target: WebSession, text: str, body: dict[str, Any]) -> None:
+            if isinstance(web, WebSessions):
+                target.submit(text, source_run=body["source_run"])
+            else:
+                target.submit(text)
+
         def do_GET(self) -> None:
             path = urlparse(self.path).path
             if self._refused(needs_token=path not in ("/assets/app.css", "/assets/app.js")):
@@ -292,38 +414,53 @@ def make_handler(web: WebSession, token: str, page: str) -> type[BaseHTTPRequest
                 name = path.rsplit("/", 1)[-1]
                 content_type = "text/css" if name.endswith(".css") else "text/javascript"
                 self._send(HTTPStatus.OK, (ASSETS / name).read_bytes(), content_type)
-            elif path == "/state":
-                self._json(HTTPStatus.OK, web.state())
-            elif path == "/events":
-                self.send_response(HTTPStatus.OK)
-                self.send_header("Content-Type", "text/event-stream")
-                self.send_header("Cache-Control", "no-cache")
-                self.end_headers()
+            elif path in ("/state", "/events", "/sessions"):
                 try:
-                    after = int(
-                        self.headers.get("Last-Event-ID") or parse_qs(urlparse(self.path).query).get("after", ["0"])[0]
-                    )
-                except ValueError:
-                    after = 0
-                history, q = web.subscribe(after)
-                try:
-                    for event in history:
-                        self._send_event(event)
-                    self._send_event(web.state_event())
-                    while True:
-                        try:
-                            event = q.get(timeout=15)
-                        except queue.Empty:
-                            self.wfile.write(b": keepalive\n\n")
-                            self.wfile.flush()
-                            continue
-                        self._send_event(event)
-                except (BrokenPipeError, ConnectionResetError, OSError):
-                    pass
-                finally:
-                    web.unsubscribe(q)
+                    if path == "/sessions" and isinstance(web, WebSessions):
+                        self._json(HTTPStatus.OK, web.listing())
+                        return
+                    target = self._target()
+                except (ValueError, OSError, RuntimeError) as error:
+                    self._json(HTTPStatus.CONFLICT, {"error": str(error)})
+                    return
+                if path == "/state":
+                    self._json(HTTPStatus.OK, target.state())
+                    return
+                if path == "/sessions":
+                    self._json(HTTPStatus.OK, {"sessions": [], "saved_runs": []})
+                    return
+                self._events(target)
             else:
                 self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
+
+        def _events(self, target: WebSession) -> None:
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            try:
+                after = int(
+                    self.headers.get("Last-Event-ID") or parse_qs(urlparse(self.path).query).get("after", ["0"])[0]
+                )
+            except ValueError:
+                after = 0
+            history, q = target.subscribe(after)
+            try:
+                for event in history:
+                    self._send_event(event)
+                self._send_event(target.state_event())
+                while True:
+                    try:
+                        event = q.get(timeout=15)
+                    except queue.Empty:
+                        self.wfile.write(b": keepalive\n\n")
+                        self.wfile.flush()
+                        continue
+                    self._send_event(event)
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                pass
+            finally:
+                target.unsubscribe(q)
 
         def _send_event(self, event: dict[str, Any]) -> None:
             if "seq" in event:
@@ -344,39 +481,125 @@ def make_handler(web: WebSession, token: str, page: str) -> type[BaseHTTPRequest
             if not isinstance(body, dict):
                 self._json(HTTPStatus.BAD_REQUEST, {"error": "expected an object"})
                 return
+            try:
+                self._post(path, body)
+            except (ValueError, TypeError, FileNotFoundError) as error:
+                self._json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
+            except RuntimeError as error:
+                self._json(HTTPStatus.CONFLICT, {"error": str(error)})
+
+        def _post(self, path: str, body: dict[str, Any]) -> None:
+            if isinstance(web, WebSessions) and path.startswith("/sessions/"):
+                session_id = body.get("session_id", "")
+                if not isinstance(session_id, str) or (
+                    path in ("/sessions/open", "/sessions/rename", "/sessions/close") and not session_id
+                ):
+                    raise ValueError("session_id is required")
+                if path == "/sessions/new":
+                    task = body.get("task", "")
+                    if not isinstance(task, str):
+                        raise ValueError("task must be a string")
+                    session_id = web.create(body.get("name", ""), task)
+                elif path == "/sessions/open":
+                    session_id = web.open(session_id)
+                elif path == "/sessions/import":
+                    if not isinstance(body.get("run_id"), str) or not isinstance(body.get("name", ""), str):
+                        raise ValueError("run_id and name must be strings")
+                    session_id = web.import_run(body["run_id"], body.get("name", ""))
+                elif path == "/sessions/rename":
+                    web.rename(session_id, body.get("name", ""))
+                elif path == "/sessions/close":
+                    web.close_session(session_id, body.get("source_run"))
+                else:
+                    self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
+                    return
+                self._json(HTTPStatus.OK, {"ok": True, "session_id": session_id})
+                return
+            if path == "/shutdown" and isinstance(web, WebSessions):
+                self._shutdown()
+                return
+            target = self._target(body)
             if path == "/send":
-                web.submit(str(body.get("text") or ""))
-                self._json(HTTPStatus.OK, {"ok": True, "queued": web.pending.qsize()})
+                self._submit(target, str(body.get("text") or ""), body)
+                self._json(HTTPStatus.OK, {"ok": True, "queued": target.pending.qsize()})
             elif path == "/apply":
                 paths = body.get("files")
                 if not isinstance(paths, list) or not all(isinstance(name, str) for name in paths):
                     self._json(HTTPStatus.BAD_REQUEST, {"error": "files must be a list of paths"})
                     return
-                web.submit(shlex.join(["/apply", "--", *paths]))
+                self._submit(target, shlex.join(["/apply", "--", *paths]), body)
+                self._json(HTTPStatus.OK, {"ok": True})
+            elif path == "/compare":
+                objective = body.get("objective")
+                approach_a, approach_b = body.get("approach_a", ""), body.get("approach_b", "")
+                if not isinstance(objective, str) or not objective.strip():
+                    self._json(HTTPStatus.BAD_REQUEST, {"error": "objective must be a nonempty string"})
+                    return
+                if not isinstance(approach_a, str) or not isinstance(approach_b, str):
+                    self._json(HTTPStatus.BAD_REQUEST, {"error": "approaches must be strings"})
+                    return
+                self._submit(
+                    target, shlex.join(["/compare", "--a", approach_a, "--b", approach_b, "--", objective]), body
+                )
+                self._json(HTTPStatus.OK, {"ok": True})
+            elif path == "/choose":
+                candidate, comparison_id = body.get("candidate"), body.get("comparison_id")
+                if candidate not in ("A", "B"):
+                    self._json(HTTPStatus.BAD_REQUEST, {"error": "candidate must be A or B"})
+                    return
+                if not isinstance(comparison_id, str) or not comparison_id.strip():
+                    self._json(HTTPStatus.BAD_REQUEST, {"error": "comparison_id must be a nonempty string"})
+                    return
+                self._submit(target, shlex.join(["/choose", candidate, "--comparison", comparison_id]), body)
                 self._json(HTTPStatus.OK, {"ok": True})
             elif path == "/stop":
-                self._json(HTTPStatus.OK, {"ok": web.stop()})
+                self._json(HTTPStatus.OK, {"ok": target.stop()})
             elif path == "/quit":
-                web.close()
-                self._json(HTTPStatus.OK, {"ok": True})
-
-                def shutdown() -> None:
-                    web.worker.join()
-                    self.server.shutdown()
-
-                threading.Thread(target=shutdown, daemon=True).start()
+                if isinstance(web, WebSessions):
+                    web.close_session(target.metadata["session_id"], body.get("source_run"))
+                    self._json(HTTPStatus.OK, {"ok": True})
+                else:
+                    self._shutdown()
             else:
                 self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
+
+        def _shutdown(self) -> None:
+            web.close()
+            self._json(HTTPStatus.OK, {"ok": True})
+
+            def shutdown() -> None:
+                if isinstance(web, WebSessions):
+                    web.join()
+                else:
+                    web.worker.join()
+                self.server.shutdown()
+
+            threading.Thread(target=shutdown, daemon=True).start()
 
     return Handler
 
 
 def serve(
-    web: WebSession, *, host: str = "127.0.0.1", port: int = 0, open_browser: bool = True, page: str | None = None
+    web: WebSession | WebSessions,
+    *,
+    host: str = "127.0.0.1",
+    port: int = 0,
+    open_browser: bool = True,
+    page: str | None = None,
 ) -> None:
-    """Serve the page until /quit or an interrupt. Port 0 picks a free port."""
+    """Serve until shutdown or an interrupt. Port 0 picks a free port."""
+    from prax_bot.ui.web_sessions import WebSessions
+
     token = secrets.token_urlsafe(16)
-    server = ThreadingHTTPServer((host, port), make_handler(web, token, page or PAGE))
+    try:
+        server = ThreadingHTTPServer((host, port), make_handler(web, token, page or PAGE))
+    except BaseException:
+        web.close()
+        if isinstance(web, WebSessions):
+            web.join()
+        else:
+            web.worker.join()
+        raise
     server.daemon_threads = True
     url = f"http://{host}:{server.server_address[1]}/?token={token}"
     print(f"Prax Bot web interface: {url}", flush=True)
@@ -388,7 +611,10 @@ def serve(
         pass
     finally:
         web.close()
-        web.worker.join()
+        if isinstance(web, WebSessions):
+            web.join()
+        else:
+            web.worker.join()
         server.server_close()
 
 

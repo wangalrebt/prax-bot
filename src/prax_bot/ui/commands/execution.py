@@ -351,16 +351,26 @@ def web(
 def _start_web(
     settings: Settings, root: Path, backend: str, protect: list[str], verbose: bool, port: int, open_browser: bool
 ) -> None:
-    from prax_bot.ui.web import WebSession, serve
+    from prax_bot.ui.web import serve
+    from prax_bot.ui.web_sessions import WebSessions
 
     skills, plugins = load_extensions(settings)
 
-    def make_session(out: Console, hook: Any) -> Session:
+    def make_session(out: Console, hook: Any, past: Any, extra_tools: Any) -> Session:
         return create_session(
-            settings, root, verbose=verbose, out=out, hook=hook, protect=protect, skills=skills, plugins=plugins
+            settings,
+            root,
+            verbose=verbose,
+            out=out,
+            hook=hook,
+            protect=protect,
+            skills=skills,
+            plugins=[*plugins, *extra_tools],
+            resume=(past, len(past.checkpoints) - 1) if past is not None else None,
+            continue_session=past is not None,
         )
 
-    serve(WebSession(settings, root, backend, make_session), port=port, open_browser=open_browser)
+    serve(WebSessions(settings, root, backend, make_session), port=port, open_browser=open_browser)
 
 
 def main(ctx: typer.Context) -> None:

@@ -3,18 +3,57 @@
 from __future__ import annotations
 
 import dataclasses
+import fcntl
 import hashlib
 import json
 import os
 import shutil
+import subprocess
 import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from threading import local
 from typing import Any
 
 from prax_bot.runtime.storage import write_json
 from prax_bot.workspace.repository import advance_baseline, apply_diff
 from prax_bot.workspace.types import Changes, Workspace, WorkspaceError
+
+_held_apply_locks = local()
+
+
+@contextmanager
+def repository_apply_lock(root: Path) -> Iterator[None]:
+    """Serialize host applies, including recovery, across sessions, backends and processes.
+
+    Git resolves the lock location for normal repositories and linked worktrees. Reentrancy lets a
+    session hold the lock across preparation and finishing while standalone recovery locks finish too.
+    """
+    root = root.resolve()
+    held = getattr(_held_apply_locks, "roots", None)
+    if held is None:
+        held = _held_apply_locks.roots = set()
+    if root in held:
+        yield
+        return
+    result = subprocess.run(
+        ["git", "rev-parse", "--git-path", "praxbot-apply.lock"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    path = root / result.stdout.strip()
+    with path.open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        held.add(root)
+        try:
+            yield
+        finally:
+            held.remove(root)
+            fcntl.flock(lock, fcntl.LOCK_UN)
 
 
 def file_states(root: Path, files: tuple[str, ...]) -> dict[str, str | None]:
@@ -103,20 +142,21 @@ class ApplyTransaction:
 
     def finish(self, root: Path, workspace: Workspace) -> None:
         """Reconcile an interrupted host apply, then advance the exact baseline."""
-        if not self.host_applied:
-            current = file_states(root, self.changes.files)
-            if current == self.before:
-                apply_diff(root, self.changes.patch)
+        with repository_apply_lock(root):
+            if not self.host_applied:
                 current = file_states(root, self.changes.files)
-            if current != self.after:
-                raise WorkspaceError(
-                    "the files changed during an unfinished apply; restore the affected files to their "
-                    "pre-apply or applied contents, then retry /apply"
-                )
-            self.host_applied = True
-            self.save()
-        workspace.advance_clean(self.changes.patch)  # first, so the checkpoint the next line records carries it
-        advance_baseline(workspace, self.changes)
+                if current == self.before:
+                    apply_diff(root, self.changes.patch)
+                    current = file_states(root, self.changes.files)
+                if current != self.after:
+                    raise WorkspaceError(
+                        "the files changed during an unfinished apply; restore the affected files to their "
+                        "pre-apply or applied contents, then retry /apply"
+                    )
+                self.host_applied = True
+                self.save()
+            workspace.advance_clean(self.changes.patch)  # the next checkpoint must carry the new clean image
+            advance_baseline(workspace, self.changes)
 
     def clear(self) -> None:
         (self.directory / "pending-apply.patch").unlink(missing_ok=True)

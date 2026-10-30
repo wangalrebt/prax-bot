@@ -228,7 +228,10 @@ def test_an_apply_moves_the_clean_image_and_retires_the_old_baseline_runs(tmp_pa
 def test_attribution_needs_a_baseline_that_ran() -> None:
     failed = CheckResult("tests", "pytest", "img", 1, "", failures=(OLD, NEW))
     assert attributed(failed, None) is failed
-    assert attributed(failed, CheckResult("tests", "pytest", "img", None, "", error="boom")) is failed
+    unavailable = CheckResult("tests", "pytest", "img", None, "", error="boom")
+    incomplete = attributed(failed, unavailable)
+    assert incomplete.baseline is unavailable and incomplete.attribution == ""
+    assert incomplete.baseline_exit_code is None and incomplete.new_failures == incomplete.known_failures == ()
     clean = attributed(failed, CheckResult("tests", "pytest", "img", 0, ""))
     assert clean.new_failures == (OLD, NEW) and "2 new with this change" in clean.attribution
     opaque = attributed(CheckResult("lint", "ruff", "img", 1, ""), CheckResult("lint", "ruff", "img", 1, ""))

@@ -10,6 +10,7 @@
     <header>
       <div class="logo">&#10095;</div>
       <span class="name">Prax Bot</span>
+      <button id="sidebar-toggle" class="text-btn" aria-controls="sidebar" aria-expanded="false">Sessions</button>
       <span class="chip"><span id="hrepo"></span></span>
       <span class="chip"
         ><span class="k">backend</span><span id="hbackend"></span
@@ -28,12 +29,51 @@
       >
       <span class="seg"
         ><button id="tabchat" class="on">Chat</button
+        ><button id="tabchecks">Before / After</button
+        ><button id="tabcompare">Compare</button
         ><button id="tabtraj">Trajectory</button></span
       >
     </header>
     <main>
-      <aside>
-        <div class="slabel">Session</div>
+      <aside id="sidebar" aria-label="Sessions and current changes">
+        <div class="session-list-heading">
+          <div class="slabel">Sessions</div>
+          <button id="new-session-toggle" class="text-btn" aria-expanded="false" aria-controls="new-session-form">+ New work</button>
+        </div>
+        <p class="session-help">Work continues while you switch sessions or close this tab, as long as Prax Bot is running.</p>
+        <form id="new-session-form" class="session-form" hidden>
+          <label for="new-session-name">Name</label>
+          <input id="new-session-name" required maxlength="120" placeholder="e.g. Fix login tests" />
+          <label for="new-session-task">First task <span class="field-hint">optional</span></label>
+          <textarea id="new-session-task" rows="2" placeholder="What should this session work on?"></textarea>
+          <button id="new-session-create" class="btn primary" type="submit">Create work session</button>
+        </form>
+        <label class="sr-only" for="session-search">Search work sessions and saved runs</label>
+        <input id="session-search" class="session-search" type="search" placeholder="Search sessions and runs" />
+        <nav id="session-list" aria-label="Available sessions"></nav>
+        <details id="saved-runs">
+          <summary id="saved-runs-label">Saved runs</summary>
+          <div id="saved-run-list"></div>
+        </details>
+        <div id="session-error" class="log bad" role="alert"></div>
+        <button id="session-retry" class="text-btn" hidden>Retry connection</button>
+        <div class="session-heading">
+          <div class="slabel">Current session</div>
+          <h2 id="session-title">Loading…</h2>
+          <div class="session-actions">
+            <button id="session-rename" class="text-btn" disabled>Rename</button>
+            <button id="session-close" class="text-btn" hidden title="Stop this work session and keep its saved results">Close work session</button>
+          </div>
+        </div>
+        <form id="session-rename-form" class="session-form" hidden>
+          <label for="session-name">Session name</label>
+          <input id="session-name" required maxlength="120" />
+          <div class="session-actions">
+            <button id="session-name-save" class="btn" type="submit">Save name</button>
+            <button id="session-name-cancel" class="text-btn" type="button">Cancel</button>
+          </div>
+        </form>
+        <div id="session-main-note" class="session-help" hidden>Main stays available. Stop cancels its current work.</div>
         <div id="sinfo" class="path"></div>
         <div class="slabel">Changes</div>
         <div id="sfiles"><div class="dim">none pending</div></div>
@@ -41,6 +81,7 @@
         <div id="sexcluded" class="path"></div>
         <div class="slabel">Checks</div>
         <div id="schecks"></div>
+        <button id="view-checks" class="text-btn">View before / after</button>
         <div class="slabel">To-dos</div>
         <div id="stodos"><div class="dim">none</div></div>
         <div class="slabel">Rounds</div>
@@ -49,8 +90,8 @@
       <div class="content">
         <section id="chat" class="on">
           <div id="empty">
-            <h2>Ready when you are</h2>
-            <p>
+            <h2 id="empty-title">Ready when you are</h2>
+            <p id="empty-description">
               Describe a change and press Enter. Prax Bot works in the workspace
               and shows you the diff.
             </p>
@@ -61,6 +102,53 @@
                 >/apply&nbsp;&nbsp;/undo&nbsp;&nbsp;/diff&nbsp;&nbsp;/effort&nbsp;&nbsp;/help</span
               >
             </div>
+          </div>
+        </section>
+        <section id="checks-view" class="workspace-view">
+          <div class="view-heading">
+            <div>
+              <h2>Before / After</h2>
+              <p>The same checks on the baseline and the proposed change.</p>
+            </div>
+            <button id="verify-checks" class="btn">Run checks</button>
+          </div>
+          <div id="verification-status" class="notice" role="status"></div>
+          <div id="verification-checks"></div>
+        </section>
+        <section id="compare-view" class="workspace-view">
+          <div class="view-heading">
+            <div>
+              <h2>Compare two fixes</h2>
+              <p>Try two approaches to the same objective, then choose a patch to review and apply.</p>
+            </div>
+          </div>
+          <form id="compare-form" class="compare-form">
+            <label for="compare-objective">Objective <span class="field-hint">required</span></label>
+            <textarea id="compare-objective" rows="2" required placeholder="What should both fixes accomplish?"></textarea>
+            <div class="approaches">
+              <div>
+                <label for="compare-approach-a">Approach A <span class="field-hint">optional</span></label>
+                <textarea id="compare-approach-a" rows="2" placeholder="Suggest an approach, or leave open"></textarea>
+              </div>
+              <div>
+                <label for="compare-approach-b">Approach B <span class="field-hint">optional</span></label>
+                <textarea id="compare-approach-b" rows="2" placeholder="Suggest another approach, or leave open"></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <span id="compare-availability" class="muted"></span>
+              <button id="compare-start" class="btn primary" type="submit">Compare two fixes</button>
+            </div>
+            <div id="compare-error" class="log bad" role="alert"></div>
+          </form>
+          <div id="comparison-empty" class="empty-panel">Both approaches will stay visible here, with their checks, changes, and tool logs.</div>
+          <div id="comparison-result" hidden>
+            <div class="comparison-heading">
+              <h3 id="comparison-objective"></h3>
+              <span id="comparison-status" class="outcome"></span>
+            </div>
+            <div id="comparison-notice" class="notice" role="status"></div>
+            <div id="comparison-candidates" class="candidate-grid"></div>
           </div>
         </section>
         <section id="traj"></section>

@@ -160,7 +160,7 @@ def reopen_workspace(
         raise ValueError("resume the last checkpoint to finish recording this run's applied patch first")
     image = checkpoints[step]["image"]
     if image.startswith("local:"):
-        from prax_bot.workspace.local import LocalWorkspace, clone_dir
+        from prax_bot.workspace.local import LocalWorkspace, clone_dir, clone_virtualenv
 
         snap = local_snapshot(run, image, settings)
         old_root = snap.parents[1]
@@ -170,7 +170,9 @@ def reopen_workspace(
         root.mkdir(parents=True)
         clone_dir(snap, root / "current")
         if (old_root / "venv").is_dir():
-            clone_dir(old_root / "venv", root / "venv")
+            clone_virtualenv(
+                old_root / "venv", root / "venv", old_workdir=old_root / "current", new_workdir=root / "current"
+            )
         workspace = LocalWorkspace(root, command_timeout=settings.command_timeout, on_event=on_event)
         clean = str(checkpoints[step].get("clean") or "")
         if clean and (old_root / "snapshots" / clean.split(":", 1)[1]).is_dir():

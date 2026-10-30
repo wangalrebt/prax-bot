@@ -1,0 +1,680 @@
+{
+  "correction_date": "2026-10-25",
+  "experiment_date": "2026-09-14",
+  "reason": "reeval_instance returned before reading saved agent metadata when a patch was empty or missing. Seven no-submission attempts therefore lost usage in the grading report, and its Markdown rendered missing tokens as zero. No model or grading run was repeated.",
+  "original_sources": {
+    "mini_grade": {
+      "path": "bench/swebench/minisweagent/20260914T005753Z-grade.json",
+      "sha256": "c8066b5b57d899845a0b677b19a1c0442a1bcdfd57f96492be196fe31e6708bd",
+      "bytes": 11729
+    },
+    "prax_comparison": {
+      "path": "bench/swebench/20260909-prompt31-assembled.json",
+      "sha256": "0cc178dfbcd57ec3b3bb4c0c120b7e446f49fa7d9f20cfbadca11fc76db88582",
+      "bytes": 20940
+    }
+  },
+  "recovery_policy": "Start from all 31 original mini grading rows. For only the seven rows lacking steps/tokens, copy steps, tokens and exit_status from their saved per-task result.json. Preserve every original grading verdict and all original files. The embedded records preserve recovery evidence from ignored scratch paths.",
+  "recovered_records": [
+    {
+      "instance_id": "django__django-16899",
+      "metadata_source": {
+        "path": "bench/swebench/minisweagent/scratch/django__django-16899/result.json",
+        "sha256": "97eff753cdc28472d669e5072ec6b997d8ebef74a264f542044fa0c0c15ef767",
+        "bytes": 64
+      },
+      "saved_metadata": {
+        "steps": 50,
+        "tokens": 552511,
+        "exit_status": "LimitsExceeded"
+      },
+      "patch_source": {
+        "path": "bench/swebench/minisweagent/scratch/django__django-16899/patch.diff",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23476",
+      "metadata_source": {
+        "path": "bench/swebench/minisweagent/scratch/matplotlib__matplotlib-23476/result.json",
+        "sha256": "db25267f229c06318e8bc48262ce78b0de1ca252dd76c3e538d57e5066a1919d",
+        "bytes": 64
+      },
+      "saved_metadata": {
+        "steps": 50,
+        "tokens": 573213,
+        "exit_status": "LimitsExceeded"
+      },
+      "patch_source": {
+        "path": "bench/swebench/minisweagent/scratch/matplotlib__matplotlib-23476/patch.diff",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "instance_id": "pydata__xarray-4094",
+      "metadata_source": {
+        "path": "bench/swebench/minisweagent/scratch/pydata__xarray-4094/result.json",
+        "sha256": "fb34fec9ecdfcf7a1fefcbd91f1703ce2c4b76d9a49916f341d8ed7d4831504a",
+        "bytes": 64
+      },
+      "saved_metadata": {
+        "steps": 50,
+        "tokens": 658898,
+        "exit_status": "LimitsExceeded"
+      },
+      "patch_source": {
+        "path": "bench/swebench/minisweagent/scratch/pydata__xarray-4094/patch.diff",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "instance_id": "pylint-dev__pylint-7277",
+      "metadata_source": {
+        "path": "bench/swebench/minisweagent/scratch/pylint-dev__pylint-7277/result.json",
+        "sha256": "baefe8161658940f3a18ea526e98f93d1bf181388629efb2e8ce62bfb4deca92",
+        "bytes": 64
+      },
+      "saved_metadata": {
+        "steps": 50,
+        "tokens": 448788,
+        "exit_status": "LimitsExceeded"
+      },
+      "patch_source": {
+        "path": "bench/swebench/minisweagent/scratch/pylint-dev__pylint-7277/patch.diff",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-9258",
+      "metadata_source": {
+        "path": "bench/swebench/minisweagent/scratch/sphinx-doc__sphinx-9258/result.json",
+        "sha256": "c6b57c1884d2e1c99d976453cd4f862213bb286b578e1656e98b3cd12244218d",
+        "bytes": 64
+      },
+      "saved_metadata": {
+        "steps": 50,
+        "tokens": 815015,
+        "exit_status": "LimitsExceeded"
+      },
+      "patch_source": {
+        "path": "bench/swebench/minisweagent/scratch/sphinx-doc__sphinx-9258/patch.diff",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-9591",
+      "metadata_source": {
+        "path": "bench/swebench/minisweagent/scratch/sphinx-doc__sphinx-9591/result.json",
+        "sha256": "f74900b0fd582c64dd225814f6c2e6d8a3c26ca49a71eb2888f19ab5895434a1",
+        "bytes": 64
+      },
+      "saved_metadata": {
+        "steps": 50,
+        "tokens": 672611,
+        "exit_status": "LimitsExceeded"
+      },
+      "patch_source": {
+        "path": "bench/swebench/minisweagent/scratch/sphinx-doc__sphinx-9591/patch.diff",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "instance_id": "sympy__sympy-17655",
+      "metadata_source": {
+        "path": "bench/swebench/minisweagent/scratch/sympy__sympy-17655/result.json",
+        "sha256": "3b9fccf01b7218c135e03b3b40eede95db30f99587dae1867fc8bdfa396abbde",
+        "bytes": 64
+      },
+      "saved_metadata": {
+        "steps": 50,
+        "tokens": 572103,
+        "exit_status": "LimitsExceeded"
+      },
+      "patch_source": {
+        "path": "bench/swebench/minisweagent/scratch/sympy__sympy-17655/patch.diff",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    }
+  ],
+  "totals": {
+    "mini_original_incomplete": {
+      "tasks": 31,
+      "resolved": 20,
+      "steps": 709,
+      "tokens": 6794459,
+      "tasks_with_recorded_usage": 24
+    },
+    "omitted_usage": {
+      "tasks": 7,
+      "steps": 350,
+      "tokens": 4293139
+    },
+    "mini_corrected": {
+      "tasks": 31,
+      "resolved": 20,
+      "steps": 1059,
+      "tokens": 11087598,
+      "tasks_with_recorded_usage": 31
+    },
+    "prax": {
+      "tasks": 31,
+      "resolved": 23,
+      "steps": 933,
+      "tokens": 12211376,
+      "tasks_with_recorded_usage": 31
+    },
+    "mini_token_change_percent": -9.202713928389395,
+    "mini_step_difference": 126
+  },
+  "paired_outcomes": {
+    "both_resolved": [
+      "astropy__astropy-14309",
+      "astropy__astropy-14995",
+      "astropy__astropy-7166",
+      "django__django-11880",
+      "matplotlib__matplotlib-25122",
+      "pallets__flask-5014",
+      "psf__requests-1142",
+      "psf__requests-2317",
+      "pydata__xarray-4075",
+      "pydata__xarray-4629",
+      "pylint-dev__pylint-6903",
+      "pytest-dev__pytest-5262",
+      "pytest-dev__pytest-5809",
+      "scikit-learn__scikit-learn-12585",
+      "scikit-learn__scikit-learn-13328",
+      "scikit-learn__scikit-learn-25232",
+      "sphinx-doc__sphinx-8621",
+      "sympy__sympy-15017"
+    ],
+    "mini_only": [
+      "psf__requests-5414",
+      "pytest-dev__pytest-7521"
+    ],
+    "prax_only": [
+      "django__django-12193",
+      "django__django-16899",
+      "pydata__xarray-4094",
+      "pylint-dev__pylint-7277",
+      "sphinx-doc__sphinx-9591"
+    ],
+    "neither_resolved": [
+      "matplotlib__matplotlib-20676",
+      "matplotlib__matplotlib-23476",
+      "pylint-dev__pylint-4970",
+      "sphinx-doc__sphinx-9258",
+      "sympy__sympy-17655",
+      "sympy__sympy-20916"
+    ]
+  },
+  "limitations": [
+    "Historical 31-task subset, one model attempt per task per harness; these are not full-500 SWE-bench Verified scores.",
+    "Same reported model, sampling and 50-step cap do not establish identical tool semantics, effective compute budgets, or controlled causal effects.",
+    "Recorded tokens are model usage, not measured USD cost. Complete provider billing is unavailable.",
+    "The seven saved metadata records report LimitsExceeded; they contain no patch and were not officially graded. Their missing grading-report usage was unknown, not genuine zero.",
+    "This correction reconstructs saved accounting only; it does not validate a full-500 prediction or demonstrate harness parity."
+  ],
+  "results": [
+    {
+      "instance_id": "astropy__astropy-14309",
+      "repo": "astropy/astropy",
+      "difficulty": "<15 min fix",
+      "steps": 13,
+      "tokens": 91815,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "141/141",
+      "eval": "resolved",
+      "eval_cost": 0.33944218000000004,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "astropy__astropy-14995",
+      "repo": "astropy/astropy",
+      "difficulty": "<15 min fix",
+      "steps": 26,
+      "tokens": 205467,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "179/179",
+      "eval": "resolved",
+      "eval_cost": 0.33139162000000005,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "astropy__astropy-7166",
+      "repo": "astropy/astropy",
+      "difficulty": "<15 min fix",
+      "steps": 31,
+      "tokens": 204541,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "6/6",
+      "eval": "resolved",
+      "eval_cost": 0.040340509999999996,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "django__django-11880",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "steps": 19,
+      "tokens": 82041,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "114/114",
+      "eval": "resolved",
+      "eval_cost": 0.04046907,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "django__django-12193",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "steps": 45,
+      "tokens": 502643,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "11/11",
+      "eval": "not resolved",
+      "eval_cost": 0.04077750000000001,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "django__django-16899",
+      "repo": "django/django",
+      "difficulty": "<15 min fix",
+      "resolved": false,
+      "eval": "no saved patch",
+      "steps": 50,
+      "tokens": 552511,
+      "exit_status": "LimitsExceeded"
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-20676",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "steps": 45,
+      "tokens": 734163,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/2",
+      "p2p": "32/32",
+      "eval": "not resolved",
+      "eval_cost": 0.11880357999999999,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-25122",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "steps": 17,
+      "tokens": 56120,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "12/12",
+      "p2p": "2476/2476",
+      "eval": "resolved",
+      "eval_cost": 0.18842959,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23476",
+      "repo": "matplotlib/matplotlib",
+      "difficulty": "<15 min fix",
+      "resolved": false,
+      "eval": "no saved patch",
+      "steps": 50,
+      "tokens": 573213,
+      "exit_status": "LimitsExceeded"
+    },
+    {
+      "instance_id": "pallets__flask-5014",
+      "repo": "pallets/flask",
+      "difficulty": "<15 min fix",
+      "steps": 36,
+      "tokens": 287991,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "59/59",
+      "eval": "resolved",
+      "eval_cost": 0.025319720000000004,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "psf__requests-1142",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "steps": 28,
+      "tokens": 283102,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "5/5",
+      "eval": "resolved",
+      "eval_cost": 0.01650776,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "psf__requests-2317",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "steps": 30,
+      "tokens": 285938,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "8/8",
+      "p2p": "133/133",
+      "eval": "resolved",
+      "eval_cost": 0.01868209,
+      "grading_attempts": 2
+    },
+    {
+      "instance_id": "pydata__xarray-4075",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "steps": 23,
+      "tokens": 132509,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "958/958",
+      "eval": "resolved",
+      "eval_cost": 0.08156158000000001,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "psf__requests-5414",
+      "repo": "psf/requests",
+      "difficulty": "<15 min fix",
+      "steps": 33,
+      "tokens": 263101,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "130/130",
+      "eval": "resolved",
+      "eval_cost": 0.0167579,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "pydata__xarray-4629",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "steps": 14,
+      "tokens": 61250,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "32/32",
+      "eval": "resolved",
+      "eval_cost": 0.060100350000000004,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "pylint-dev__pylint-4970",
+      "repo": "pylint-dev/pylint",
+      "difficulty": "<15 min fix",
+      "steps": 27,
+      "tokens": 247170,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "17/17",
+      "eval": "not resolved",
+      "eval_cost": 0.019186400000000003,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "pylint-dev__pylint-6903",
+      "repo": "pylint-dev/pylint",
+      "difficulty": "<15 min fix",
+      "steps": 16,
+      "tokens": 122953,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "8/8",
+      "eval": "resolved",
+      "eval_cost": 0.09843964000000001,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "pydata__xarray-4094",
+      "repo": "pydata/xarray",
+      "difficulty": "<15 min fix",
+      "resolved": false,
+      "eval": "no saved patch",
+      "steps": 50,
+      "tokens": 658898,
+      "exit_status": "LimitsExceeded"
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5809",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "steps": 8,
+      "tokens": 25734,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "3/3",
+      "eval": "resolved",
+      "eval_cost": 0.028730870000000002,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "pylint-dev__pylint-7277",
+      "repo": "pylint-dev/pylint",
+      "difficulty": "<15 min fix",
+      "resolved": false,
+      "eval": "no saved patch",
+      "steps": 50,
+      "tokens": 448788,
+      "exit_status": "LimitsExceeded"
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5262",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "steps": 43,
+      "tokens": 401958,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "108/108",
+      "eval": "resolved",
+      "eval_cost": 0.07819223,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-12585",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "steps": 20,
+      "tokens": 123111,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "22/22",
+      "eval": "resolved",
+      "eval_cost": 0.031358750000000005,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "pytest-dev__pytest-7521",
+      "repo": "pytest-dev/pytest",
+      "difficulty": "<15 min fix",
+      "steps": 27,
+      "tokens": 308572,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "125/125",
+      "eval": "resolved",
+      "eval_cost": 0.07633691,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-13328",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "steps": 42,
+      "tokens": 539786,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "9/9",
+      "eval": "resolved",
+      "eval_cost": 0.034722949999999995,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8621",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "steps": 34,
+      "tokens": 376538,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "2/2",
+      "p2p": "31/31",
+      "eval": "resolved",
+      "eval_cost": 0.03214363,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-25232",
+      "repo": "scikit-learn/scikit-learn",
+      "difficulty": "<15 min fix",
+      "steps": 48,
+      "tokens": 568470,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "214/214",
+      "eval": "resolved",
+      "eval_cost": 1.30246069,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-9258",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "resolved": false,
+      "eval": "no saved patch",
+      "steps": 50,
+      "tokens": 815015,
+      "exit_status": "LimitsExceeded"
+    },
+    {
+      "instance_id": "sympy__sympy-15017",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "steps": 40,
+      "tokens": 346262,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": true,
+      "patch_applied": true,
+      "f2p": "1/1",
+      "p2p": "14/14",
+      "eval": "resolved",
+      "eval_cost": 0.023052239999999998,
+      "grading_attempts": 1
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-9591",
+      "repo": "sphinx-doc/sphinx",
+      "difficulty": "<15 min fix",
+      "resolved": false,
+      "eval": "no saved patch",
+      "steps": 50,
+      "tokens": 672611,
+      "exit_status": "LimitsExceeded"
+    },
+    {
+      "instance_id": "sympy__sympy-17655",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "resolved": false,
+      "eval": "no saved patch",
+      "steps": 50,
+      "tokens": 572103,
+      "exit_status": "LimitsExceeded"
+    },
+    {
+      "instance_id": "sympy__sympy-20916",
+      "repo": "sympy/sympy",
+      "difficulty": "<15 min fix",
+      "steps": 44,
+      "tokens": 543224,
+      "diff_lines": null,
+      "agent_elapsed": null,
+      "resolved": false,
+      "patch_applied": true,
+      "f2p": "0/1",
+      "p2p": "1/1",
+      "eval": "not resolved",
+      "eval_cost": 0.025329300000000003,
+      "grading_attempts": 1
+    }
+  ]
+}

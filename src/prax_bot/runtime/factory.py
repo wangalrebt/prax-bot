@@ -37,14 +37,21 @@ def create_session(
     plugins: Sequence[ExtraTool] = (),
     kind: str = "session",
     resume: tuple[Run, int] | None = None,
+    continue_session: bool = False,
     llm: LLM | None = None,
 ) -> Session:
+    if continue_session and resume is None:
+        raise ValueError("continuing a session requires its saved run")
+    pending_apply = False
     if resume is not None:
-        past, _ = resume
+        past, step = resume
         if not past.info.get("repo") or Path(past.info["repo"]).resolve() != root.resolve():
             raise ValueError("the run belongs to a different repository")
         if past.info.get("backend", "contree") != settings.backend:
             raise ValueError("the run uses a different backend")
+        if continue_session and step != len(past.checkpoints) - 1:
+            raise ValueError("continue the session from its last checkpoint")
+        pending_apply = past.pending_apply is not None
     run_id, directory, events_file, emit = new_run(settings, on_event)
     try:
         workspace = (
@@ -73,6 +80,11 @@ def create_session(
             session.instructions = list(past.info.get("followups") or [])
             session.last_summary = str(past.info.get("summary") or "")
             session.resumed_from = {"run_id": past.run_id, "step": step, "image": past.checkpoints[step]["image"]}
+            if continue_session:
+                session.restore_continuity(past, step, pending_apply=pending_apply)
+            session.restore_comparisons(past, step)
+            if continue_session:
+                session.diff()
             session.record()
         return session
     except BaseException:

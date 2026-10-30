@@ -39,6 +39,7 @@ class CheckResult:
     baseline_exit_code: int | None = None  # the same command in a fork of the clean image without the diff
     new_failures: tuple[str, ...] = ()  # failing tests that do not fail without the diff
     known_failures: tuple[str, ...] = ()  # failing tests that fail without the diff too
+    baseline: CheckResult | None = None  # complete evidence, including a baseline that failed to finish
 
     @property
     def passed(self) -> bool:
@@ -62,7 +63,12 @@ class CheckResult:
         return "also fails without this change" if self.baseline_exit_code != 0 else "passes without this change"
 
     def as_dict(self) -> dict[str, Any]:
-        return {**dataclasses.asdict(self), "passed": self.passed, "attribution": self.attribution}
+        return {
+            **dataclasses.asdict(self),
+            "passed": self.passed,
+            "attribution": self.attribution,
+            "baseline": self.baseline.as_dict() if self.baseline is not None else None,
+        }
 
 
 def verification_status(
@@ -88,7 +94,10 @@ def run_check(workspace: Workspace, name: str, command: str, timeout: int, *, pa
     (an empty patch is the baseline itself). Otherwise it runs on the workspace as it stands.
     """
     image = workspace.image_id
-    forked = patch is not None and getattr(workspace, "clean", None) is not None
+    clean = getattr(workspace, "clean", None)
+    forked = patch is not None and clean is not None
+    if patch is not None and not patch.strip() and clean is not None:
+        image = clean
     where = "fork" if forked else "workspace"
     try:
         if forked:
@@ -115,11 +124,16 @@ def run_check(workspace: Workspace, name: str, command: str, timeout: int, *, pa
 
 def attributed(check: CheckResult, baseline: CheckResult | None) -> CheckResult:
     """The check with what the baseline run knows: which of its failing tests fail without the diff too."""
-    if baseline is None or baseline.error is not None or baseline.exit_code is None:
+    if baseline is None:
         return check
+    if baseline.error is not None or baseline.exit_code is None or baseline.timed_out:
+        return dataclasses.replace(
+            check, baseline=baseline, baseline_exit_code=None, new_failures=(), known_failures=()
+        )
     before = set(baseline.failures)
     return dataclasses.replace(
         check,
+        baseline=baseline,
         baseline_exit_code=baseline.exit_code,
         new_failures=tuple(name for name in check.failures if name not in before),
         known_failures=tuple(name for name in check.failures if name in before),

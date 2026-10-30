@@ -216,10 +216,8 @@ class PraxApp(App[None]):
     def idle_status(self) -> str:
         if self.session is None:
             return "idle"
-        s = self.session
-        pending = s.changes.files if s.changes else ()
-        context = int(getattr(s.llm, "last_prompt_tokens", 0) or 0)
-        return f"idle · {s.rounds} rounds · {s.steps} steps · {s.llm.usage.total_tokens:,} tokens · context {context:,} · {len(pending)} files pending · checks {s.verification_status}"
+        s = self.session.state()
+        return f"idle · {s['rounds']} rounds · {s['steps']} steps · {s['tokens']:,} tokens · context {s['context']:,} · {len(s['files'])} files pending · checks {s['verification']}"
 
     def render_sidebar(self) -> None:
         s = self.settings

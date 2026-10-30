@@ -209,16 +209,19 @@ class ToolBox:
             set()
         )  # tests failing without the change: seen before any edit, or by the fork
         self._told_baseline: set[str] = set()  # the ones the model has already been told about
-        self._observed: dict[str, str] = {}  # path -> digest of the content the model last saw
+        self._observed: dict[str, str] = {}  # normalized workspace path -> digest at the last successful read/edit
         self._outputs = 0
         self.todos: list[dict[str, str]] = []
 
     def definitions(self, paths: list[str]) -> dict[str, list[tuple[int, str]]]:
         """Line-numbered definitions per file, from one grep over all files not yet cached."""
-        wanted = [p for p in paths if p not in self._defs]
+        keys = {p: resolve_in_workdir(p, self.ws.workdir) for p in paths}
+        # The shell uses repository-relative operands: /work is virtual in a local workspace.
+        # One operand per normalized file also avoids duplicate definitions when callers pass aliases.
+        wanted = {key.removeprefix(self.ws.workdir + "/"): key for key in keys.values() if key not in self._defs}
         if wanted:
-            for p in wanted:
-                self._defs[p] = []
+            for key in wanted.values():
+                self._defs[key] = []
             quoted = " ".join(shlex.quote(p) for p in wanted)
             r = self.ws.run(
                 f"grep -nHE {shlex.quote(DEFINITION_RE)} -- {quoted}",
@@ -228,12 +231,12 @@ class ToolBox:
             )
             for line in r.stdout.splitlines():
                 m = re.match(r"(.+?):(\d+):(.*)$", line)
-                if m and m.group(1) in self._defs:
-                    self._defs[m.group(1)].append((int(m.group(2)), m.group(3).rstrip()))
-        return {p: self._defs.get(p, []) for p in paths}
+                if m and m.group(1) in wanted:
+                    self._defs[wanted[m.group(1)]].append((int(m.group(2)), m.group(3).rstrip()))
+        return {p: self._defs[key] for p, key in keys.items()}
 
     def defs_for(self, path: str) -> list[tuple[int, str]]:
-        return self._defs.get(path, [])
+        return self._defs.get(resolve_in_workdir(path, self.ws.workdir), [])
 
     def compact(self, name: str, output: str) -> str:
         return compact_tool_output(name, output, self.defs_for)
@@ -425,18 +428,18 @@ class ToolBox:
         return clip(_limited(lines, a.max_results, r.truncated, "matches; narrow the pattern or path")) + note
 
     def _observe(self, path: str, text: str) -> None:
-        self._observed[path] = _digest(text)
+        self._observed[resolve_in_workdir(path, self.ws.workdir)] = _digest(text)
 
     def _fresh(self, path: str, text: str) -> bool:
-        """The model has seen exactly this content, from a read or from its own last edit."""
-        return self._observed.get(path) == _digest(text)
+        """The file has not changed since a successful read or the model's own last edit."""
+        return self._observed.get(resolve_in_workdir(path, self.ws.workdir)) == _digest(text)
 
     def _protected(self, path: str) -> bool:
         """True for an existing repository file matching a protected glob. New files and the scratch dir are free."""
-        raw = path.strip()
-        if raw.startswith(SCRATCH_DIR):
+        normalized = resolve_in_workdir(path, self.ws.workdir)
+        if normalized == SCRATCH_DIR or normalized.startswith(SCRATCH_DIR + "/"):
             return False
-        rel = raw.lstrip("./")
+        rel = normalized.removeprefix(self.ws.workdir + "/")
         if not any(fnmatch.fnmatch(rel, pat) for pat in self.protected):
             return False
         try:
@@ -447,10 +450,10 @@ class ToolBox:
 
     def _read_file(self, a: ReadFile) -> str | ToolResult:
         text = self.ws.read(a.path).decode("utf-8", "replace")
-        self._observe(a.path, text)
         lines = text.splitlines()
         total = len(lines)
         if total == 0:
+            self._observe(a.path, text)
             return f"{a.path} is empty"
         start, end, label = a.start_line, a.end_line or total, ""
         if a.symbol:
@@ -463,8 +466,11 @@ class ToolBox:
         if start > total:
             return failed(f"{a.path} has {total} lines; start_line {start} is past the end")
         end = min(end, total, start + MAX_READ_LINES - 1)
+        if end < start:
+            return failed("end_line must not be before start_line")
         body = number_lines(lines[start - 1 : end], start)
         note = "" if end == total else f"\n... {total - end} more lines; call read_file with start_line={end + 1}"
+        self._observe(a.path, text)
         return f"{a.path} lines {start}-{end} of {total}{label}\n{body}{note}"
 
     def _outline(self, a: Outline) -> str:
@@ -482,7 +488,7 @@ class ToolBox:
         if not self._fresh(a.path, text):
             why = (
                 "It has changed since you last read it."
-                if a.path in self._observed
+                if resolve_in_workdir(a.path, self.ws.workdir) in self._observed
                 else "You have not read it in this session."
             )
             return failed(f"read {a.path} before editing it. {why}")
@@ -614,8 +620,9 @@ class ToolBox:
 
     def _after_write(self, path: str, text: str) -> None:
         """After the model changes a file: its outline is stale, it may count as a repository edit, and its content is seen."""
-        self._defs.pop(path, None)
-        if not resolve_in_workdir(path, self.ws.workdir).startswith(SCRATCH_DIR):
+        normalized = resolve_in_workdir(path, self.ws.workdir)
+        self._defs.pop(normalized, None)
+        if normalized != SCRATCH_DIR and not normalized.startswith(SCRATCH_DIR + "/"):
             self._edit_steps.append(self.ws.current_step)
         self._observe(path, text)
 
@@ -639,5 +646,6 @@ class ToolBox:
             )
         self._restores += 1
         target = self.ws.restore(a.step)
+        self._defs.clear()  # restored files may have different definitions or line numbers
         self._edit_steps = [s for s in self._edit_steps if s <= target.step]
         return f"restored the workspace to checkpoint {target.step} ({target.label}); now at checkpoint {self.ws.current_step}"

@@ -75,6 +75,7 @@ def create_session(
     plugins: Sequence[ExtraTool] = (),
     kind: str = "session",
     resume: tuple[Run, int] | None = None,
+    continue_session: bool = False,
 ) -> Session:
     """Attach interface observers to the shared session factory."""
     from contree_sdk.sdk.exceptions import ForbiddenError
@@ -92,7 +93,15 @@ def create_session(
     output.print("[bold]sandbox[/]" if settings.backend == "contree" else "[bold]local workspace[/]")
     try:
         return create(
-            settings, root, on_event=observe, protect=protect, skills=skills, plugins=plugins, kind=kind, resume=resume
+            settings,
+            root,
+            on_event=observe,
+            protect=protect,
+            skills=skills,
+            plugins=plugins,
+            kind=kind,
+            resume=resume,
+            continue_session=continue_session,
         )
     except Exception as error:
         message = NO_SANDBOX_ACCESS if isinstance(error, ForbiddenError) else f"{type(error).__name__}: {error}"

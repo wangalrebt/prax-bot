@@ -5,20 +5,35 @@ const COMMANDS = [
   ["/undo", "undo the last instruction"],
   ["/diff", "show the pending changes"],
   ["/goal", "work in rounds: /goal [--check CMD] [--rounds N] OBJECTIVE"],
+  ["/compare", "compare two fixes: /compare [--a APPROACH] [--b APPROACH] OBJECTIVE"],
+  ["/choose", "select a comparison patch: /choose A|B"],
   ["/resume", "swap in a past run's checkpoint: /resume RUN-ID [--from N]"],
   ["/effort", "off, low, high or xhigh for the next instructions"],
   ["/verify", "run the configured test and lint commands"],
   ["/stop", "stop after the current call"],
   ["/status", "steps, tokens, checkpoints, pending changes"],
   ["/help", "list the commands"],
-  ["/quit", "end the session"],
+  ["/quit", "close this work session; Main stays available"],
 ];
 let state = {},
   turn = null,
   group = null,
   callRows = {},
   roundStepsStart = 0,
-  lastSeq = 0;
+  lastSeq = 0,
+  requestingComparison = false,
+  choosingCandidate = false,
+  activeSessionId = null,
+  sessionEpoch = 0,
+  eventStream = null,
+  reconnectTimer = null,
+  sessionPollTimer = null,
+  serverReachable = true,
+  serverShutdown = false,
+  sessions = [],
+  savedRuns = [],
+  mainSessionId = null;
+const drafts = new Map();
 const selectedFiles = new Set(),
   knownFiles = new Set();
 const chat = $("#chat"),
@@ -33,7 +48,7 @@ function el(t, c, x) {
 }
 function describe(name, a) {
   try {
-    const o = JSON.parse(a || "{}");
+    const o = typeof a === "string" ? JSON.parse(a || "{}") : a || {};
     if (o.command) return o.command;
     if (o.path) {
       let s = o.path;
@@ -50,17 +65,18 @@ function describe(name, a) {
     return String(a).slice(0, 120);
   }
 }
-function newTurn(text) {
+function newTurn(text, historical = false) {
   $("#empty").style.display = "none";
   turn = el("div", "turn");
   turn.dataset.label = text.slice(0, 34);
+  turn.dataset.historical = String(historical);
   turn.appendChild(el("div", "user", text));
   group = null;
   chat.appendChild(turn);
   turn.scrollIntoView({ block: "end", behavior: "smooth" });
 }
-function ensureGroup() {
-  if (!turn) newTurn("(continued)");
+function ensureGroup(historical = false) {
+  if (!turn) newTurn("(continued)", historical);
   if (!group) {
     group = el("div", "group open");
     const b = el("button", "ghead");
@@ -76,7 +92,7 @@ function ensureGroup() {
   return group;
 }
 function addCall(e) {
-  const g = ensureGroup();
+  const g = ensureGroup(e.historical);
   const r = el("div", "row");
   r.innerHTML =
     '<span class="name"></span> <span class="args"></span> <span class="res"></span><pre></pre>';
@@ -99,7 +115,7 @@ function addResult(e) {
   r.querySelector("pre").textContent = out;
 }
 function addSummary(e, finished) {
-  if (!turn) newTurn("(continued)");
+  if (!turn) newTurn("(continued)", e.historical);
   turn.appendChild(
     el(
       "div",
@@ -123,8 +139,7 @@ function addStats(s, rs) {
   ].forEach((x) => w.appendChild(el("span", "", x)));
   turn.appendChild(w);
 }
-function addDiff(diff) {
-  if (!turn || !diff) return;
+function diffView(diff) {
   const files = diff
     .split("\n")
     .filter((l) => l.startsWith("diff --git")).length;
@@ -154,18 +169,214 @@ function addDiff(diff) {
   });
   d.appendChild(b);
   d.appendChild(box);
-  turn.appendChild(d);
+  return d;
+}
+function addDiff(diff) {
+  if (turn && diff) turn.appendChild(diffView(diff));
+}
+function checkOutcome(check) {
+  if (!check) return { label: "Unavailable", tone: "unknown" };
+  if (check.timed_out) return { label: "Unknown · timed out", tone: "unknown" };
+  if (check.error) return { label: "Unknown · check error", tone: "unknown" };
+  if (check.exit_code === null || check.exit_code === undefined)
+    return { label: "Unavailable", tone: "unknown" };
+  return check.exit_code === 0
+    ? { label: "Passed", tone: "passed" }
+    : { label: "Failed", tone: "failed" };
+}
+function checkCard(check, before, key) {
+  const card = el("div", "check-card"),
+    outcome = checkOutcome(check),
+    heading = el("div", "check-card-heading");
+  heading.append(
+    el("h4", "", before ? "Before · baseline" : "After · patch"),
+    el("span", "outcome " + outcome.tone, outcome.label),
+  );
+  card.appendChild(heading);
+  if (!check) {
+    card.appendChild(el("p", "muted", "No baseline result is available. Whether this check changed is unknown."));
+    return card;
+  }
+  card.appendChild(el("code", "check-command", check.command));
+  const location = check.where === "fork"
+    ? before ? "Clean image fork, without the patch" : "Clean image fork, with the patch applied"
+    : check.where === "workspace" ? "Workspace" : check.where || "Unavailable";
+  card.append(
+    el("div", "check-location", "Test location: " + location),
+    el("div", "check-image", "Image: " + (check.image || "unavailable")),
+    el("div", "check-meta", "Exit " + (check.exit_code ?? "unavailable") + " · " + Number(check.elapsed_s || 0).toFixed(2) + "s"),
+  );
+  if (outcome.tone === "unknown")
+    card.appendChild(el("p", "check-unknown", "This result does not establish whether the check passes or fails."));
+  const details = el("details", "check-details");
+  details.dataset.key = key;
+  details.appendChild(el("summary", "", "Logs & details"));
+  if (check.error) details.appendChild(el("pre", "check-output bad", "Error: " + check.error));
+  if (check.timed_out) details.appendChild(el("p", "check-unknown", "The check timed out."));
+  details.appendChild(el("pre", "check-output", check.output || "No output captured."));
+  if (check.failures && check.failures.length)
+    details.appendChild(el("pre", "check-output", "Reported failing tests:\n" + check.failures.join("\n")));
+  card.appendChild(details);
+  return card;
+}
+function checkPair(check, key) {
+  const pair = el("div", "check-pair"),
+    cards = el("div", "check-pair-cards");
+  pair.appendChild(el("h3", "", check.name));
+  if (check.attribution) pair.appendChild(el("p", "check-attribution", check.attribution));
+  cards.append(checkCard(check.baseline, true, key + "-before"), checkCard(check, false, key + "-after"));
+  pair.appendChild(cards);
+  return pair;
+}
+function preserveOpenDetails(container, render) {
+  const open = new Set([...container.querySelectorAll("details[open], .diff.open")].map((node) => node.dataset.key));
+  render();
+  container.querySelectorAll("details, .diff").forEach((node) => {
+    if (!open.has(node.dataset.key)) return;
+    if (node.tagName === "DETAILS") node.open = true;
+    else node.classList.add("open");
+  });
+}
+function renderChecks(s) {
+  const sidebar = $("#schecks"),
+    checks = s.checks || [],
+    full = $("#verification-checks");
+  sidebar.replaceChildren(el("div", "path", s.verification || "not run"));
+  checks.forEach((check) => {
+    const item = el("div", "check-mini");
+    item.append(
+      el("strong", "", check.name),
+      el("span", "", "Before: " + checkOutcome(check.baseline).label),
+      el("span", "", "After: " + checkOutcome(check).label),
+    );
+    sidebar.appendChild(item);
+  });
+  $("#verification-status").textContent = "Current verification: " + (s.verification || "not run") +
+    (s.verification === "stale" ? ". These results are from an earlier version of the changes. Run checks again for current evidence." : "");
+  preserveOpenDetails(full, () => {
+    full.replaceChildren();
+    checks.forEach((check, i) => full.appendChild(checkPair(check, "current-" + i)));
+    if (!checks.length) full.appendChild(el("div", "empty-panel", s.verification === "not configured"
+      ? "No checks are configured for this session."
+      : "Run checks to see the baseline and the proposed change together. Missing or interrupted checks stay marked as unknown."));
+  });
+}
+function comparisonDisabledReason() {
+  if (state.closed) return "The session has ended.";
+  if (state.pending_apply) return "Finish applying the pending change before starting a comparison.";
+  if (state.status !== "idle") return "Available when the session is idle.";
+  if (requestingComparison) return "Starting comparison…";
+  return "Choose a candidate when both runs have stopped. Applying is a separate step.";
+}
+function updateCompareControls() {
+  const disabled = !!state.closed || state.status !== "idle" || !!state.pending_apply || requestingComparison;
+  $("#compare-start").disabled = disabled;
+  $("#compare-availability").textContent = comparisonDisabledReason();
+  ["#compare-objective", "#compare-approach-a", "#compare-approach-b"].forEach((id) => {
+    $(id).disabled = disabled;
+  });
+}
+function candidateView(candidate, comparison) {
+  const card = el("article", "candidate" + (comparison.selected === candidate.label ? " selected" : "")),
+    heading = el("div", "candidate-heading"),
+    label = candidate.label;
+  card.id = "candidate-" + label.toLowerCase();
+  heading.append(el("h3", "", "Approach " + label), el("span", "outcome", candidate.status));
+  card.append(heading, el("p", "candidate-approach", candidate.approach || "Approach left open"));
+  if (candidate.run_id) card.appendChild(el("div", "candidate-run", "Run " + candidate.run_id));
+  const usage = el("div", "stats candidate-usage");
+  [
+    Number(candidate.steps || 0).toLocaleString() + " steps",
+    Number(candidate.tokens || 0).toLocaleString() + " tokens",
+    Number(candidate.calls || 0).toLocaleString() + " calls",
+    "cost " + Number(candidate.cost || 0).toFixed(4),
+  ].forEach((value) => usage.appendChild(el("span", "", value)));
+  card.appendChild(usage);
+  card.appendChild(el("p", "candidate-summary", candidate.summary || (candidate.status === "working" || candidate.status === "starting" ? "Working on this approach…" : "No summary available.")));
+  if (candidate.error) card.appendChild(el("pre", "check-output bad", candidate.error));
+  card.appendChild(el("div", "candidate-verification", "Verification: " + (candidate.verification || "not run")));
+  if (candidate.verification === "stale") card.appendChild(el("p", "check-unknown", "Checks are from an earlier version of this candidate."));
+  const checks = el("div", "candidate-checks");
+  checks.id = "candidate-" + label.toLowerCase() + "-checks";
+  (candidate.checks || []).forEach((check, i) => checks.appendChild(checkPair(check, label + "-check-" + i)));
+  if (!candidate.checks || !candidate.checks.length) checks.appendChild(el("div", "dim", "No check results available."));
+  card.appendChild(checks);
+  if (candidate.diff_error) card.appendChild(el("pre", "check-output bad", "Diff unavailable: " + candidate.diff_error));
+  if (candidate.diff) {
+    const diff = diffView(candidate.diff);
+    diff.id = "candidate-" + label.toLowerCase() + "-diff";
+    diff.dataset.key = label + "-diff";
+    card.appendChild(diff);
+  } else if (!candidate.diff_error) card.appendChild(el("div", "empty-diff", "No patch captured."));
+  const logs = el("details", "candidate-logs");
+  logs.id = "candidate-" + label.toLowerCase() + "-logs";
+  logs.dataset.key = label + "-logs";
+  logs.appendChild(el("summary", "", "Tool logs · " + (candidate.trajectory || []).length + " calls"));
+  (candidate.trajectory || []).forEach((entry, i) => {
+    const details = el("details", "candidate-call");
+    details.dataset.key = label + "-call-" + i;
+    details.appendChild(el("summary", entry.error ? "bad" : "", (entry.step ?? i + 1) + " · " + entry.name + " · " + describe(entry.name, entry.args)));
+    const output = entry.result === null || entry.result === undefined ? "Waiting for result…" : typeof entry.result === "string" ? entry.result : JSON.stringify(entry.result, null, 2);
+    details.append(el("pre", "check-output", "Arguments:\n" + (typeof entry.args === "string" ? entry.args : JSON.stringify(entry.args || {}, null, 2))), el("pre", "check-output" + (entry.error ? " bad" : ""), output));
+    logs.appendChild(details);
+  });
+  if (!candidate.trajectory || !candidate.trajectory.length) logs.appendChild(el("p", "muted", "No tool calls recorded."));
+  card.appendChild(logs);
+  const choose = el("button", "btn candidate-choose" + (comparison.selected === label ? " primary" : ""), comparison.selected === label ? label + " selected" : "Choose " + label + " for review");
+  choose.id = "choose-" + label.toLowerCase();
+  choose.disabled = !!state.closed || state.status !== "idle" || !!state.pending_apply || comparison.stale || !!comparison.selected || choosingCandidate || !["complete", "stopped"].includes(candidate.status) || !!candidate.diff_error || !candidate.run_id || candidate.checkpoint === undefined || candidate.checkpoint === null;
+  choose.onclick = () => chooseCandidate(comparison.id, label);
+  card.appendChild(choose);
+  return card;
+}
+function renderComparison(comparison) {
+  updateCompareControls();
+  $("#comparison-result").hidden = !comparison;
+  $("#comparison-empty").hidden = !!comparison;
+  if (!comparison) {
+    $("#comparison-objective").textContent = "";
+    $("#comparison-status").textContent = "";
+    $("#comparison-notice").textContent = "";
+    $("#comparison-candidates").replaceChildren();
+    return;
+  }
+  $("#comparison-objective").textContent = comparison.objective;
+  $("#comparison-status").textContent = comparison.status;
+  const notice = $("#comparison-notice");
+  notice.className = "notice" + (comparison.stale && !comparison.selected ? " warning" : "");
+  notice.textContent = comparison.selected
+    ? "Approach " + comparison.selected + " is selected. Review its pending files and use Apply selected to apply the patch. Both runs remain available below."
+    : comparison.stale
+      ? "The workspace changed after this comparison. These candidates can still be reviewed, but cannot be selected. Start a new comparison for the current workspace."
+      : comparison.status === "running"
+        ? "Both candidates are kept separate. Stop is available below; choose a candidate once the session is idle."
+        : "Review both candidates, then choose A or B. A stopped run may still have a usable patch. No candidate is selected automatically.";
+  const candidates = $("#comparison-candidates");
+  preserveOpenDetails(candidates, () => {
+    candidates.replaceChildren();
+    (comparison.candidates || []).forEach((candidate) => candidates.appendChild(candidateView(candidate, comparison)));
+  });
 }
 function renderState(s) {
+  const previousComparison = state.comparison;
   state = s;
-  $("#hrepo").textContent = s.name;
-  $("#hbackend").textContent = s.backend;
-  $("#hmodel").textContent = s.model;
+  $("#hrepo").textContent = s.name || "";
+  $("#hbackend").textContent = s.backend || "";
+  $("#hmodel").textContent = s.model || "";
+  $("#session-title").textContent = s.session_name || sessions.find((item) => item.id === activeSessionId)?.name || "Loading…";
+  $("#session-rename").disabled = !activeSessionId || !s.session_id;
+  $("#session-close").hidden = !s.session_id || !!s.is_main;
+  $("#session-close").disabled = !!s.closed || s.status === "stopping";
+  $("#session-main-note").hidden = !s.is_main;
+  $("#empty-title").textContent = s.is_main ? "One place to guide your work" : "Ready when you are";
+  $("#empty-description").textContent = s.is_main
+    ? "Your main session can start and monitor work sessions. Work continues while you browse elsewhere."
+    : "Describe a change and press Enter. Prax Bot works in the workspace and shows you the diff.";
   document.querySelectorAll("#effort button").forEach((b) => {
     b.classList.toggle("on", b.dataset.v === s.effort);
-    b.disabled = s.closed || s.status === "working";
+    b.disabled = s.closed || s.status !== "idle";
   });
-  $("#sinfo").textContent = s.repo;
+  $("#sinfo").textContent = s.repo || "";
   const files = s.files || [],
     sf = $("#sfiles"),
     flagged = new Map();
@@ -185,7 +396,7 @@ function renderState(s) {
       checkbox = el("input");
     checkbox.type = "checkbox";
     checkbox.checked = selectedFiles.has(f);
-    checkbox.disabled = s.closed || s.status === "working";
+    checkbox.disabled = s.closed || s.status !== "idle";
     checkbox.onchange = () => {
       if (checkbox.checked) selectedFiles.add(f);
       else selectedFiles.delete(f);
@@ -207,46 +418,9 @@ function renderState(s) {
     );
   if (s.diff_error) sf.appendChild(el("div", "log bad", s.diff_error));
   $("#sexcluded").textContent = (s.excluded || []).join("\n") || "none";
-  const checks = $("#schecks");
-  checks.replaceChildren(el("div", "path", s.verification || "not run"));
-  (s.checks || []).forEach((c) => {
-    const details = el("details"),
-      passed = c.exit_code === 0 && !c.timed_out && !c.error;
-    details.append(
-      el(
-        "summary",
-        "path",
-        c.name +
-          ": " +
-          (passed ? "passed" : "failed") +
-          (c.attribution ? " · " + c.attribution : ""),
-      ),
-    );
-    details.append(
-      el(
-        "pre",
-        "check-output",
-        c.command +
-          "\nexit " +
-          (c.exit_code ?? "unavailable") +
-          " · " +
-          (c.elapsed_s || 0).toFixed(2) +
-          "s" +
-          "\ntested image: " +
-          c.image +
-          (c.where === "fork"
-            ? "\nran in a fork of the clean image with the diff applied"
-            : "\nran in the workspace") +
-          (c.baseline_exit_code === null || c.baseline_exit_code === undefined
-            ? ""
-            : "\nwithout the change: exit " + c.baseline_exit_code) +
-          (c.timed_out ? "\ntimed out" : "") +
-          "\n" +
-          (c.error || c.output || ""),
-      ),
-    );
-    checks.appendChild(details);
-  });
+  renderChecks(s);
+  renderComparison(s.comparison);
+  if (s.comparison && s.comparison.id !== previousComparison?.id) showTab("compare");
   const st = $("#sstatus"),
     dot = $("#dot");
   st.textContent = s.stopping
@@ -261,11 +435,11 @@ function renderState(s) {
       : s.status === "failed"
         ? " failed"
         : "");
-  $("#sround").textContent = s.rounds + " rounds · " + s.steps + " steps";
+  $("#sround").textContent = (s.rounds || 0) + " rounds · " + (s.steps || 0) + " steps";
   $("#stoks").textContent =
-    s.tokens.toLocaleString() +
+    Number(s.tokens || 0).toLocaleString() +
     " tokens · " +
-    s.calls +
+    (s.calls || 0) +
     " calls · context " +
     (s.context || 0).toLocaleString();
   $("#spend").textContent = files.length
@@ -273,15 +447,27 @@ function renderState(s) {
     : "nothing pending";
   $("#squeue").textContent = s.queued ? s.queued + " queued" : "";
   $("#send").disabled =
-    s.closed || s.status === "failed" || s.status === "stopping";
+    s.closed || !s.run_id || !["idle", "working"].includes(s.status);
   $("#undo").disabled = s.closed || s.status !== "idle" || !s.can_undo;
   $("#verify").disabled =
     s.closed || s.status !== "idle" || s.verification === "not configured";
+  $("#verify-checks").disabled = $("#verify").disabled;
   $("#stop").disabled = s.closed || s.status !== "working" || s.stopping;
   updateApplyButton();
+  input.disabled = !!s.closed || !s.run_id || !["idle", "working"].includes(s.status);
   if (s.closed) {
     st.textContent = "session ended";
-    input.disabled = true;
+  }
+  if (s.session_id) {
+    const item = sessions.find((session) => session.id === s.session_id);
+    if (item) Object.assign(item, {
+      name: s.session_name,
+      status: s.closed ? "closed" : s.stopping ? "stopping" : s.status,
+      verification: s.verification,
+      files_changed: files.length,
+      tokens: s.tokens,
+    });
+    renderSessions();
   }
 }
 function updateApplyButton() {
@@ -343,9 +529,11 @@ function addLog(text) {
     chat.appendChild(el("div", "log bad", text));
 }
 function handle(e) {
+  // Candidate progress belongs to the comparison cards, never the active chat turn.
+  if (e.candidate || e.kind?.startsWith("comparison.")) return;
   switch (e.kind) {
     case "instruction.start":
-      newTurn(e.text);
+      newTurn(e.text, e.historical);
       roundStepsStart = state.steps || 0;
       renderRounds();
       break;
@@ -357,7 +545,7 @@ function handle(e) {
       break;
     case "assistant":
       if (e.text && e.text.trim()) {
-        ensureGroup();
+        ensureGroup(e.historical);
         turn.appendChild(el("div", "think", e.text.trim().slice(0, 600)));
       }
       break;
@@ -365,13 +553,13 @@ function handle(e) {
       addSummary(e, true);
       break;
     case "session.round":
-      if (!e.result.finished) addSummary(e.result, false);
+      if (!e.result.finished) addSummary({ ...e.result, historical: e.historical }, false);
       break;
     case "verification.result":
       addLog(
         e.name +
           ": " +
-          (e.passed ? "passed" : "failed") +
+          checkOutcome(e).label.toLowerCase() +
           " · " +
           e.command +
           (e.attribution ? " · " + e.attribution : ""),
@@ -383,10 +571,20 @@ function handle(e) {
     case "instruction.done":
       if (group) group.classList.remove("open");
       break;
+    case "instruction.cancelled": {
+      const text = "Cancelled queued instruction: " + e.text +
+        (e.reason ? "\nReason: " + e.reason : "");
+      $("#empty").style.display = "none";
+      chat.appendChild(el("div", "log", text));
+      traj.appendChild(el("div", "log", text));
+      chat.scrollTop = chat.scrollHeight;
+      break;
+    }
     case "state": {
+      if (e.historical) break;
       const pr = state.rounds || 0;
       renderState(e);
-      if (e.rounds > pr && turn && !turn.querySelector(".stats")) {
+      if (e.rounds > pr && turn && turn.dataset.historical !== "true" && !turn.querySelector(".stats")) {
         addStats(e, e.steps - roundStepsStart);
         addDiff(e.diff);
       }
@@ -416,74 +614,438 @@ function handle(e) {
         );
   }
 }
-function connect() {
-  const es = new EventSource(
-    "/events?token=" + encodeURIComponent(TOKEN) + "&after=" + lastSeq,
-  );
-  es.onmessage = (m) => {
+function sessionContext() {
+  return { id: activeSessionId, runId: state.run_id, epoch: sessionEpoch };
+}
+function isCurrent(context) {
+  return context.id === activeSessionId && context.epoch === sessionEpoch;
+}
+function endpoint(path, context) {
+  const query = new URLSearchParams({ token: TOKEN });
+  if (context?.id) query.set("session", context.id);
+  return path + "?" + query;
+}
+async function fetchJSON(path, { method = "GET", body, context } = {}) {
+  const response = await fetch(endpoint(path, context), {
+    method,
+    headers: body === undefined ? {} : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const result = await response.json();
+  if (!response.ok) {
+    const error = new Error(result.error || "Request failed");
+    error.status = response.status;
+    throw error;
+  }
+  return result;
+}
+function request(path, body = {}, context = sessionContext()) {
+  return fetchJSON(path, {
+    method: "POST",
+    body: { ...body, source_run: context.runId },
+    context,
+  });
+}
+function managerRequest(path, body) {
+  return fetchJSON(path, { method: "POST", body });
+}
+function disconnect() {
+  clearTimeout(reconnectTimer);
+  reconnectTimer = null;
+  if (eventStream) eventStream.close();
+  eventStream = null;
+}
+function connect(context = sessionContext()) {
+  if (!isCurrent(context) || !serverReachable || serverShutdown || state.closed) return;
+  const es = new EventSource(endpoint("/events", context) + "&after=" + lastSeq);
+  eventStream = es;
+  es.onmessage = (message) => {
+    if (!isCurrent(context) || eventStream !== es) return;
     try {
-      const event = JSON.parse(m.data);
+      const event = JSON.parse(message.data);
+      if (event.session_id && event.session_id !== context.id) return;
       if (event.seq && event.seq <= lastSeq) return;
       if (event.seq) lastSeq = event.seq;
       handle(event);
-    } catch (err) {
-      console.error(err);
+      if (state.closed) disconnect();
+    } catch (error) {
+      console.error(error);
     }
   };
   es.onerror = () => {
     es.close();
-    if (!state.closed) setTimeout(connect, 1500);
+    if (!isCurrent(context) || eventStream !== es) return;
+    eventStream = null;
+    if (!state.closed && serverReachable && !serverShutdown)
+      reconnectTimer = setTimeout(() => connect(context), 1500);
   };
 }
-async function request(path, body = {}) {
-  const response = await fetch(path + "?token=" + encodeURIComponent(TOKEN), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+function saveDraft() {
+  if (!activeSessionId) return;
+  drafts.set(activeSessionId, {
+    text: input.value,
+    objective: $("#compare-objective").value,
+    approachA: $("#compare-approach-a").value,
+    approachB: $("#compare-approach-b").value,
   });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || "Request failed");
-  return result;
+}
+function resetSessionView() {
+  state = {};
+  turn = group = null;
+  callRows = {};
+  roundStepsStart = lastSeq = 0;
+  requestingComparison = choosingCandidate = false;
+  selectedFiles.clear();
+  knownFiles.clear();
+  const empty = $("#empty");
+  chat.replaceChildren(empty);
+  empty.style.display = "";
+  traj.replaceChildren();
+  renderTodos([]);
+  renderRounds();
+  $("#verification-checks").replaceChildren();
+  $("#comparison-candidates").replaceChildren();
+  $("#compare-error").textContent = "";
+  $("#session-rename-form").hidden = true;
+  $("#session-close").disabled = false;
+  menu.classList.remove("on");
+  menuSel = 0;
+  const draft = drafts.get(activeSessionId) || {};
+  input.value = draft.text || "";
+  $("#compare-objective").value = draft.objective || "";
+  $("#compare-approach-a").value = draft.approachA || "";
+  $("#compare-approach-b").value = draft.approachB || "";
+  renderState({ status: "starting" });
+  autosize();
+  showTab("chat");
+}
+async function switchSession(id, { reopen = true, force = false } = {}) {
+  if (!id || (!force && id === activeSessionId && !state.closed)) return;
+  saveDraft();
+  disconnect();
+  activeSessionId = id;
+  sessionEpoch++;
+  const context = sessionContext();
+  resetSessionView();
+  $("#session-error").textContent = "";
+  $("#sidebar").classList.remove("mobile-open");
+  $("#sidebar-toggle").setAttribute("aria-expanded", "false");
+  const url = new URL(window.location.href);
+  url.searchParams.set("session", id);
+  window.history.replaceState(null, "", url);
+  renderSessions();
+  try {
+    if (reopen) await managerRequest("/sessions/open", { session_id: id });
+    if (!isCurrent(context)) return;
+    const current = await fetchJSON("/state", { context });
+    if (!isCurrent(context)) return;
+    renderState(current);
+    connect(context);
+    if (!input.disabled) input.focus();
+    refreshSessions();
+  } catch (error) {
+    if (!isCurrent(context)) return;
+    $("#session-error").textContent = "Could not open session: " + error.message;
+    $("#sstatus").textContent = "session unavailable";
+    $("#session-retry").hidden = false;
+  }
+}
+function sessionMatches(item, query) {
+  return [item.name, item.task, item.summary, item.id, item.run_id, item.last_run_id, ...(item.run_ids || [])]
+    .some((value) => String(value || "").toLowerCase().includes(query));
+}
+function sessionCard(item, saved = false) {
+  const button = el("button", "session-card" + (!saved && item.id === activeSessionId ? " selected" : ""));
+  button.type = "button";
+  if (!saved) button.setAttribute("aria-current", item.id === activeSessionId ? "page" : "false");
+  const heading = el("span", "session-card-heading"),
+    isMain = item.is_main || item.id === mainSessionId,
+    status = saved ? "saved" : item.status || "starting";
+  heading.appendChild(el("strong", "session-card-name", item.name || item.task || item.run_id || "Untitled session"));
+  heading.appendChild(el("span", "session-badge " + status, status));
+  button.appendChild(heading);
+  if (isMain) button.appendChild(el("span", "session-role", "Main · always available"));
+  if (item.task && item.task !== item.name && !saved)
+    button.appendChild(el("span", "session-task", item.task));
+  if (item.error || item.summary)
+    button.appendChild(el("span", "session-summary" + (item.error ? " bad" : ""), item.error || item.summary));
+  const details = [];
+  if (item.verification) details.push("Checks: " + item.verification);
+  if (item.files_changed) details.push(item.files_changed + " files");
+  if (item.tokens) details.push(Number(item.tokens).toLocaleString() + " tokens");
+  if (details.length) button.appendChild(el("span", "session-meta", details.join(" · ")));
+  if (saved) {
+    if (item.state) button.appendChild(el("span", "session-meta", "Saved state: " + item.state));
+    button.appendChild(el("span", "session-meta", item.live ? "In use by another process" : "Reopen run " + item.run_id));
+    button.disabled = !!item.live;
+  }
+  else if (["saved", "closed", "failed"].includes(status))
+    button.appendChild(el("span", "session-meta", "Open to continue"));
+  const updated = typeof item.updated_at === "number"
+    ? new Date(item.updated_at * 1000).toLocaleString() : item.updated_at;
+  button.title = [item.name, item.task, item.summary, item.error, item.run_id, updated && "Updated " + updated].filter(Boolean).join("\n");
+  button.onclick = saved ? () => importRun(item.run_id, button) : () => switchSession(item.id, { force: item.id === activeSessionId && ["saved", "closed", "failed"].includes(status) });
+  return button;
+}
+function renderSessions() {
+  const list = $("#session-list"),
+    saved = $("#saved-run-list"),
+    query = $("#session-search").value.trim().toLowerCase();
+  list.replaceChildren();
+  const main = sessions.filter((item) => item.is_main || item.id === mainSessionId),
+    work = sessions.filter((item) => !item.is_main && item.id !== mainSessionId && sessionMatches(item, query));
+  main.forEach((item) => list.appendChild(sessionCard(item)));
+  if (work.length) list.appendChild(el("div", "session-subheading", "Work sessions"));
+  work.forEach((item) => list.appendChild(sessionCard(item)));
+  if (!work.length) list.appendChild(el("div", "dim", query ? "No matching work sessions" : "Create a work session to start a separate task."));
+  saved.replaceChildren();
+  const matches = savedRuns.filter((item) => sessionMatches(item, query));
+  matches.forEach((item) => saved.appendChild(sessionCard(item, true)));
+  if (!matches.length) saved.appendChild(el("div", "dim", query ? "No matching saved runs" : "No other saved runs"));
+  $("#saved-runs-label").textContent = "Saved runs · " + matches.length;
+}
+function scheduleSessionPoll() {
+  clearTimeout(sessionPollTimer);
+  if (!document.hidden && serverReachable && !serverShutdown)
+    sessionPollTimer = setTimeout(refreshSessions, 5000);
+}
+let sessionListRequest = null;
+function refreshSessions() {
+  if (sessionListRequest) return sessionListRequest;
+  sessionListRequest = (async () => {
+    try {
+      const result = await fetchJSON("/sessions");
+      serverReachable = true;
+      serverShutdown = !!result.shutdown;
+      sessions = result.sessions || [];
+      savedRuns = result.saved_runs || [];
+      mainSessionId = result.main_session_id;
+      $("#session-retry").hidden = true;
+      renderSessions();
+      if (serverShutdown) {
+        disconnect();
+        $("#session-error").textContent = "Prax Bot has stopped. Restart the server to continue.";
+        renderState({ ...state, closed: true });
+        $("#sstatus").textContent = "server stopped";
+      }
+      return result;
+    } catch (error) {
+      serverReachable = false;
+      disconnect();
+      $("#session-error").textContent = "Cannot reach Prax Bot: " + error.message;
+      $("#session-retry").hidden = false;
+      renderState({ ...state, status: "disconnected" });
+      $("#sstatus").textContent = "disconnected";
+      return null;
+    } finally {
+      sessionListRequest = null;
+      scheduleSessionPoll();
+    }
+  })();
+  return sessionListRequest;
+}
+async function importRun(runId, button) {
+  const epoch = sessionEpoch;
+  button.disabled = true;
+  $("#session-error").textContent = "";
+  try {
+    const result = await managerRequest("/sessions/import", { run_id: runId });
+    await refreshSessions();
+    if (epoch === sessionEpoch) await switchSession(result.session_id);
+  } catch (error) {
+    $("#session-error").textContent = "Could not reopen run: " + error.message;
+  } finally {
+    button.disabled = false;
+  }
 }
 async function send(text) {
-  if (!text.trim()) return;
+  if (!text.trim() || !state.run_id || state.closed) return;
+  const context = sessionContext();
+  saveDraft();
   try {
-    await request("/send", { text });
+    await request("/send", { text }, context);
+    const draft = drafts.get(context.id);
+    if (draft?.text === text) draft.text = "";
+    if (!isCurrent(context)) return;
     if (input.value === text) input.value = "";
     autosize();
     menu.classList.remove("on");
   } catch (error) {
-    addLog("✗ " + error.message);
+    if (isCurrent(context)) addLog("✗ " + error.message);
   }
 }
 $("#send").onclick = () => send(input.value);
 $("#apply").onclick = async () => {
+  const context = sessionContext();
   try {
-    if (state.pending_apply) await request("/send", { text: "/apply" });
-    else await request("/apply", { files: [...selectedFiles] });
+    if (state.pending_apply) await request("/send", { text: "/apply" }, context);
+    else await request("/apply", { files: [...selectedFiles] }, context);
   } catch (error) {
-    addLog("✗ " + error.message);
+    if (isCurrent(context)) addLog("✗ " + error.message);
   }
 };
 $("#undo").onclick = () => send("/undo");
-$("#verify").onclick = () => send("/verify");
-$("#stop").onclick = () =>
-  request("/stop").catch((error) => addLog("✗ " + error.message));
+$("#verify").onclick = $("#verify-checks").onclick = () => {
+  showTab("checks");
+  send("/verify");
+};
+$("#stop").onclick = async () => {
+  const context = sessionContext();
+  try {
+    await request("/stop", {}, context);
+  } catch (error) {
+    if (isCurrent(context)) addLog("✗ " + error.message);
+  }
+};
+$("#compare-form").onsubmit = async (event) => {
+  event.preventDefault();
+  const objective = $("#compare-objective").value.trim();
+  if (!objective || $("#compare-start").disabled) return;
+  const context = sessionContext();
+  requestingComparison = true;
+  $("#compare-error").textContent = "";
+  updateCompareControls();
+  try {
+    await request("/compare", {
+      objective,
+      approach_a: $("#compare-approach-a").value.trim(),
+      approach_b: $("#compare-approach-b").value.trim(),
+    }, context);
+  } catch (error) {
+    if (isCurrent(context)) $("#compare-error").textContent = error.message;
+  } finally {
+    if (isCurrent(context)) {
+      requestingComparison = false;
+      updateCompareControls();
+    }
+  }
+};
+async function chooseCandidate(comparisonId, candidate) {
+  const context = sessionContext();
+  choosingCandidate = true;
+  $("#compare-error").textContent = "";
+  renderComparison(state.comparison);
+  try {
+    await request("/choose", { comparison_id: comparisonId, candidate }, context);
+  } catch (error) {
+    if (isCurrent(context)) $("#compare-error").textContent = error.message;
+  } finally {
+    if (isCurrent(context)) {
+      choosingCandidate = false;
+      renderComparison(state.comparison);
+    }
+  }
+}
+$("#session-search").oninput = renderSessions;
+$("#sidebar-toggle").onclick = () => {
+  const open = $("#sidebar").classList.toggle("mobile-open");
+  $("#sidebar-toggle").setAttribute("aria-expanded", String(open));
+};
+$("#new-session-toggle").onclick = () => {
+  const form = $("#new-session-form");
+  form.hidden = !form.hidden;
+  $("#new-session-toggle").setAttribute("aria-expanded", String(!form.hidden));
+  if (!form.hidden) $("#new-session-name").focus();
+};
+$("#new-session-form").onsubmit = async (event) => {
+  event.preventDefault();
+  const name = $("#new-session-name").value.trim(),
+    task = $("#new-session-task").value.trim(),
+    epoch = sessionEpoch;
+  if (!name || $("#new-session-create").disabled) return;
+  $("#new-session-create").disabled = true;
+  $("#session-error").textContent = "";
+  try {
+    const result = await managerRequest("/sessions/new", { name, task });
+    $("#new-session-form").reset();
+    $("#new-session-form").hidden = true;
+    $("#new-session-toggle").setAttribute("aria-expanded", "false");
+    await refreshSessions();
+    if (epoch === sessionEpoch) await switchSession(result.session_id);
+  } catch (error) {
+    $("#session-error").textContent = "Could not create session: " + error.message;
+  } finally {
+    $("#new-session-create").disabled = false;
+  }
+};
+$("#session-rename").onclick = () => {
+  $("#session-rename-form").hidden = false;
+  $("#session-name").value = state.session_name || "";
+  $("#session-name").focus();
+  $("#session-name").select();
+};
+$("#session-name-cancel").onclick = () => { $("#session-rename-form").hidden = true; };
+$("#session-rename-form").onsubmit = async (event) => {
+  event.preventDefault();
+  const name = $("#session-name").value.trim(),
+    context = sessionContext();
+  if (!name || $("#session-name-save").disabled) return;
+  $("#session-name-save").disabled = true;
+  try {
+    await managerRequest("/sessions/rename", { session_id: context.id, name });
+    if (isCurrent(context)) {
+      state.session_name = name;
+      $("#session-title").textContent = name;
+      $("#session-rename-form").hidden = true;
+    }
+    await refreshSessions();
+  } catch (error) {
+    if (isCurrent(context)) $("#session-error").textContent = "Could not rename session: " + error.message;
+  } finally {
+    $("#session-name-save").disabled = false;
+  }
+};
+$("#session-close").onclick = async () => {
+  const context = sessionContext();
+  if (state.is_main || !context.id) return;
+  $("#session-close").disabled = true;
+  try {
+    await managerRequest("/sessions/close", { session_id: context.id, source_run: context.runId });
+    await refreshSessions();
+    if (isCurrent(context)) await switchSession(mainSessionId);
+  } catch (error) {
+    if (isCurrent(context)) {
+      $("#session-error").textContent = "Could not close session: " + error.message;
+      $("#session-close").disabled = false;
+    }
+  }
+};
+$("#session-retry").onclick = async () => {
+  $("#session-error").textContent = "";
+  const epoch = sessionEpoch;
+  if (await refreshSessions()) {
+    if (epoch === sessionEpoch && !serverShutdown)
+      await switchSession(activeSessionId || mainSessionId, { force: true });
+  }
+};
+document.addEventListener("visibilitychange", () => {
+  clearTimeout(sessionPollTimer);
+  if (!document.hidden && serverReachable && !serverShutdown) refreshSessions();
+});
+window.addEventListener("pagehide", () => {
+  saveDraft();
+  disconnect();
+  clearTimeout(sessionPollTimer);
+});
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) {
+    refreshSessions();
+    connect();
+  }
+});
 document
   .querySelectorAll("#effort button")
   .forEach((b) => (b.onclick = () => send("/effort " + b.dataset.v)));
-$("#tabchat").onclick = () => {
-  chat.classList.add("on");
-  traj.classList.remove("on");
-  $("#tabchat").classList.add("on");
-  $("#tabtraj").classList.remove("on");
-};
-$("#tabtraj").onclick = () => {
-  traj.classList.add("on");
-  chat.classList.remove("on");
-  $("#tabtraj").classList.add("on");
-  $("#tabchat").classList.remove("on");
-};
+function showTab(name) {
+  ["chat", "traj", "checks", "compare"].forEach((tab) => {
+    $("#" + (tab === "checks" || tab === "compare" ? tab + "-view" : tab)).classList.toggle("on", tab === name);
+    $("#tab" + tab).classList.toggle("on", tab === name);
+  });
+}
+["chat", "traj", "checks", "compare"].forEach((name) => {
+  $("#tab" + name).onclick = () => showTab(name);
+});
+$("#view-checks").onclick = () => showTab("checks");
 let menuSel = 0;
 function matches() {
   return COMMANDS.filter((c) =>
@@ -558,5 +1120,14 @@ function autosize() {
   input.style.height = "auto";
   input.style.height = Math.min(input.scrollHeight, 180) + "px";
 }
-input.focus();
-connect();
+async function initialize() {
+  resetSessionView();
+  const result = await refreshSessions();
+  if (!result || serverShutdown) return;
+  const requested = new URL(window.location.href).searchParams.get("session");
+  const selected = requested && sessions.some((session) => session.id === requested) ? requested : mainSessionId;
+  await switchSession(selected);
+  if (requested && selected !== requested)
+    $("#session-error").textContent = "That session is unavailable. Showing Main.";
+}
+initialize();
