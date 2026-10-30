@@ -1,10 +1,18 @@
 # Changelog
 
-Prax Bot has not been released yet; this is what the first release will contain, newest first. The benchmark history behind each decision is in the README.
+The benchmark history behind each decision is in the README.
 
-## Unreleased
+## 0.1.1 — 2026-10-30
+
+- Main can finish delegated or read-only work without the one-time prompt to edit its own workspace. Ordinary work sessions and comparison candidates keep the existing no-edit confirmation guard.
+- Clarify the bounded demo prompt to wait for child checks, instead of spending its step budget on immediate progress polls.
+- Record browser validation of delegation, independent checks, comparison, Apply, and session reopen, with both earlier unsuccessful coordination attempts retained.
+
+## 0.1.0 — 2026-10-30
 
 ### Front ends
+- Persistent Main and named work sessions, independent workers, saved history, and reopen/restart recovery.
+- Before / After check evidence and two-candidate comparison with separate Choose and Apply actions.
 - `prax` opens a web interface on localhost: chat with tool calls, changes with per-file apply, checks, to-dos and rounds in a sidebar, a slash-command menu, Stop.
 - `prax ui`, a full-screen terminal interface, and `prax session`, a plain prompt for pipes and scripts, on the same session runtime: `/diff /apply /undo /goal /resume /effort /verify /stop /status`.
 - `prax run`, `goal`, `resume`, `init`, `status`, `inspect`, `report`, `config`, `prompt`, `doctor`, `version`.

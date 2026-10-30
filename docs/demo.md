@@ -1,6 +1,6 @@
 # Prax Bot — 2:45 recording plan
 
-Record the actual application and terminal on the target computer. The final video is still to be recorded. Use the fresh fixture and prompts in [testing instructions](judging.md); inspect the complete results before recording. Keep the final public YouTube cut under three minutes, and label any omitted waiting time. Do not replace live results with mock UI or simulated tool output.
+Actual application footage and host command output have been captured, and the key screens have been visually reviewed. The [browser validation record](validation/browser-20261030.json) includes the successful workflow and both earlier unsuccessful attempts. The final video is being edited and has not yet been published. Use the fresh fixture and prompts in [testing instructions](judging.md); inspect the complete results before recording. Keep the final public YouTube cut under three minutes, and label any omitted waiting time. Do not replace live results with mock UI or simulated tool output.
 
 | Time | Show | Suggested narration |
 |---|---|---|
@@ -21,7 +21,7 @@ The fixture intentionally leaves `multiply` outside the task. Show that it remai
 - Use the protected test file and keep the two comparison sessions based on the still-unmodified host.
 - Keep API keys, authorization files, local browser tokens, and unrelated desktop content out of frame.
 - Show the real outcomes, including a visible error or disclosed retry if one occurs. Label time cuts.
-- Capture current UI footage and verify the controls visually; that part was unavailable during the completed HTTP integration test.
+- Current UI footage and visual review are complete. Keep the browser validation record separate from the earlier HTTP integration test, retain unsuccessful takes as diagnostics, and disclose that the final successful prompt explicitly waits for child completion.
 - Check video sound/legibility and public YouTube visibility before adding its URL to the submission.
 - Keep source/test-build links available and add the public video URL to `submission.md`.
 

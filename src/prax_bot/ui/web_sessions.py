@@ -117,6 +117,8 @@ class WebSessions:
             def create(out: Console, hook: EventFn) -> Session:
                 tools = self._main_tools() if entry["is_main"] else []
                 session = self.make_session(out, hook, past, tools)
+                # Main may complete delegated work without editing its own workspace.
+                session.confirm_no_edit_finish = not entry["is_main"]
                 try:
                     self.registry.attach_run(session_id, session.run_id)
                     if past is None:

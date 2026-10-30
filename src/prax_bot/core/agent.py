@@ -80,11 +80,13 @@ class Agent:
         system_prompt: str | None = None,
         verification_commands: Sequence[tuple[str, str]] = (),
         verification_in_fork: bool = False,
+        confirm_no_edit_finish: bool = True,
         cancel: Event | None = None,
     ) -> None:
         self.system_prompt = system_prompt or SYSTEM_PROMPT
         self.verification_commands = tuple(verification_commands)
         self.verification_in_fork = verification_in_fork
+        self.confirm_no_edit_finish = confirm_no_edit_finish
         self.cancel = cancel or Event()
         self.steps = 0
         self.llm = llm
@@ -267,7 +269,7 @@ class Agent:
                         messages.append({"role": "tool", "tool_call_id": tc.id, "content": output})
                         call_names[tc.id] = name
                         continue
-                    if not edited and not empty_finish_refused and not force_finish:
+                    if self.confirm_no_edit_finish and not edited and not empty_finish_refused and not force_finish:
                         empty_finish_refused = True
                         output = prompt("finish_without_edits")
                         self.on_event("tool.result", step=step, name=name, output=output, error=True)

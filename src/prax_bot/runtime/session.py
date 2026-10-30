@@ -109,6 +109,7 @@ class Session:
         self.ws, self.root, self.backend = ws, root.resolve(), backend
         self.run_id, self.run_dir, self.events_file = run_id, run_dir, events_file
         self.kind = kind
+        self.confirm_no_edit_finish = True
         self._observer = on_event
         self.protect, self.skills, self.plugins = tuple(protect), tuple(skills), tuple(plugins)
         if llm is None:
@@ -283,6 +284,7 @@ class Session:
             system_prompt=self.settings.system_prompt_text(),
             verification_commands=self._expected_checks,
             verification_in_fork=self.ws.clean is not None,
+            confirm_no_edit_finish=self.confirm_no_edit_finish,
             cancel=self.cancel,
         )
         self._agent = agent

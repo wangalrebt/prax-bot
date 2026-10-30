@@ -79,6 +79,30 @@ def test_comparison_forks_the_same_pending_state_and_choosing_does_not_apply(tmp
         session.close()
 
 
+def test_comparison_candidates_keep_no_edit_confirmation_despite_coordinating_parent(tmp_path: Path) -> None:
+    session = make_session(tmp_path)
+    session.confirm_no_edit_finish = False
+
+    def model(settings):
+        return FakeLLM(
+            [
+                reply(None, call("finish", summary="No edits")),
+                reply(None, call("finish", summary="Confirmed read-only result")),
+            ]
+        )
+
+    try:
+        with patch("prax_bot.core.llm.LLM", side_effect=model):
+            result = session.compare("Inspect the repository without changing files")
+        for candidate in result["candidates"]:
+            assert candidate["status"] == "complete" and candidate["calls"] == 2
+            assert candidate["summary"] == "Confirmed read-only result"
+            assert candidate["trajectory"][0]["error"] is True
+            assert "no changes have been made" in candidate["trajectory"][0]["result"]
+    finally:
+        session.close()
+
+
 @pytest.mark.parametrize("mutation", ["write", "same_image_other_workspace", "apply"])
 def test_selection_rejects_changed_parent_state(tmp_path: Path, mutation: str) -> None:
     session = make_session(tmp_path)

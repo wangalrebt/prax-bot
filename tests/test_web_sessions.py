@@ -157,6 +157,7 @@ def test_main_agent_delegates_and_reads_work_without_applying_it(session_factory
         main.submit("Delegate a fix and inspect the result", source_run=main.session.run_id)
         assert main.idle.wait(10)
         assert main.session.last_result.finished
+        assert main.session.llm.usage.calls == 3  # start, inspect, finish; no request to edit Main
         entries = manager.listing()["sessions"]
         child = next(entry for entry in entries if not entry["is_main"])
         work = ready(manager.get(child["id"]))
@@ -167,9 +168,27 @@ def test_main_agent_delegates_and_reads_work_without_applying_it(session_factory
         saved = load_run(main.session.run_id, config)
         outputs = [event for event in saved.events if event.get("kind") == "tool.result"]
         assert any('"files": ["fixed.py"]' in event["output"] for event in outputs)
+        assert not any(event["name"] == "finish" for event in outputs)
     finally:
         manager.close()
         manager.join()
+
+
+def test_work_session_still_confirms_a_finish_without_edits(manager: WebSessions) -> None:
+    work = ready(manager.get(manager.create("Read-only work")))
+    work.session.llm = FakeLLM(
+        [
+            reply(None, call("finish", summary="No edits")),
+            reply(None, call("finish", summary="Confirmed read-only task")),
+        ]
+    )
+    work.submit("Inspect without editing", source_run=work.session.run_id)
+    ready(work)
+    assert work.session.last_result.finished
+    assert work.session.llm.usage.calls == 2
+    assert work.state()["summary"] == "Confirmed read-only task"
+    refused = [event for event in work.history if event.get("kind") == "tool.result" and event.get("name") == "finish"]
+    assert len(refused) == 1 and refused[0]["error"]
 
 
 def test_reopening_replays_web_commands_and_agent_turns_once(manager: WebSessions) -> None:
@@ -270,6 +289,12 @@ def test_main_and_names_survive_restart_with_latest_checkpoint_and_history(
         assert not restored.busy and restored.pending.empty(), "opening saved work must not resume its job"
         lineage = next(entry for entry in restarted.listing()["sessions"] if entry["id"] == work_id)["run_ids"]
         assert lineage == [old_run_id, restored.session.run_id]
+        restored_main.session.llm = FakeLLM([reply(None, call("finish", summary="Saved work is ready for review."))])
+        restored_main.submit("Report the saved work", source_run=restored_main.session.run_id)
+        ready(restored_main)
+        assert restored_main.session.last_result.finished and restored_main.session.llm.usage.calls == 1
+        assert restored_main.state()["summary"] == "Saved work is ready for review."
+        assert not restored_main.state()["files"]
     finally:
         restarted.close()
         restarted.join()

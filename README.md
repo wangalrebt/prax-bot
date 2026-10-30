@@ -6,7 +6,7 @@ Give it a task in a git repository. By default it uploads the repository into an
 
 Built for the Nebius x NVIDIA Global AI Hackathon, Track 1: agents that write, run, and test code in Token Factory Sandboxes.
 
-The [public source](https://github.com/wangalrebt/prax-bot) and [v0.1.0 test build](https://github.com/wangalrebt/prax-bot/releases/tag/v0.1.0) accompany the [submission draft](docs/submission.md), [judge testing instructions](docs/judging.md), and [demo recording plan](docs/demo.md). The recorded video and final judging-access arrangements remain pending.
+The [public source](https://github.com/wangalrebt/prax-bot) and [v0.1.1 test build](https://github.com/wangalrebt/prax-bot/releases/tag/v0.1.1) accompany the [submission draft](docs/submission.md), [judge testing instructions](docs/judging.md), and [demo recording plan](docs/demo.md). The [browser workflow recording and visual review](docs/validation/browser-20261030.json) are complete. Video editing and publication, plus final judging-access arrangements, remain pending.
 
 ## Requirements
 
@@ -54,7 +54,7 @@ or give it one task:
 uv run prax run "fix the failing test in tests/test_cache.py" --setup "pip install -e . pytest"
 ```
 
-![The web interface: sidebar with the session, changed files and rounds; the instruction, its tool calls, the summary and the diff](docs/web-interface.png)
+![The web interface: persistent work sessions and independent baseline and patch check logs](docs/web-interface.png)
 
 Bare `prax` or `praxbot` opens the web interface on localhost with a persistent **Main** session. Main has its own saved identity for each repository path and backend. The sidebar lists Main and your named work sessions; select one to see its chat, tool calls, summary, diff, checks and trajectory. Type `/` for the session command menu.
 

@@ -63,6 +63,15 @@ def test_empty_finish_is_refused_once() -> None:
     assert "read-only, already satisfied, or blocked, call finish again" in refused[0]["content"]
 
 
+def test_no_edit_finish_can_skip_confirmation_for_a_coordinator() -> None:
+    llm = FakeLLM([reply(None, call("finish", summary="Delegated result is ready for review."))])
+    box = FakeToolBox()
+    result = Agent(llm, box, max_steps=10, confirm_no_edit_finish=False).run("Report the delegated result")
+    assert result.finished and result.steps == 1 and len(llm.requests) == 1
+    assert result.summary == "Delegated result is ready for review."
+    assert not box.calls
+
+
 def test_search_error_lists_top_level_directories() -> None:
     ws = ShellFakeWorkspace(
         results=[

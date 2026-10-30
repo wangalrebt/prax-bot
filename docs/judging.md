@@ -1,6 +1,6 @@
 # Install and test Prax Bot
 
-Use the [public repository](https://github.com/wangalrebt/prax-bot) or the [complete repository-source ZIP](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.0/prax-bot-submission-source.zip). The [v0.1.0 release](https://github.com/wangalrebt/prax-bot/releases/tag/v0.1.0) also provides an installable Python wheel, source distribution, and checksums. The complete source ZIP includes the demo script, tests, lockfile, docs, and benchmark reports.
+Use the [public repository](https://github.com/wangalrebt/prax-bot) or the [complete repository-source ZIP](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-submission-source.zip). The [v0.1.1 release](https://github.com/wangalrebt/prax-bot/releases/tag/v0.1.1) also provides an installable Python wheel, source distribution, and checksums. The complete source ZIP includes the demo script, tests, lockfile, docs, and benchmark reports.
 
 ## Requirements and access
 
@@ -24,7 +24,7 @@ Alternatively, install the wheel from the published test build into a Python 3.1
 
 ```bash
 uv venv --python 3.12 .venv
-uv pip install --python .venv/bin/python ./prax_bot-0.1.0-py3-none-any.whl
+uv pip install --python .venv/bin/python ./prax_bot-0.1.1-py3-none-any.whl
 .venv/bin/prax --help
 ```
 
@@ -36,7 +36,7 @@ The source route below is the simplest way to reproduce the demo.
 2. In Main, send:
 
    ```text
-   Start a work session named Arithmetic fix. Ask it to fix calc.add so it adds a and b, changing only calc.py and leaving multiply untouched. Run python -B -m unittest -v. Inspect the child's diff and checks with session_read, then report the result. Do not edit Main's workspace.
+   Start exactly one work session named Arithmetic fix. Ask it to fix calc.add so it adds a and b, changing only calc.py and leaving multiply untouched. Run python -B -m unittest -v. Use session_read with wait_seconds=30 until the child is idle and its independent checks have finished. Do not send duplicate follow-ups or stop the child. Report its changed file and actual check results. Do not edit Main's workspace; this task is coordination only.
    ```
 
 3. Open Arithmetic fix. Wait until its work and independent checks finish. Inspect the changed line, the failing baseline, and the passing patch check. Run the printed host check: it should still fail before Apply.
@@ -58,11 +58,12 @@ uv run pyright
 node --check src/prax_bot/ui/assets/app.js
 ```
 
-The completed application test run passed 380 tests. See [live validation](validation/live-20261029.json) for the separate real-model exercise, including its limitations. The existing README screenshot predates the session/comparison workflow and is not evidence of a new visual QA pass.
+The completed application test run passed 383 tests, with lint, formatting, type, and JavaScript syntax checks passing. The [browser validation](validation/browser-20261030.json) records the completed workflow and visual review: Main delegation without edits, independent baseline/patch checks, two passing candidates, selection without host changes, explicit Apply with a passing host test, and rename/close/reopen recovery. The successful attempt used 19 calls and 73,145 tokens; all three attempts, including two unsuccessful coordination attempts, used 49 calls and 231,692 tokens. The final edited video and public upload remain pending.
 
 ## Evidence and evaluation scope
 
 - [README](../README.md): implementation, behavior, limitations, and benchmark history.
-- [Live validation](validation/live-20261029.json): sanitized results, selected patches/check output, model usage, and recovery/cancellation assertions from the real sandbox exercise.
+- [Browser validation](validation/browser-20261030.json): all three recording attempts, including the no-edit guard failure, post-fix polling failure, and successful explicitly waiting prompt; comparison, Apply, reopen, usage, and visual-review evidence.
+- [Earlier integration validation](validation/live-20261029.json): the separate 29-call sandbox exercise, including selected patches/check output and recovery/cancellation assertions.
 - [Historical comparison correction](../bench/swebench/20260914-published-comparison.md): corrected token accounting and limits of the 31-task development sample.
 - [Six-task exploratory comparison](../bench/swebench/20261025-reference-comparison.md): Prax resolved 2/6 and mini-SWE-agent 3/6; this is not a full benchmark or general ranking.

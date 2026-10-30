@@ -2,7 +2,7 @@
 
 Prepared for the Nebius × NVIDIA Global AI Hackathon, **Coding and Agentic Engineering Track**.
 
-This file contains copy for the submission form. Source and test-build links are below. The recorded demonstration and final judging-access arrangements still need to be completed.
+This file contains copy for the submission form. Source and test-build links are below. Browser capture and visual review are complete. Video editing and publication, plus final judging-access arrangements, still need to be completed.
 
 ## Project name
 
@@ -48,9 +48,13 @@ Model behavior also shaped the harness. Bounded file reads, structured editing f
 
 ## Accomplishments
 
-The completed live integration exercise used **29 Nemotron model calls** against real Token Factory Sandboxes. It verified Main delegation, concurrent sessions, a patch passing against a failing baseline, two independently checked alternatives, explicit Apply, queue cancellation, and reopen/restart recovery. The selected patch changed only the intended file and passed the test on the host after Apply.
+The earlier [live integration exercise](validation/live-20261029.json) used **29 Nemotron model calls** against real Token Factory Sandboxes. It verified Main delegation, concurrent sessions, a patch passing against a failing baseline, two independently checked alternatives, explicit Apply, queue cancellation, and reopen/restart recovery. The selected patch changed only the intended file and passed the test on the host after Apply.
 
-The application also passed **380 automated tests**, lint, type checking, and JavaScript syntax validation. The live exercise was a small functional fixture, not a coding-quality benchmark. Visual browser QA was unavailable during that exercise; the video must show the current app functioning before submission.
+The separate [browser workflow validation](validation/browser-20261030.json) completed with **19 calls and 73,145 tokens** in its successful attempt. Main delegated without editing its own workspace. The child passed independent checks against a failing baseline, both comparison candidates passed, and choosing A left the host unchanged. Apply changed only `calc.py`, after which the host test passed. Renaming, closing, and reopening the child preserved its patch and check evidence. The key screens were visually reviewed; no layout issues or browser page errors were observed.
+
+The browser record also retains two unsuccessful attempts. First, the no-edit finish guard prompted Main to edit its own workspace against the instruction; v0.1.1 corrects that guard for Main. After that fix, non-waiting polling exhausted the step budget, interrupted the child, and produced an unsupported passing-test summary. The successful prompt explicitly requested `wait_seconds=30` and prohibited duplicate follow-ups and stopping the child. All three attempts used **49 calls and 231,692 tokens**. These small functional fixtures do not establish general coding quality.
+
+The application also passed **383 automated tests**, lint, formatting checks, type checking, and JavaScript syntax validation. Final video editing, review, and public upload remain pending.
 
 ## What we learned
 
@@ -68,7 +72,7 @@ Python 3.12, NVIDIA Nemotron 3 Super, Nebius Token Factory inference, Token Fact
 
 ## Nebius and NVIDIA feedback
 
-Immutable sandbox images fit the workflow well: they provide checkpoints and let a proposed change be tested independently of the agent's working environment. During development, unclear per-project sandbox access, API limits reported only at request time, and differing project-ID environment variable names made setup harder. Clearer diagnostics would help. The latest live exercise encountered one transport error; a retry succeeded. Nemotron's tool calling supported the full workflow, with structured editing feedback and explicit verification evidence remaining important.
+Immutable sandbox images fit the workflow well: they provide checkpoints and let a proposed change be tested independently of the agent's working environment. During development, unclear per-project sandbox access, API limits reported only at request time, and differing project-ID environment variable names made setup harder. Clearer diagnostics would help. The earlier 29-call integration exercise encountered one transport error; a retry succeeded. Nemotron's tool calling supported the full workflow, with structured editing feedback and explicit verification evidence remaining important.
 
 More detailed observations, including the SDK versions involved, are in [FEEDBACK.md](../FEEDBACK.md).
 
@@ -81,10 +85,10 @@ The first repository commit is dated September 5, 2026. Work recorded during the
 | Item | Status |
 |---|---|
 | Public source repository | [wangalrebt/prax-bot](https://github.com/wangalrebt/prax-bot), with its MIT license |
-| Working demo or test-build URL | [v0.1.0 release](https://github.com/wangalrebt/prax-bot/releases/tag/v0.1.0), with [testing instructions](judging.md); usable free judge access must still be arranged |
-| Public YouTube video | Needed; record the [2:45 demo plan](demo.md) using the working app |
+| Working demo or test-build URL | [v0.1.1 release](https://github.com/wangalrebt/prax-bot/releases/tag/v0.1.1), with [testing instructions](judging.md); usable free judge access must still be arranged |
+| Public YouTube video | Actual app footage captured and visually reviewed; editing and publication follow the [2:45 demo plan](demo.md) |
 | Project description and technology feedback | Ready in this file |
-| Verification evidence | [Live validation](validation/live-20261029.json) and [testing instructions](judging.md) |
+| Verification evidence | [Browser validation, including failed attempts](validation/browser-20261030.json), [earlier integration validation](validation/live-20261029.json), and [testing instructions](judging.md) |
 | Team and project-origin fields | Owner to complete or confirm |
 
 The [official rules](https://nebiusglobalaihackathon.devpost.com/rules) list the deadline as **October 30, 2026, 10:00 a.m. Pacific** and require a public code repository with an open-source license, a demo/test-build URL, and a public YouTube demonstration under three minutes. Testing access must remain free for the judging period. Check the live form and rules when completing the entry. Final submission has not been made.
