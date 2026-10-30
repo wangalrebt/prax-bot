@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from prax_bot.core.llm import LLM, MAX_COMPLETION_TOKENS, XHIGH_COMPLETION_TOKENS
-from prax_bot.settings import Settings
+from prax_bot.settings import DEFAULT_MODEL, Settings
 from tests.fakes import FakeClient
 from tests.helpers import settings as base_settings
 
@@ -28,7 +28,10 @@ def test_frozen_harness_request_is_reproducible(tmp_path) -> None:
 
 def test_effort_levels_and_top_p_are_sent_as_nemotron_expects(tmp_path) -> None:
     client = FakeClient()
-    LLM(with_sampling(tmp_path, temperature=1.0, top_p=0.95, effort="low"), client=client).complete([], [])
+    LLM(
+        with_sampling(tmp_path, model="nvidia/nemotron-3-super-120b-a12b", temperature=1.0, top_p=0.95, effort="low"),
+        client=client,
+    ).complete([], [])
     call = client.calls[0]
     assert call["temperature"] == 1.0 and call["top_p"] == 0.95
     assert call["extra_body"] == {"chat_template_kwargs": {"enable_thinking": True, "low_effort": True}}
@@ -42,6 +45,42 @@ def test_effort_levels_and_top_p_are_sent_as_nemotron_expects(tmp_path) -> None:
     )
     LLM(with_sampling(tmp_path, effort="xhigh"), client=client).complete([], [])
     assert "extra_body" not in client.calls[3] and client.calls[3]["max_tokens"] == XHIGH_COMPLETION_TOKENS
+
+
+@pytest.mark.parametrize("effort", ["off", "low", "high", "xhigh"])
+def test_nemotron_35_uses_documented_reasoning_options(tmp_path, effort: str) -> None:
+    client = FakeClient()
+    LLM(with_sampling(tmp_path, model=DEFAULT_MODEL, effort=effort), client=client).complete([], [])
+    request = client.calls[0]
+    assert request["model"] == "nvidia/Nemotron-3.5-Super-VL"
+    if effort == "low":
+        assert request["extra_body"] == {"chat_template_kwargs": {"enable_thinking": True, "medium_effort": True}}
+    elif effort == "off":
+        assert request["extra_body"] == {"chat_template_kwargs": {"enable_thinking": False}}
+    else:
+        assert "extra_body" not in request
+    assert request["max_tokens"] == (XHIGH_COMPLETION_TOKENS if effort == "xhigh" else MAX_COMPLETION_TOKENS)
+
+
+@pytest.mark.parametrize(
+    ("default_model", "investigate_model", "investigate_key", "default_key"),
+    [
+        (DEFAULT_MODEL, "nvidia/nemotron-3-super-120b-a12b", "low_effort", "medium_effort"),
+        ("nvidia/nemotron-3-super-120b-a12b", DEFAULT_MODEL, "medium_effort", "low_effort"),
+    ],
+)
+def test_reasoning_options_follow_the_model_used_for_each_turn(
+    tmp_path, default_model: str, investigate_model: str, investigate_key: str, default_key: str
+) -> None:
+    client = FakeClient()
+    llm = LLM(with_sampling(tmp_path, model=default_model, effort="low"), client=client)
+    llm.complete([], [], model=investigate_model)
+    llm.complete([], [])
+    for request, model, key in zip(
+        client.calls, (investigate_model, default_model), (investigate_key, default_key), strict=True
+    ):
+        assert request["model"] == model
+        assert request["extra_body"] == {"chat_template_kwargs": {"enable_thinking": True, key: True}}
 
 
 def test_settings_read_sampling_from_env_and_reject_bad_modes(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -58,4 +97,4 @@ def test_settings_read_sampling_from_env_and_reject_bad_modes(monkeypatch: pytes
     monkeypatch.delenv("PRAXBOT_TOP_P")
     monkeypatch.delenv("PRAXBOT_TEMPERATURE")
     d = Settings.from_env()
-    assert (d.temperature, d.top_p, d.effort) == (1.0, 0.95, "low"), "the measured defaults"
+    assert (d.temperature, d.top_p, d.effort) == (1.0, 0.95, "low")

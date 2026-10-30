@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b"
+DEFAULT_MODEL = "nvidia/Nemotron-3.5-Super-VL"
 DEFAULT_LLM_BASE_URL = "https://api.tokenfactory.nebius.com/v1/"
 EFFORT_LEVELS = ("off", "low", "high", "xhigh")  # how much the model reasons per step; high is its default
 DEFAULT_BASE_IMAGE = "python:3.12"
@@ -159,7 +159,7 @@ class Settings:
     investigate_steps: int = 6
     temperature: float = 1.0
     top_p: float | None = 0.95
-    effort: str = "low"  # off: no reasoning; low: short reasoning (default, measured); high: the model's default; xhigh: default reasoning with a 32k completion cap
+    effort: str = "low"  # off: no reasoning; low: shorter reasoning (3.5's medium mode); high: model default; xhigh: default reasoning with a 32k completion cap
     backend: str = "contree"
     context_budget: int = 80_000  # tokens of context per model call before the transcript is summarised
     system_prompt_file: str | None = None  # a file whose text replaces the built-in system prompt; user-level only

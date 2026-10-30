@@ -1,0 +1,99 @@
+{
+  "checked_at_utc": "2026-10-30T15:04:59.204029+00:00",
+  "status": "local_only_live_validation_pending",
+  "base_commit": "fb1f845c03d9fdf69c331ab21a52ce20c7c8e278",
+  "published_release_unchanged": "v0.1.1",
+  "model": "nvidia/Nemotron-3.5-Super-VL",
+  "endpoint": "https://api.tokenfactory.nebius.com/v1/",
+  "reasoning": {
+    "prax_effort": "low",
+    "chat_template_kwargs": {
+      "enable_thinking": true,
+      "medium_effort": true
+    }
+  },
+  "sources": [
+    "https://nebius.com/blog/posts/three-new-open-weight-models-from-us-companies-give-builders-more-choice",
+    "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4",
+    "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4/raw/main/chat_template.jinja"
+  ],
+  "checks": {
+    "pytest": {
+      "result": "passed",
+      "passed": 393,
+      "seconds": 73.34,
+      "command": "uv run --locked --cache-dir /tmp/prax-model-uv-cache pytest -q"
+    },
+    "ruff_check": {
+      "result": "passed",
+      "scope": "src tests scripts"
+    },
+    "ruff_format": {
+      "result": "passed",
+      "files": 137
+    },
+    "pyright": {
+      "result": "passed",
+      "errors": 0,
+      "warnings": 0,
+      "command": "uv run --locked --cache-dir /tmp/prax-model-uv-cache pyright src/prax_bot"
+    },
+    "javascript_syntax": {
+      "result": "passed",
+      "command": "node --check src/prax_bot/ui/assets/app.js"
+    },
+    "build": {
+      "result": "passed",
+      "command": "uv build --offline --cache-dir /tmp/prax-model-uv-cache",
+      "scope": "source distribution and wheel; required prompts, web assets, new model default and reasoning mapping verified in wheel",
+      "note": "Local build retains project version 0.1.1. It is not a new public release or a replacement for existing release assets."
+    },
+    "demo_command": {
+      "result": "passed",
+      "scope": "generated command exercised through real CLI with server start intercepted; default/env selection and failing fixture verified"
+    },
+    "sdk_tool_round_trip": {
+      "result": "passed",
+      "scope": "actual OpenAI SDK with httpx.MockTransport only; structured tool response, assistant/tool follow-up, final content, options and usage serialization"
+    },
+    "live_inference": {
+      "result": "not_run",
+      "reason": "Paid API usage is not authorized."
+    },
+    "live_sandbox_workflow": {
+      "result": "not_run",
+      "reason": "Replacement-model paid API usage is not authorized."
+    },
+    "publication": {
+      "result": "not_run",
+      "reason": "Push, tags/releases and Devpost changes are outside current authorization."
+    }
+  },
+  "resolved_environment_failures": [
+    "Initial restricted pytest run: 382 passed, 3 failed, 8 errors. All 11 were localhost bind or uv cache permission failures; the authorized unrestricted rerun passed all 393.",
+    "Direct pyright invocation did not select the project virtualenv and reported missing dependencies. The repository CI-style uv run invocation passed.",
+    "Dependency sync initially hit cache/network sandbox restrictions; approved PyPI dependency sync with uv.lock then succeeded."
+  ],
+  "live_smoke_estimate_usd": {
+    "published_input_per_million": 0.3,
+    "published_output_per_million": 0.9,
+    "two_calls": {
+      "total_input_tokens_assumed": 10000,
+      "output_cap_per_call": 16384,
+      "estimate": 0.0324912
+    },
+    "six_calls": {
+      "total_input_tokens_assumed": 60000,
+      "output_cap_per_call": 16384,
+      "estimate": 0.1064736
+    },
+    "proposed_authorized_limit": 0.25,
+    "conditions": "Inference-only smoke; disable SDK retries; cap call count and output. These estimates exclude sandbox use and do not establish full-demo cost."
+  },
+  "remaining_authority": [
+    "Authorize paid bounded inference smoke testing, suggested cap USD 0.25.",
+    "Authorize publishing the tested change to GitHub and creating a new versioned release; retain v0.1.1 and its historical evidence.",
+    "Authorize updating the submitted Devpost test-build link and judging instructions to the new release before 2026-10-30T17:00:00Z.",
+    "Free provider access for judges remains separately unresolved; no credential sharing is authorized by this migration."
+  ]
+}

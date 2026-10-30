@@ -2,6 +2,13 @@
 
 The benchmark history behind each decision is in the README.
 
+## Unreleased
+
+- Change the default Token Factory model to `nvidia/Nemotron-3.5-Super-VL` ahead of the previous Serverless model's November 9 retirement.
+- Map `low` effort to Nemotron 3.5's documented `medium_effort` thinking mode; preserve the previous reasoning options for existing model selections and choose options for the model used by each call.
+- Let the submission demo inherit the application default or `PRAXBOT_MODEL`, so a hard-coded model flag no longer overrides the environment.
+- Distinguish the pending migration from the published v0.1.1 build and its old-model video, live checks, and benchmark evidence. Replacement-model live validation and publication remain pending.
+
 ## 0.1.1 — 2026-10-30
 
 - Main can finish delegated or read-only work without the one-time prompt to edit its own workspace. Ordinary work sessions and comparison candidates keep the existing no-edit confirmation guard.

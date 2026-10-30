@@ -8,6 +8,12 @@ Built for the Nebius x NVIDIA Global AI Hackathon, Track 1: agents that write, r
 
 The [public source](https://github.com/wangalrebt/prax-bot) and [v0.1.1 test build](https://github.com/wangalrebt/prax-bot/releases/tag/v0.1.1) accompany the [submission overview](docs/submission.md), [judge testing instructions](docs/judging.md), and [demo recording plan](docs/demo.md). The public [2:42 YouTube demo](https://youtu.be/Ci8Vz0iyZGk) shows the actual application with English captions; [MP4](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.mp4) and [caption downloads](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.en.srt) are also available. [Browser validation](docs/validation/browser-20261030.json) and [video checks](docs/validation/video-20261030.json) preserve the evidence. [Prax Bot is submitted to the Nebius × NVIDIA Global AI Hackathon](https://devpost.com/software/prax-bot). Free provider access for judging remains pending.
 
+## Unreleased model migration
+
+This working tree defaults to `nvidia/Nemotron-3.5-Super-VL` on the same Token Factory endpoint. Nebius's retirement notice schedules the previous Serverless model, `nvidia/nemotron-3-super-120b-a12b`, for removal on November 9, 2026. The [replacement is available on Token Factory](https://nebius.com/blog/posts/three-new-open-weight-models-from-us-companies-give-builders-more-choice), but its hosted tool-call round trip and full Prax workflow still need live validation.
+
+The published **v0.1.1 downloads do not contain this migration**. The recorded video and browser/integration validation used Nemotron 3 Super; historical benchmarks retain their recorded model identities. They are not evidence of the replacement's behavior. Publication of an updated test build and any required submission-link changes remain pending.
+
 ## Requirements
 
 - macOS or Linux (Windows through WSL; native Windows is unsupported)
@@ -105,7 +111,7 @@ Options:
 
 | Flag | Default | Meaning |
 |---|---|---|
-| `--model` | `nvidia/nemotron-3-super-120b-a12b` | Any model id on Token Factory |
+| `--model` | `nvidia/Nemotron-3.5-Super-VL` | Any model id on Token Factory |
 | `--base-image` | `python:3.12` | OCI image for the sandbox; it needs `git` and `tar` |
 | `--setup` | none | Shell command run once after upload |
 | `--test-command` | none | Test command run by the harness after each round |
@@ -113,13 +119,15 @@ Options:
 | `--max-steps` | 40 | Model turns before the run stops |
 | `--backend` | `contree` | `contree` runs in a Token Factory Sandbox. `local` runs on this machine in a private virtualenv, for development only |
 | `--investigate-model` | none | A second model for the first investigation turns, for example Nemotron 3 Ultra, before switching to `--model` for edits |
-| `--temperature`, `--top-p` | 1.0, 0.95 | Sampling, NVIDIA's recommendation for Nemotron 3. Runs 1 to 10 and the frozen-harness SWE-bench runs used 0.2 |
-| `--effort` | low | How much the model reasons per step: off, low, high (the model's default, used by the frozen-harness runs), xhigh (a 32k completion cap) |
+| `--temperature`, `--top-p` | 1.0, 0.95 | Sampling. Historical Nemotron 3 Super runs 1 to 10 and the frozen-harness SWE-bench runs used 0.2 |
+| `--effort` | low | off disables thinking; low requests shorter reasoning (see below); high uses the model's default; xhigh raises the completion cap to 32k |
 | `--yes` | off | Apply without asking |
 | `--export PATH` | none | Also write the diff to a file |
 | `--verbose` | off | Full tool outputs and checkpoint ids |
 
 Environment variables `PRAXBOT_MODEL`, `PRAXBOT_TEMPERATURE`, `PRAXBOT_TOP_P`, `PRAXBOT_EFFORT`, `PRAXBOT_BASE_IMAGE`, `PRAXBOT_SETUP`, `PRAXBOT_TEST_COMMAND`, `PRAXBOT_LINT_COMMAND`, `PRAXBOT_MAX_STEPS`, `PRAXBOT_COMMAND_TIMEOUT`, `PRAXBOT_SETUP_TIMEOUT`, `PRAXBOT_IMPORT_TIMEOUT`, and `PRAXBOT_HOME` set the same things.
+
+For Nemotron 3.5 Super VL, Prax's `low` level uses NVIDIA's documented medium reasoning mode: `chat_template_kwargs={"enable_thinking": true, "medium_effort": true}`. This is its shortest documented mode that keeps thinking enabled. It does not receive the older model's `low_effort` flag. `off` sends `enable_thinking=false`; `high` and `xhigh` use the model's default thinking mode. See the [NVIDIA model card](https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4). Existing model selections retain their previous effort behavior; switching models does not transfer earlier benchmark results to the new model.
 
 ### Config files
 

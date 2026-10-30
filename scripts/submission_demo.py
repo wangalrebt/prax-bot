@@ -44,8 +44,6 @@ def main() -> None:
         str(repo),
         "--backend",
         "contree",
-        "--model",
-        "nvidia/nemotron-3-super-120b-a12b",
         "--base-image",
         "python:3.12",
         "--effort",
@@ -63,7 +61,7 @@ def main() -> None:
     ]
     print(f"Demo repository: {repo}")
     print(f"Session records: {directory / 'home'}")
-    print("Start the live sandbox demo:")
+    print("Start the live sandbox demo (uses PRAXBOT_MODEL if set, otherwise the application default):")
     print(shlex.join(command))
     print("Check the host repository before and after Apply (fails before, passes after):")
     print(shlex.join(["git", "-C", str(repo), "diff"]))

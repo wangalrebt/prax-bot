@@ -12,7 +12,7 @@ from rich.markup import escape
 from rich.table import Table
 
 from prax_bot import __version__
-from prax_bot.settings import contree_auth_ini
+from prax_bot.settings import DEFAULT_MODEL, contree_auth_ini
 from prax_bot.ui.common import (
     NO_SANDBOX_ACCESS,
     build_settings,
@@ -20,8 +20,8 @@ from prax_bot.ui.common import (
     maybe_repo_root,
 )
 
-STARTER_USER_CONFIG = """# Prax Bot settings. A flag or a PRAXBOT_* environment variable overrides anything here.
-# model = "nvidia/nemotron-3-super-120b-a12b"
+STARTER_USER_CONFIG = f"""# Prax Bot settings. A flag or a PRAXBOT_* environment variable overrides anything here.
+# model = "{DEFAULT_MODEL}"
 # effort = "low"            # off, low, high, xhigh
 # backend = "contree"       # contree: a Token Factory sandbox; local: this machine, for development
 # base_image = "python:3.12"

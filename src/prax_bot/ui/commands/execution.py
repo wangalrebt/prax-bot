@@ -18,7 +18,7 @@ from rich.prompt import Confirm
 from prax_bot import __version__
 from prax_bot.core.prompts import prompt
 from prax_bot.runtime.session import Session
-from prax_bot.settings import Settings
+from prax_bot.settings import DEFAULT_MODEL, Settings
 from prax_bot.ui.common import (
     build_settings,
     console,
@@ -33,7 +33,7 @@ from prax_bot.workspace.types import WorkspaceError
 RepoOpt = Annotated[Path, typer.Option("--repo", "-C", help="A path inside the git repository to work on")]
 
 
-ModelOpt = Annotated[str | None, typer.Option(help="Model id on Token Factory. Default: Nemotron 3 Super")]
+ModelOpt = Annotated[str | None, typer.Option(help=f"Model id on Token Factory. Default: {DEFAULT_MODEL}")]
 
 
 BaseImageOpt = Annotated[str | None, typer.Option(help="OCI image for the sandbox. Default: python:3.12")]

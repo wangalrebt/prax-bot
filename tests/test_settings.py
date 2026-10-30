@@ -4,7 +4,21 @@ from pathlib import Path
 
 import pytest
 
-from prax_bot.settings import Settings, read_auth_ini
+from prax_bot.settings import DEFAULT_MODEL, Settings, read_auth_ini
+
+
+def test_default_model_and_starter_config_use_nemotron_35(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from prax_bot.ui.commands.configuration import STARTER_USER_CONFIG
+
+    monkeypatch.setenv("PRAXBOT_HOME", str(tmp_path))
+    monkeypatch.setenv("CONTREE_HOME", str(tmp_path))
+    monkeypatch.delenv("PRAXBOT_MODEL", raising=False)
+    settings = Settings.from_env()
+    assert settings.model == DEFAULT_MODEL == "nvidia/Nemotron-3.5-Super-VL"
+    assert f'# model = "{DEFAULT_MODEL}"' in STARTER_USER_CONFIG
+    monkeypatch.setenv("PRAXBOT_MODEL", "custom/model")
+    assert Settings.from_env().model == "custom/model"
+    assert Settings.from_env(model="explicit/model").model == "explicit/model"
 
 
 def test_settings_fall_back_to_the_sdk_auth_ini(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

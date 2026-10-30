@@ -53,7 +53,7 @@ class LLM:
         self.top_p = settings.top_p
         self.effort = settings.effort
 
-    def request_options(self) -> dict[str, Any]:
+    def request_options(self, *, model: str | None = None) -> dict[str, Any]:
         """Sampling and reasoning options for one request. Effort 'high' sends nothing extra: the model's default."""
         options: dict[str, Any] = {
             "max_tokens": XHIGH_COMPLETION_TOKENS if self.effort == "xhigh" else MAX_COMPLETION_TOKENS
@@ -61,7 +61,13 @@ class LLM:
         if self.top_p is not None:
             options["top_p"] = self.top_p
         if self.effort == "low":
-            options["extra_body"] = {"chat_template_kwargs": {"enable_thinking": True, "low_effort": True}}
+            # Nemotron 3.5's shortest documented reasoning mode is called medium;
+            # its template has no low_effort flag. Use the model for this call,
+            # which may be the investigation model rather than the editing model.
+            effort_key = (
+                "medium_effort" if (model or self.model).lower() == "nvidia/nemotron-3.5-super-vl" else "low_effort"
+            )
+            options["extra_body"] = {"chat_template_kwargs": {"enable_thinking": True, effort_key: True}}
         elif self.effort == "off":
             options["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
         return options
@@ -83,7 +89,7 @@ class LLM:
             messages=cast(Any, messages),  # plain dicts in the OpenAI wire shape; the SDK's TypedDicts add nothing here
             temperature=self.temperature if temperature is None else temperature,
             **tool_fields,
-            **self.request_options(),
+            **self.request_options(model=chosen),
         )
         self.last_finish_reason = getattr(response.choices[0], "finish_reason", None)
         usage = getattr(response, "usage", None)
