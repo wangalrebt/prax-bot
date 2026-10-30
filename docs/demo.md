@@ -1,6 +1,6 @@
 # Prax Bot — demo video and recording plan
 
-Actual application footage and host command output have been captured, and the key screens have been visually reviewed. The [browser validation record](validation/browser-20261030.json) includes the successful workflow and both earlier unsuccessful attempts. The reviewed [2:42 demo video](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.mp4) and [English captions](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.en.srt) are available as release downloads; the required YouTube upload remains pending. [Video checks](validation/video-20261030.json) record the duration, codecs, hashes, captions, and editing disclosures. The outline below was the recording plan; the published edit lasts 162.5 seconds. Use the fresh fixture and prompts in [testing instructions](judging.md); inspect the complete results before recording. Keep the final public YouTube cut under three minutes, and label any omitted waiting time. Do not replace live results with mock UI or simulated tool output.
+Actual application footage and host command output have been captured, and the key screens have been visually reviewed. The [browser validation record](validation/browser-20261030.json) includes the successful workflow and both earlier unsuccessful attempts. The reviewed [2:42 demo is public on YouTube](https://youtu.be/Ci8Vz0iyZGk) with English captions. The [MP4](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.mp4) and [English captions](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.en.srt) remain available as release downloads. [Video checks](validation/video-20261030.json) record the duration, codecs, hashes, captions, and editing disclosures. The outline below was the recording plan; the published edit lasts 162.5 seconds. Use the fresh fixture and prompts in [testing instructions](judging.md); inspect the complete results before recording. Keep the final public YouTube cut under three minutes, and label any omitted waiting time. Do not replace live results with mock UI or simulated tool output.
 
 | Time | Show | Suggested narration |
 |---|---|---|
@@ -22,7 +22,7 @@ The fixture intentionally leaves `multiply` outside the task. Show that it remai
 - Keep API keys, authorization files, local browser tokens, and unrelated desktop content out of frame.
 - Show the real outcomes, including a visible error or disclosed retry if one occurs. Label time cuts.
 - Current UI footage and visual review are complete. Keep the browser validation record separate from the earlier HTTP integration test, retain unsuccessful takes as diagnostics, and disclose that the final successful prompt explicitly waits for child completion.
-- Check video sound/legibility and public YouTube visibility before adding its URL to the submission.
-- Keep source/test-build links available and add the public video URL to `submission.md`.
+- Video checks are recorded, and YouTube Studio confirmed publication with Public visibility. The upload includes 38 English caption cues and discloses synthetic narration.
+- The public video URL is included in `submission.md`; keep the source, test build, and video links available during judging.
 
 Optional supporting footage: show Stop cancelling a queued instruction and accepting a later follow-up, or restart the server and reopen saved sessions. Use this only if the core flow still fits under three minutes.

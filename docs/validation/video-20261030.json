@@ -150,9 +150,17 @@
         "sha256": "bc6d51f4d156ec311e998f93eca154e18a14a00fe4f6acea3fc00779e17b0337"
       }
     ],
-    "youtube_url": null,
-    "youtube_status": "pending account sign-in and upload",
-    "hackathon_submitted": false
+    "youtube_url": "https://youtu.be/Ci8Vz0iyZGk",
+    "youtube_status": "published",
+    "hackathon_submitted": false,
+    "youtube_title": "Prax Bot — Review the Evidence Before Apply | Nebius × NVIDIA Hackathon",
+    "youtube_visibility": "Public",
+    "youtube_publication_evidence": "The publication operator observed YouTube Studio’s Video published confirmation with Public visibility.",
+    "youtube_english_caption_cues": 38,
+    "youtube_synthetic_narration_disclosed": true,
+    "youtube_made_for_kids": false,
+    "youtube_category": "Science & Technology",
+    "youtube_copyright_checks": "No issues found"
   },
   "browser_evidence": "browser-20261030.json"
 }
