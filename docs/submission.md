@@ -1,8 +1,8 @@
-# Prax Bot — submission draft
+# Prax Bot — hackathon submission
 
-Prepared for the Nebius × NVIDIA Global AI Hackathon, **Coding and Agentic Engineering Track**.
+Submitted to the Nebius × NVIDIA Global AI Hackathon, **Coding and Agentic Engineering Track**.
 
-This file contains copy for the submission form. Source and test-build links are below. The [actual-app demo is public on YouTube](https://youtu.be/Ci8Vz0iyZGk). Final submission and judging-access arrangements still need to be completed.
+The owner submitted [Prax Bot on Devpost](https://devpost.com/software/prax-bot); Devpost’s confirmation banner and submission history were verified. Source and test-build links are below, and the [actual-app demo is public on YouTube](https://youtu.be/Ci8Vz0iyZGk). Free provider access for judging remains pending.
 
 ## Project name
 
@@ -91,6 +91,6 @@ The first repository commit is dated September 5, 2026. Work recorded during the
 | Project description and technology feedback | Ready in this file |
 | Verification evidence | [Browser validation, including failed attempts](validation/browser-20261030.json), [earlier integration validation](validation/live-20261029.json), and [testing instructions](judging.md) |
 | Team and project origin | Confirmed solo individual entry, no organization, and a new project |
-| Devpost draft | [Prax Bot](https://devpost.com/software/prax-bot) — saved draft; **not submitted to the hackathon** |
+| Devpost submission | [Prax Bot](https://devpost.com/software/prax-bot) — **submitted to the Nebius × NVIDIA Global AI Hackathon**; confirmed by Devpost’s banner and submission history |
 
-The [official rules](https://nebiusglobalaihackathon.devpost.com/rules) list the deadline as **October 30, 2026, 10:00 a.m. Pacific** and require a public code repository with an open-source license, a demo/test-build URL, and a public YouTube demonstration under three minutes. Testing access must remain free for the judging period. Check the live form and rules when completing the entry. Final submission has not been made.
+The [official rules](https://nebiusglobalaihackathon.devpost.com/rules) list the deadline as **October 30, 2026, 10:00 a.m. Pacific** and require a public code repository with an open-source license, a demo/test-build URL, and a public YouTube demonstration under three minutes. Testing access must remain free for the judging period. The owner completed final submission. Free provider access for judging still needs to be arranged.
