@@ -1,0 +1,326 @@
+{
+  "started_at_utc": "2026-10-30T15:42:19.955155+00:00",
+  "model": "nvidia/Nemotron-3.5-Super-VL",
+  "status": "passed_after_harness_assertion_corrections",
+  "authorization_usd": 2.0,
+  "rates_usd_per_million": {
+    "input": 0.3,
+    "output": 0.9
+  },
+  "scope": "Live inference compatibility and real agent on a disposable local repository. No paid sandbox or endpoint provisioning.",
+  "limits": {
+    "max_requests": 30,
+    "max_output_tokens_per_request": 16384,
+    "max_request_json_bytes": 90000,
+    "sdk_retries": 0,
+    "inference_reservation_limit_usd": 1.5
+  },
+  "calls": [
+    {
+      "number": 1,
+      "effort": "low",
+      "reserved_usd": 0.017343900000000002,
+      "request_json_bytes": 469,
+      "status": "completed",
+      "elapsed_seconds": 0.751,
+      "prompt_tokens": 314,
+      "completion_tokens": 52,
+      "finish_reason": "tool_calls",
+      "tool_names": [
+        "ping"
+      ],
+      "visible_content_nonempty": false,
+      "estimated_cost_usd": 0.000141
+    },
+    {
+      "number": 2,
+      "effort": "low",
+      "reserved_usd": 0.017358,
+      "request_json_bytes": 516,
+      "status": "completed",
+      "elapsed_seconds": 0.663,
+      "prompt_tokens": 101,
+      "completion_tokens": 29,
+      "finish_reason": "stop",
+      "tool_names": [],
+      "visible_content_nonempty": true,
+      "estimated_cost_usd": 5.6399999999999995e-05
+    },
+    {
+      "number": 3,
+      "effort": "low",
+      "reserved_usd": 0.017343900000000002,
+      "request_json_bytes": 469,
+      "status": "completed",
+      "elapsed_seconds": 0.777,
+      "prompt_tokens": 314,
+      "completion_tokens": 54,
+      "finish_reason": "tool_calls",
+      "tool_names": [
+        "ping"
+      ],
+      "visible_content_nonempty": false,
+      "estimated_cost_usd": 0.0001428
+    },
+    {
+      "number": 4,
+      "effort": "low",
+      "reserved_usd": 0.017358,
+      "request_json_bytes": 516,
+      "status": "completed",
+      "elapsed_seconds": 0.703,
+      "prompt_tokens": 101,
+      "completion_tokens": 42,
+      "finish_reason": "stop",
+      "tool_names": [],
+      "visible_content_nonempty": true,
+      "estimated_cost_usd": 6.809999999999999e-05
+    },
+    {
+      "number": 5,
+      "effort": "off",
+      "reserved_usd": 0.017229,
+      "request_json_bytes": 86,
+      "status": "completed",
+      "elapsed_seconds": 0.88,
+      "prompt_tokens": 22,
+      "completion_tokens": 3,
+      "finish_reason": "stop",
+      "tool_names": [],
+      "visible_content_nonempty": true,
+      "estimated_cost_usd": 9.3e-06
+    },
+    {
+      "number": 6,
+      "effort": "high",
+      "reserved_usd": 0.017229,
+      "request_json_bytes": 86,
+      "status": "completed",
+      "elapsed_seconds": 1.094,
+      "prompt_tokens": 22,
+      "completion_tokens": 88,
+      "finish_reason": "stop",
+      "tool_names": [],
+      "visible_content_nonempty": true,
+      "estimated_cost_usd": 8.58e-05
+    },
+    {
+      "number": 7,
+      "effort": "low",
+      "reserved_usd": 0.0210243,
+      "request_json_bytes": 12737,
+      "status": "completed",
+      "elapsed_seconds": 1.18,
+      "prompt_tokens": 3354,
+      "completion_tokens": 76,
+      "finish_reason": "tool_calls",
+      "tool_names": [
+        "read_file",
+        "read_file"
+      ],
+      "visible_content_nonempty": false,
+      "estimated_cost_usd": 0.0010746
+    },
+    {
+      "number": 8,
+      "effort": "low",
+      "reserved_usd": 0.021315900000000002,
+      "request_json_bytes": 13709,
+      "status": "completed",
+      "elapsed_seconds": 1.128,
+      "prompt_tokens": 3617,
+      "completion_tokens": 134,
+      "finish_reason": "tool_calls",
+      "tool_names": [
+        "edit_file"
+      ],
+      "visible_content_nonempty": false,
+      "estimated_cost_usd": 0.0012056999999999999
+    },
+    {
+      "number": 9,
+      "effort": "low",
+      "reserved_usd": 0.021449700000000002,
+      "request_json_bytes": 14155,
+      "status": "completed",
+      "elapsed_seconds": 0.765,
+      "prompt_tokens": 3725,
+      "completion_tokens": 49,
+      "finish_reason": "tool_calls",
+      "tool_names": [
+        "run"
+      ],
+      "visible_content_nonempty": false,
+      "estimated_cost_usd": 0.0011615999999999998
+    },
+    {
+      "number": 10,
+      "effort": "low",
+      "reserved_usd": 0.0216237,
+      "request_json_bytes": 14735,
+      "status": "completed",
+      "elapsed_seconds": 1.129,
+      "prompt_tokens": 3866,
+      "completion_tokens": 94,
+      "finish_reason": "tool_calls",
+      "tool_names": [
+        "finish"
+      ],
+      "visible_content_nonempty": false,
+      "estimated_cost_usd": 0.0012443999999999999
+    }
+  ],
+  "checks": [
+    {
+      "name": "model_listed_by_existing_account",
+      "passed": true
+    },
+    {
+      "name": "auto_structured_tool_call",
+      "passed": true
+    },
+    {
+      "name": "auto_assistant_tool_result_round_trip",
+      "passed": true,
+      "response": "pong"
+    },
+    {
+      "name": "forced_structured_tool_call",
+      "passed": true
+    },
+    {
+      "name": "forced_assistant_tool_result_round_trip",
+      "passed": true,
+      "response": "pong"
+    },
+    {
+      "name": "off_no_tool_completion",
+      "passed": true,
+      "response": "pong"
+    },
+    {
+      "name": "high_no_tool_completion",
+      "passed": true,
+      "response": "pong"
+    },
+    {
+      "name": "local_fixture_baseline_fails",
+      "passed": true,
+      "result": {
+        "exit_code": 1,
+        "output": "test_add (test_calc.ArithmeticTests.test_add) ... FAIL\n\n======================================================================\nFAIL: test_add (test_calc.ArithmeticTests.test_add)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<disposable-fixture>/repo/test_calc.py\", line 7, in test_add\n    self.assertEqual(add(2, 3), 5)\nAssertionError: -1 != 5\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n"
+      }
+    },
+    {
+      "name": "live_agent_finished",
+      "passed": true,
+      "reason": "finish",
+      "summary": "Fixed calc.add to return a + b instead of a - b. Only calc.py was modified; multiply was left untouched (it remains a + b, outside the task scope). Verified by running python -B -m unittest -v: 1 test (test_add) passed, OK."
+    },
+    {
+      "name": "independent_local_checks_passed",
+      "passed": true,
+      "checks": [
+        {
+          "name": "tests",
+          "command": "python -B -m unittest -v",
+          "image": "local:snap-2",
+          "exit_code": 0,
+          "output": "\ntest_add (test_calc.ArithmeticTests.test_add) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+          "elapsed_s": 0.02667650004150346,
+          "timed_out": false,
+          "error": null,
+          "where": "fork",
+          "failures": [],
+          "baseline_exit_code": 1,
+          "new_failures": [],
+          "known_failures": [],
+          "baseline": {
+            "name": "tests",
+            "command": "python -B -m unittest -v",
+            "image": "local:snap-0",
+            "exit_code": 1,
+            "output": "\ntest_add (test_calc.ArithmeticTests.test_add) ... FAIL\n\n======================================================================\nFAIL: test_add (test_calc.ArithmeticTests.test_add)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<disposable-fixture>/home/local/20261030T154225Z-9b6dd0/tmp/fork-1793374947393036000/current/test_calc.py\", line 7, in test_add\n    self.assertEqual(add(2, 3), 5)\nAssertionError: -1 != 5\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n",
+            "elapsed_s": 0.02619383402634412,
+            "timed_out": false,
+            "error": null,
+            "where": "fork",
+            "failures": [
+              "(failures=1)"
+            ],
+            "baseline_exit_code": null,
+            "new_failures": [],
+            "known_failures": [],
+            "baseline": null,
+            "passed": false,
+            "attribution": ""
+          },
+          "passed": true,
+          "attribution": ""
+        }
+      ]
+    },
+    {
+      "name": "host_unchanged_before_apply",
+      "passed": true
+    },
+    {
+      "name": "only_calc_changed",
+      "passed": true,
+      "diff": "diff --git a/calc.py b/calc.py\nindex fb2f574..0d91a19 100644\n--- a/calc.py\n+++ b/calc.py\n@@ -1,5 +1,5 @@\n def add(a, b):\n-    return a - b\n+    return a + b\n \n \n def multiply(a, b):\n",
+      "initial_passed": false,
+      "corrected_assertion": "Changes.files == ('calc.py',)"
+    },
+    {
+      "name": "apply_selected_calc",
+      "passed": true,
+      "evidence": "Resumed persisted run applied=true; host Git diff equals the saved calc.py-only patch."
+    },
+    {
+      "name": "host_tests_pass_after_apply",
+      "passed": true,
+      "result": {
+        "exit_code": 0,
+        "output": "test_add (test_calc.ArithmeticTests.test_add) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n"
+      }
+    },
+    {
+      "name": "multiply_preserved",
+      "passed": true
+    },
+    {
+      "name": "recovery_used_no_new_model_calls",
+      "passed": true,
+      "saved_model_calls": 4
+    }
+  ],
+  "completed_at_utc": "2026-10-30T15:45:02.585919+00:00",
+  "usage": {
+    "calls_attempted": 10,
+    "calls_with_usage": 10,
+    "prompt_tokens": 15436,
+    "completion_tokens": 621,
+    "estimated_cost_usd": 0.005189699999999999,
+    "conservative_reservation_usd": 0.1892754
+  },
+  "harness_issue": {
+    "type": "assertion_type_and_resume_accounting",
+    "detail": "Initial harness compared Changes.files tuple with a list. Recovery correctly applied the saved patch, then incorrectly expected resumed usage to start at zero; the resumed run preserved the original four calls. Read-only verification of the resumed run confirms the exact patch, passing host tests and unchanged model-call count. The original run remains an unapplied historical record. No model call was repeated.",
+    "initial_error": {
+      "type": "AssertionError",
+      "message": "only_calc_changed"
+    },
+    "additional_paid_calls": 0
+  },
+  "fixture": {
+    "backend": "local",
+    "max_steps": 12,
+    "agent_calls": 4,
+    "prompt_tokens": 14562,
+    "completion_tokens": 353,
+    "diff": "diff --git a/calc.py b/calc.py\nindex fb2f574..0d91a19 100644\n--- a/calc.py\n+++ b/calc.py\n@@ -1,5 +1,5 @@\n def add(a, b):\n-    return a - b\n+    return a + b\n \n \n def multiply(a, b):\n"
+  },
+  "source_code_commit": "cbd6ee2c3ad270acd3b89ed9a1c844c060842a5b",
+  "price_source": "https://nebius.com/blog/posts/three-new-open-weight-models-from-us-companies-give-builders-more-choice",
+  "billing_note": "Token counts are actual API usage; dollar amount is an estimate using published rates, not a billing invoice. No sandbox was used by this test."
+}

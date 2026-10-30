@@ -1,6 +1,6 @@
 [project]
 name = "prax-bot"
-version = "0.1.1"
+version = "0.1.2"
 description = "A coding agent that works inside a Nebius Token Factory Sandbox, powered by NVIDIA Nemotron."
 readme = "README.md"
 license = "MIT"

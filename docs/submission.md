@@ -4,6 +4,10 @@ Submitted to the Nebius × NVIDIA Global AI Hackathon, **Coding and Agentic Engi
 
 The owner submitted [Prax Bot on Devpost](https://devpost.com/software/prax-bot); Devpost’s confirmation banner and submission history were verified. Source and test-build links are below, and the [actual-app demo is public on YouTube](https://youtu.be/Ci8Vz0iyZGk). Free provider access for judging remains pending.
 
+## Model migration for judging
+
+Version 0.1.2 changes the default to `nvidia/Nemotron-3.5-Super-VL` ahead of the previous Serverless model's November 9, 2026 retirement. It also updates the reasoning options and lets the demo honor `PRAXBOT_MODEL`. The replacement passed [live API compatibility and a local-backend coding fixture](validation/live-model-migration-20261030.json); the full sandbox/browser demo was not rerun. The v0.1.1 release and existing video remain preserved; their live results used Nemotron 3 Super.
+
 ## Project name
 
 Prax Bot
@@ -24,7 +28,7 @@ Prax grew out of wanting those answers alongside the diff. The developer should 
 
 ## What it does
 
-Give Prax a task in a Git repository. NVIDIA Nemotron 3 Super reads files, edits code, and runs commands inside a Nebius Token Factory Sandbox. Commands and edits advance an immutable image, preserving checkpoints of the work.
+Give Prax a task in a Git repository. NVIDIA Nemotron reads files, edits code, and runs commands inside a Nebius Token Factory Sandbox. Commands and edits advance an immutable image, preserving checkpoints of the work.
 
 Prax independently runs configured checks against a clean baseline and against the proposed patch. The Before / After view presents both results, including commands, exit codes, timing, and logs. This helps distinguish pre-existing failures from regressions and catches changes that depend on the agent's incidental environment.
 
@@ -34,7 +38,7 @@ A persistent Main session can delegate to named work sessions and inspect their 
 
 ## How we built it
 
-Prax is a Python application with a localhost web interface and terminal front ends. Nemotron 3 Super supplies the coding decisions through Token Factory's inference API using structured tool calls. The ConTree SDK supplies the sandbox execution and immutable images used for checkpoints, independent attempts, and forked verification.
+Prax is a Python application with a localhost web interface and terminal front ends. The initial build used Nemotron 3 Super for coding decisions through Token Factory's inference API using structured tool calls; v0.1.2 defaults to Nemotron 3.5 Super VL. The ConTree SDK supplies the sandbox execution and immutable images used for checkpoints, independent attempts, and forked verification.
 
 The verification fork begins with the baseline environment plus the patch that an Apply would write. A second fork checks the unchanged baseline. The runtime records that evidence independently of the model's final summary. Verification statuses distinguish passing checks, failures, unavailable evidence, and stale results.
 
@@ -48,13 +52,15 @@ Model behavior also shaped the harness. Bounded file reads, structured editing f
 
 ## Accomplishments
 
-The earlier [live integration exercise](validation/live-20261029.json) used **29 Nemotron model calls** against real Token Factory Sandboxes. It verified Main delegation, concurrent sessions, a patch passing against a failing baseline, two independently checked alternatives, explicit Apply, queue cancellation, and reopen/restart recovery. The selected patch changed only the intended file and passed the test on the host after Apply.
+The v0.1.2 [live migration check](validation/live-model-migration-20261030.json) used **10 API calls and 16,057 tokens**: six compatibility calls and four calls through the real Prax agent on a disposable local-backend fixture. Tool calls and assistant/tool-result follow-ups passed. The fixture's baseline failed, the proposed patch passed independent checks, and the host remained unchanged until explicit Apply. After Apply, only `calc.py` changed, host tests passed, and `multiply` was untouched. Estimated inference cost was **US$0.00519**, with SDK retries disabled. This small local-backend exercise does not establish replacement-model behavior for the full sandbox/browser demo.
+
+With Nemotron 3 Super, the earlier [live integration exercise](validation/live-20261029.json) used **29 Nemotron model calls** against real Token Factory Sandboxes. It verified Main delegation, concurrent sessions, a patch passing against a failing baseline, two independently checked alternatives, explicit Apply, queue cancellation, and reopen/restart recovery. The selected patch changed only the intended file and passed the test on the host after Apply.
 
 The separate [browser workflow validation](validation/browser-20261030.json) completed with **19 calls and 73,145 tokens** in its successful attempt. Main delegated without editing its own workspace. The child passed independent checks against a failing baseline, both comparison candidates passed, and choosing A left the host unchanged. Apply changed only `calc.py`, after which the host test passed. Renaming, closing, and reopening the child preserved its patch and check evidence. The key screens were visually reviewed; no layout issues or browser page errors were observed.
 
 The browser record also retains two unsuccessful attempts. First, the no-edit finish guard prompted Main to edit its own workspace against the instruction; v0.1.1 corrects that guard for Main. After that fix, non-waiting polling exhausted the step budget, interrupted the child, and produced an unsupported passing-test summary. The successful prompt explicitly requested `wait_seconds=30` and prohibited duplicate follow-ups and stopping the child. All three attempts used **49 calls and 231,692 tokens**. These small functional fixtures do not establish general coding quality.
 
-The application also passed **383 automated tests**, lint, formatting checks, type checking, and JavaScript syntax validation. The [public YouTube demo](https://youtu.be/Ci8Vz0iyZGk) is 162.5 seconds long and includes English captions. The [MP4 download](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.mp4), [caption download](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.en.srt), and [video checks](validation/video-20261030.json) accompany it.
+The model migration passed **393 automated tests**, lint, formatting checks, type checking, JavaScript syntax validation, and source/wheel builds. The earlier v0.1.1 build passed 383 automated tests. The separate live migration check above covers hosted compatibility for its bounded fixture. The [public YouTube demo](https://youtu.be/Ci8Vz0iyZGk) is 162.5 seconds long and includes English captions. The [MP4 download](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.mp4), [caption download](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.en.srt), and [video checks](validation/video-20261030.json) accompany it.
 
 ## What we learned
 
@@ -68,7 +74,7 @@ Broader task evaluation and more language/toolchain coverage are planned. Improv
 
 ## Built with
 
-Python 3.12, NVIDIA Nemotron 3 Super, Nebius Token Factory inference, Token Factory Sandboxes, ConTree SDK, OpenAI-compatible client, Pydantic, Typer, Rich, Textual, JavaScript, HTML/CSS, pytest, Ruff, Pyright, uv.
+Python 3.12, NVIDIA Nemotron 3.5 Super VL (v0.1.2 default) and Nemotron 3 Super (earlier development and recorded evidence), Nebius Token Factory inference, Token Factory Sandboxes, ConTree SDK, OpenAI-compatible client, Pydantic, Typer, Rich, Textual, JavaScript, HTML/CSS, pytest, Ruff, Pyright, uv.
 
 ## Nebius and NVIDIA feedback
 
@@ -85,11 +91,11 @@ The first repository commit is dated September 5, 2026. Work recorded during the
 | Item | Status |
 |---|---|
 | Public source repository | [wangalrebt/prax-bot](https://github.com/wangalrebt/prax-bot), with its MIT license |
-| Working demo or test-build URL | [v0.1.1 release](https://github.com/wangalrebt/prax-bot/releases/tag/v0.1.1), with [testing instructions](judging.md); usable free judge access must still be arranged |
+| Working demo or test-build URL | [v0.1.2 release](https://github.com/wangalrebt/prax-bot/releases/tag/v0.1.2), with [testing instructions](judging.md); usable free judge access must still be arranged |
 | Demo recording | [2:42 MP4](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.mp4) and [English captions](https://github.com/wangalrebt/prax-bot/releases/download/v0.1.1/prax-bot-demo.en.srt), with actual app footage and disclosed edits |
 | Public YouTube video | [Watch Prax Bot](https://youtu.be/Ci8Vz0iyZGk) — Public visibility, 2:42, with English captions |
 | Project description and technology feedback | Ready in this file |
-| Verification evidence | [Browser validation, including failed attempts](validation/browser-20261030.json), [earlier integration validation](validation/live-20261029.json), and [testing instructions](judging.md) |
+| Verification evidence | [Live model migration](validation/live-model-migration-20261030.json), [browser validation, including failed attempts](validation/browser-20261030.json), [earlier integration validation](validation/live-20261029.json), and [testing instructions](judging.md) |
 | Team and project origin | Confirmed solo individual entry, no organization, and a new project |
 | Devpost submission | [Prax Bot](https://devpost.com/software/prax-bot) — **submitted to the Nebius × NVIDIA Global AI Hackathon**; confirmed by Devpost’s banner and submission history |
 

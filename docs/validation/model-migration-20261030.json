@@ -1,6 +1,6 @@
 {
   "checked_at_utc": "2026-10-30T15:04:59.204029+00:00",
-  "status": "local_only_live_validation_pending",
+  "status": "local_and_live_compatibility_validated_for_v0.1.2",
   "base_commit": "fb1f845c03d9fdf69c331ab21a52ce20c7c8e278",
   "published_release_unchanged": "v0.1.1",
   "model": "nvidia/Nemotron-3.5-Super-VL",
@@ -46,7 +46,7 @@
       "result": "passed",
       "command": "uv build --offline --cache-dir /tmp/prax-model-uv-cache",
       "scope": "source distribution and wheel; required prompts, web assets, new model default and reasoning mapping verified in wheel",
-      "note": "Local build retains project version 0.1.1. It is not a new public release or a replacement for existing release assets."
+      "note": "Initial local build retained 0.1.1; v0.1.2 release assets are built separately from the clean release commit. Existing v0.1.1 assets are preserved."
     },
     "demo_command": {
       "result": "passed",
@@ -57,16 +57,18 @@
       "scope": "actual OpenAI SDK with httpx.MockTransport only; structured tool response, assistant/tool follow-up, final content, options and usage serialization"
     },
     "live_inference": {
-      "result": "not_run",
-      "reason": "Paid API usage is not authorized."
+      "result": "passed",
+      "record": "live-model-migration-20261030.json",
+      "scope": "automatic and forced tool calls, assistant/tool-result followups, off and high completion checks"
     },
     "live_sandbox_workflow": {
       "result": "not_run",
-      "reason": "Replacement-model paid API usage is not authorized."
+      "reason": "This migration rechecked the live model using the local backend. Historical sandbox/browser evidence remains tied to the original model."
     },
-    "publication": {
-      "result": "not_run",
-      "reason": "Push, tags/releases and Devpost changes are outside current authorization."
+    "live_local_workflow": {
+      "result": "passed",
+      "record": "live-model-migration-20261030.json",
+      "scope": "real replacement model; disposable local fixture, independent baseline/patch checks, selected Apply and passing host test; four model calls"
     }
   },
   "resolved_environment_failures": [
@@ -87,13 +89,23 @@
       "output_cap_per_call": 16384,
       "estimate": 0.1064736
     },
-    "proposed_authorized_limit": 0.25,
-    "conditions": "Inference-only smoke; disable SDK retries; cap call count and output. These estimates exclude sandbox use and do not establish full-demo cost."
+    "conditions": "Inference-only smoke; disable SDK retries; cap call count and output. These estimates exclude sandbox use and do not establish full-demo cost.",
+    "note": "Pre-test estimates; actual observed usage is recorded separately."
   },
   "remaining_authority": [
-    "Authorize paid bounded inference smoke testing, suggested cap USD 0.25.",
-    "Authorize publishing the tested change to GitHub and creating a new versioned release; retain v0.1.1 and its historical evidence.",
-    "Authorize updating the submitted Devpost test-build link and judging instructions to the new release before 2026-10-30T17:00:00Z.",
-    "Free provider access for judges remains separately unresolved; no credential sharing is authorized by this migration."
-  ]
+    "Free provider access for judges remains separately unresolved; no credential sharing was performed."
+  ],
+  "authorization": {
+    "approved_at_utc": "2026-10-30T15:38:00Z",
+    "one_time_api_limit_usd": 2.0,
+    "publication": "main, new v0.1.2 release and two Devpost links; preserve v0.1.1 and existing video"
+  },
+  "actual_live_usage": {
+    "calls_attempted": 10,
+    "calls_with_usage": 10,
+    "prompt_tokens": 15436,
+    "completion_tokens": 621,
+    "estimated_cost_usd": 0.005189699999999999,
+    "conservative_reservation_usd": 0.1892754
+  }
 }

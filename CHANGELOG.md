@@ -2,12 +2,13 @@
 
 The benchmark history behind each decision is in the README.
 
-## Unreleased
+## 0.1.2 — 2026-10-30
 
 - Change the default Token Factory model to `nvidia/Nemotron-3.5-Super-VL` ahead of the previous Serverless model's November 9 retirement.
 - Map `low` effort to Nemotron 3.5's documented `medium_effort` thinking mode; preserve the previous reasoning options for existing model selections and choose options for the model used by each call.
 - Let the submission demo inherit the application default or `PRAXBOT_MODEL`, so a hard-coded model flag no longer overrides the environment.
-- Distinguish the pending migration from the published v0.1.1 build and its old-model video, live checks, and benchmark evidence. Replacement-model live validation and publication remain pending.
+- Preserve the v0.1.1 build and its old-model video, live checks, and benchmark evidence. Add migration regression coverage; all 393 local tests and build checks passed.
+- Validate the replacement with 10 live API calls: structured tool compatibility and a real Prax local-backend fixture with a failing baseline, passing patch, and explicit Apply followed by passing host tests. The full sandbox/browser demo was not rerun; [the live record](docs/validation/live-model-migration-20261030.json) preserves scope, usage, and verification-harness corrections.
 
 ## 0.1.1 — 2026-10-30
 
